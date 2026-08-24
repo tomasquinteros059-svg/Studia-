@@ -141,8 +141,33 @@
   .chead .bar i{background:#fff}
   .chead .cm{font-size:11.5px; opacity:.88; margin-top:6px}
 
-  .segs{display:flex; gap:6px; padding:11px 14px; border-bottom:1px solid var(--app-sel); overflow-x:auto; scrollbar-width:none}
+  .segbar{display:flex; align-items:center; border-bottom:1px solid var(--app-sel); flex:0 0 auto}
+  .segs{display:flex; gap:6px; padding:11px 14px; flex:1; min-width:0; overflow-x:auto; scrollbar-width:none}
   .segs::-webkit-scrollbar{display:none}
+  .kebab{flex:0 0 auto; background:none; border:none; cursor:pointer; color:var(--app-sec); padding:10px 12px 10px 8px; display:flex; align-items:center; align-self:stretch; position:relative}
+  .kebab::before{content:""; position:absolute; left:-16px; top:0; bottom:0; width:16px; background:linear-gradient(to right, rgba(255,255,255,0), var(--app-bg)); pointer-events:none}
+  .kebab:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+  .kebab[aria-expanded="true"]{color:var(--brand)}
+
+  .sheet-ov{position:absolute; inset:0; background:rgba(14,23,38,.45); z-index:20; opacity:0; transition:opacity .22s ease; border:none; width:100%; padding:0}
+  .sheet-ov.on{opacity:1}
+  .sheet{position:absolute; left:0; right:0; bottom:0; z-index:21; background:var(--app-bg); border-radius:20px 20px 0 0; box-shadow:0 -8px 30px rgba(14,23,38,.20); transform:translateY(101%); transition:transform .26s cubic-bezier(.22,.8,.3,1); max-height:93%; display:flex; flex-direction:column}
+  .sheet.on{transform:translateY(0)}
+  .sheet[hidden], .sheet-ov[hidden]{display:none}
+  .grab{width:38px; height:4px; border-radius:99px; background:var(--app-sel); margin:9px auto 3px; flex:0 0 auto}
+  .sheet-h{padding:6px 18px 8px; flex:0 0 auto}
+  .sheet-h .sh1{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--app-sec); font-weight:600}
+  .sheet-h .sh2{font-size:17px; font-weight:600; letter-spacing:-.01em; margin-top:2px}
+  .sheet-list{overflow-y:auto; padding-bottom:12px}
+  .sitem{display:flex; align-items:center; gap:12px; padding:10.5px 18px; width:100%; background:none; border:none; cursor:pointer; text-align:left; font-family:var(--sans); color:var(--app-text)}
+  .sitem:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+  .sitem .si{width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; background:var(--app-el); color:var(--app-sec)}
+  .sitem .st{flex:1; min-width:0}
+  .sitem .s1{font-size:14.5px; font-weight:600; line-height:1.3}
+  .sitem .s2{font-size:12px; color:var(--app-sec); margin-top:1px}
+  .sitem .sc{flex:0 0 auto; display:none}
+  .sitem.on .s1{color:var(--brand)}
+  .sitem.on .sc{display:flex; color:var(--brand)}
   .seg{flex:0 0 auto; border:none; border-radius:999px; padding:7px 13px; font-size:12.5px; cursor:pointer; background:var(--app-el); color:var(--app-sec); font-family:var(--sans); white-space:nowrap}
   .seg.on{background:var(--brand); color:var(--on-brand); font-weight:600}
   .seg:focus-visible{outline:2px solid var(--brand-ink); outline-offset:2px}
@@ -308,7 +333,7 @@
 
   .foot{font-size:12.5px; color:var(--muted); text-align:center; max-width:520px; line-height:1.6}
   svg{display:block}
-  @media (prefers-reduced-motion: reduce){ .screen{transition:none} .spin,.eq i,.dot-live{animation:none} }
+  @media (prefers-reduced-motion: reduce){ .screen,.sheet,.sheet-ov{transition:none} .spin,.eq i,.dot-live{animation:none} }
 </style>
 
 <div class="wrap">
@@ -403,7 +428,12 @@
           <div class="bar"><i id="curso-bar"></i></div>
           <div class="cm" id="curso-prog"></div>
         </div>
-        <div class="segs" id="curso-segs" role="tablist" aria-label="Secciones de la asignatura"></div>
+        <div class="segbar">
+          <div class="segs" id="curso-segs" role="tablist" aria-label="Secciones de la asignatura"></div>
+          <button class="kebab" id="curso-mas" aria-label="Todas las secciones" aria-haspopup="dialog" aria-expanded="false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>
+          </button>
+        </div>
         <div class="body" id="curso-body"></div>
       </section>
 
@@ -605,6 +635,16 @@
         </div>
         <nav class="tabbar" id="tb-chat" aria-label="Navegación principal"></nav>
       </section>
+
+      <button class="sheet-ov" id="sheet-ov" hidden aria-label="Cerrar"></button>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-nom" hidden>
+        <div class="grab" aria-hidden="true"></div>
+        <div class="sheet-h">
+          <div class="sh1">Ir a una sección de</div>
+          <div class="sh2" id="sheet-nom"></div>
+        </div>
+        <div class="sheet-list" id="sheet-list"></div>
+      </div>
 
     </div>
   </div>
@@ -915,6 +955,36 @@ CURSOS.forEach(function(c){
   c.foro     = FOROS[c.id];
 });
 
+/* ---- Programa, equipo y compañeros ---- */
+var COMPANEROS = ["Josefa Pérez","Matías Cortés","Sofía Valdés","Tomás González","Laura Bravo",
+                  "Ignacio Rojas","Camila Torres","Benjamín Silva","Antonia Muñoz","Vicente Araya"];
+var AYUDANTES = { cal1:"Ignacio Soto", alg:"Camila Reyes", fis1:"Pedro Lagos",
+                  io:"Fernanda Díaz", micro:"Joaquín Herrera", prog:"Valentina Ruiz" };
+var PROGRAMAS = {
+  cal1:{ desc:"Cálculo diferencial en una variable: límites, continuidad, derivada y sus aplicaciones. El curso privilegia el planteamiento por sobre el cálculo mecánico.",
+         req:"Álgebra y geometría de enseñanza media",
+         biblio:["Stewart, J. — Cálculo de una variable, 8ª ed.","Spivak, M. — Calculus"] },
+  alg:{  desc:"Sistemas de ecuaciones, espacios vectoriales y transformaciones lineales, con énfasis en la interpretación geométrica de los resultados.",
+         req:"Álgebra de enseñanza media",
+         biblio:["Grossman, S. — Álgebra lineal","Lay, D. — Álgebra lineal y sus aplicaciones"] },
+  fis1:{ desc:"Mecánica clásica: cinemática, dinámica de la partícula, trabajo y energía. Todo problema parte por el diagrama de cuerpo libre.",
+         req:"Cálculo I (puede cursarse en paralelo)",
+         biblio:["Serway, R. — Física para ciencias e ingeniería","Young & Freedman — Física universitaria"] },
+  io:{   desc:"Modelamiento de problemas de decisión mediante programación lineal, método simplex y análisis de dualidad. Se evalúa el modelo, no la herramienta.",
+         req:"Álgebra Lineal",
+         biblio:["Hillier & Lieberman — Introducción a la investigación de operaciones","Winston, W. — Investigación de operaciones"] },
+  micro:{desc:"Comportamiento de consumidores y productores, equilibrio de mercado y elasticidad, siempre a partir de casos concretos.",
+         req:"Sin requisitos",
+         biblio:["Varian, H. — Microeconomía intermedia","Pindyck & Rubinfeld — Microeconomía"] },
+  prog:{ desc:"Fundamentos de programación en Python: control de flujo, estructuras de datos y recursión. Antes de escribir código, describir el algoritmo en palabras.",
+         req:"Sin requisitos",
+         biblio:["Downey, A. — Think Python, 2ª ed.","Documentación oficial de Python 3"] }
+};
+CURSOS.forEach(function(c){
+  c.ayudante = AYUDANTES[c.id];
+  c.programa = PROGRAMAS[c.id];
+});
+
 var DIAS = [
   {n:1, l:"Lun", num:"24"},
   {n:2, l:"Mar", num:"25"},
@@ -1001,6 +1071,7 @@ function buildTabs(){
 }
 
 function go(name){
+  if(hojaAbierta) cerrarHoja();
   if(pantalla==="live" && name!=="live") pararVivo();
   if(pantalla==="rec"  && name!=="rec")  pausarGrab();
   var arr=document.querySelectorAll(".screen");
@@ -1116,13 +1187,55 @@ function abrirCurso(id, seg){
 }
 $("curso-tutor").addEventListener("click",function(){ abrirChat(cursoActual.id,"curso"); });
 
+/* Solo tres secciones viven en la fila. El resto vive en los tres puntitos:
+   una fila que hay que arrastrar para descubrir esconde lo que no cabe. */
+var VISIBLES = ["materia","clases","tareas"];
+var SECCIONES = [
+  {id:"materia", l:"Materia",  ic:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 9h8"/><path d="M8 13h5"/>'},
+  {id:"clases",  l:"Clases",   ic:'<path d="M10 8.5v7l6-3.5-6-3.5Z"/><rect x="3" y="4" width="18" height="16" rx="3"/>'},
+  {id:"tareas",  l:"Tareas",   ic:'<path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6l1 1 2-2"/><path d="M4 12l1 1 2-2"/><path d="M4 18l1 1 2-2"/>'},
+  {id:"foro",    l:"Foro",     ic:'<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.3-.6L3 21l1.8-5a8.3 8.3 0 0 1-.8-3.6 8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 8.5 8.4Z"/>'},
+  {id:"notas",   l:"Notas",    ic:'<path d="M12 3l2.6 5.6 6.4.8-4.7 4.3 1.2 6.3L12 17l-5.5 3 1.2-6.3L3 9.4l6.4-.8L12 3Z"/>'},
+  {id:"horario", l:"Horario",  ic:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 11h18"/>'},
+  {id:"programa",l:"Programa del curso", corto:"Programa", ic:'<path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M9 13h6"/><path d="M9 17h4"/>'},
+  {id:"gente",   l:"Compañeros",ic:'<path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"/><circle cx="9" cy="7" r="3.4"/><path d="M22 20v-1.5a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.6"/>'},
+  {id:"archivos",l:"Archivos", ic:'<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4L11 8.5h8.5A1.5 1.5 0 0 1 21 10v7.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/>'}
+];
+function seccion(id){ for(var i=0;i<SECCIONES.length;i++){ if(SECCIONES[i].id===id) return SECCIONES[i]; } return SECCIONES[0]; }
+
+/* Resumen que acompaña a cada sección dentro del menú. */
+function detalleSeccion(id){
+  var c=cursoActual;
+  if(id==="materia"){
+    var t=0, h=0;
+    c.modulos.forEach(function(m){ t+=m.items.length; m.items.forEach(function(i){ if(i.ok) h++; }); });
+    return h+" de "+t+" completados";
+  }
+  if(id==="clases")  return (c.vivo ? "En vivo ahora · " : "") + c.grabadas.length + " grabadas";
+  if(id==="tareas"){
+    var p=c.tareas.filter(function(x){ return x.est!=="entregada"; }).length;
+    return p===0 ? "Sin pendientes" : p+(p===1?" pendiente":" pendientes");
+  }
+  if(id==="foro"){
+    var r=0; c.foro.forEach(function(h){ r+=h.respuestas.length; });
+    return c.foro.length+(c.foro.length===1?" hilo":" hilos")+" · "+r+" respuestas";
+  }
+  if(id==="notas")   { var a=notaActual(c); return a.nota===null ? "Sin evaluaciones rendidas" : "Vas con "+nota1(a.nota); }
+  if(id==="horario") return c.horario.length+(c.horario.length===1?" bloque":" bloques")+" a la semana";
+  if(id==="programa")return "Contenidos, requisitos y bibliografía";
+  if(id==="gente")   return c.prof+", "+c.ayudante+" y "+COMPANEROS.length+" más";
+  return archivosDe(c).length+" documentos";
+}
+
 function pintarSegs(){
-  var segs=[{id:"materia",l:"Materia"},{id:"clases",l:"Clases"},{id:"tareas",l:"Tareas"},
-            {id:"foro",l:"Foro"},{id:"notas",l:"Notas"},{id:"horario",l:"Horario"}];
+  var ids=VISIBLES.slice();
+  /* La sección activa va primero: así siempre se ve dónde estás sin arrastrar la fila. */
+  if(ids.indexOf(segActual)<0) ids.unshift(segActual);
+  var segs=ids.map(seccion);
   var host=$("curso-segs"); host.innerHTML="";
   var activo=null;
   segs.forEach(function(s){
-    var b=el("button","seg"+(s.id===segActual?" on":""),s.l);
+    var b=el("button","seg"+(s.id===segActual?" on":""), s.corto||s.l);
     b.setAttribute("role","tab");
     b.setAttribute("aria-selected", s.id===segActual ? "true":"false");
     b.addEventListener("click",function(){ segActual=s.id; pintarSegs(); pintarCursoBody(); });
@@ -1132,6 +1245,57 @@ function pintarSegs(){
   /* si se llega desde otra pantalla, la sección activa puede quedar fuera de vista */
   if(activo && activo.scrollIntoView) activo.scrollIntoView({block:"nearest", inline:"center"});
 }
+
+/* ---- Hoja inferior con todas las secciones ---- */
+var hojaAbierta=false;
+function pintarHoja(){
+  $("sheet-nom").textContent=cursoActual.nom;
+  var host=$("sheet-list"); host.innerHTML="";
+  SECCIONES.forEach(function(sec){
+    var b=el("button","sitem"+(sec.id===segActual?" on":""));
+    var ic=el("span","si");
+    ic.innerHTML=svgIc(sec.ic, sec.id===segActual ? cursoActual.color : "currentColor");
+    if(sec.id===segActual) ic.style.background=cursoActual.color+"1F";
+    b.appendChild(ic);
+    var st=el("div","st");
+    st.appendChild(el("div","s1",sec.l));
+    st.appendChild(el("div","s2",detalleSeccion(sec.id)));
+    b.appendChild(st);
+    var ch=el("span","sc");
+    ch.innerHTML=svgIc('<path d="M4 12.5l5 5L20 7"/>');
+    b.appendChild(ch);
+    if(sec.id===segActual) b.setAttribute("aria-current","true");
+    b.addEventListener("click",function(){
+      segActual=sec.id; cerrarHoja();
+      pintarSegs(); pintarCursoBody();
+      $("curso-body").scrollTop=0;
+    });
+    host.appendChild(b);
+  });
+}
+function abrirHoja(){
+  if(hojaAbierta) return;
+  hojaAbierta=true;
+  pintarHoja();
+  var ov=$("sheet-ov"), sh=$("sheet");
+  ov.hidden=false; sh.hidden=false;
+  $("curso-mas").setAttribute("aria-expanded","true");
+  requestAnimationFrame(function(){ ov.classList.add("on"); sh.classList.add("on"); });
+  var primero=$("sheet-list").querySelector(".sitem");
+  if(primero) primero.focus();
+}
+function cerrarHoja(){
+  if(!hojaAbierta) return;
+  hojaAbierta=false;
+  var ov=$("sheet-ov"), sh=$("sheet");
+  ov.classList.remove("on"); sh.classList.remove("on");
+  $("curso-mas").setAttribute("aria-expanded","false");
+  setTimeout(function(){ if(!hojaAbierta){ ov.hidden=true; sh.hidden=true; } },260);
+  $("curso-mas").focus();
+}
+$("curso-mas").addEventListener("click",function(){ hojaAbierta ? cerrarHoja() : abrirHoja(); });
+$("sheet-ov").addEventListener("click",cerrarHoja);
+document.addEventListener("keydown",function(e){ if(e.key==="Escape" && hojaAbierta) cerrarHoja(); });
 
 function pintarCursoBody(){
   var host=$("curso-body"); host.innerHTML="";
@@ -1210,6 +1374,12 @@ function pintarCursoBody(){
 
   if(segActual==="foro"){ pintarForoCurso(host); return; }
 
+  if(segActual==="programa"){ pintarPrograma(host); return; }
+
+  if(segActual==="gente"){ pintarGente(host); return; }
+
+  if(segActual==="archivos"){ pintarArchivos(host); return; }
+
   if(segActual==="notas"){ pintarNotasCurso(host); return; }
 
   if(segActual==="tareas"){
@@ -1232,6 +1402,107 @@ function pintarCursoBody(){
     r.appendChild(st);
     host.appendChild(r);
   });
+}
+
+/* ===================== PROGRAMA · COMPAÑEROS · ARCHIVOS ===================== */
+function pintarPrograma(host){
+  var c=cursoActual;
+  var pr=el("div","prose");
+  pr.appendChild(el("p",null,c.programa.desc));
+  host.appendChild(pr);
+
+  var m=el("div","meta");
+  var d1=el("div");
+  d1.appendChild(el("div","ml","Requisitos"));
+  d1.appendChild(el("div","mv",c.programa.req)).style.fontSize="13px";
+  m.appendChild(d1);
+  var d2=el("div");
+  d2.appendChild(el("div","ml","Créditos"));
+  d2.appendChild(el("div","mv",c.creditos));
+  m.appendChild(d2);
+  host.appendChild(m);
+
+  var sh=el("div","sec-h"); sh.appendChild(el("h3",null,"Evaluación")); host.appendChild(sh);
+  c.evals.forEach(function(e){
+    var r=el("div","evrow");
+    var et=el("div","et");
+    et.appendChild(el("div","e1",e.t));
+    r.appendChild(et);
+    r.appendChild(el("div","rr",e.peso+"%"));
+    host.appendChild(r);
+  });
+
+  var sh2=el("div","sec-h"); sh2.appendChild(el("h3",null,"Bibliografía")); host.appendChild(sh2);
+  c.programa.biblio.forEach(function(b){
+    var r=el("div","row"); r.style.cursor="default";
+    var ic=el("span","ic");
+    ic.innerHTML=svgIc('<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H19v14H5.5A1.5 1.5 0 0 0 4 19.5Z"/><path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H19v2H5.5A1.5 1.5 0 0 1 4 19.5Z"/>', c.color);
+    ic.style.background=c.color+"1F";
+    r.appendChild(ic);
+    var rt=el("div","rt"); rt.appendChild(el("div","r1",b)); r.appendChild(rt);
+    host.appendChild(r);
+  });
+}
+
+function filaPersona(nombre, rol, color, destacar){
+  var r=el("div","row"); r.style.cursor="default";
+  var av=el("span","ic");
+  av.textContent=iniciales(nombre);
+  av.style.borderRadius="50%";
+  av.style.fontSize="12px";
+  av.style.fontWeight="700";
+  if(destacar){ av.style.background=color; av.style.color="#fff"; }
+  r.appendChild(av);
+  var rt=el("div","rt");
+  rt.appendChild(el("div","r1",nombre));
+  rt.appendChild(el("div","r2",rol));
+  r.appendChild(rt);
+  return r;
+}
+function pintarGente(host){
+  var c=cursoActual;
+  var sh=el("div","sec-h"); sh.appendChild(el("h3",null,"Equipo docente")); host.appendChild(sh);
+  host.appendChild(filaPersona(c.prof,"Profesor o profesora del curso",c.color,true));
+  host.appendChild(filaPersona(c.ayudante,"Ayudantía",c.color,true));
+  var sh2=el("div","sec-h");
+  sh2.appendChild(el("h3",null,"Compañeros"));
+  sh2.appendChild(el("span","muted-row",(COMPANEROS.length+1)+" inscritos"));
+  host.appendChild(sh2);
+  host.appendChild(filaPersona("Eduardo Q.","Tú",c.color,false));
+  COMPANEROS.forEach(function(n){ host.appendChild(filaPersona(n,"Estudiante",c.color,false)); });
+}
+
+function archivosDe(c){
+  var out=[{t:"Programa del curso.pdf", d:"PDF · 3 páginas", mod:"General"}];
+  c.modulos.forEach(function(m){
+    m.items.forEach(function(i){ if(i.k==="d") out.push({t:i.t, d:i.d, mod:m.t}); });
+  });
+  return out;
+}
+function pintarArchivos(host){
+  var c=cursoActual;
+  var arch=archivosDe(c);
+  arch.forEach(function(a){
+    var r=el("button","row");
+    var ic=el("span","ic");
+    ic.innerHTML=svgIc(iconoItem("d"), c.color);
+    ic.style.background=c.color+"1F";
+    r.appendChild(ic);
+    var rt=el("div","rt");
+    rt.appendChild(el("div","r1",a.t));
+    rt.appendChild(el("div","r2",a.mod+" · "+a.d));
+    r.appendChild(rt);
+    var dl=el("span","rr");
+    dl.innerHTML=svgIc('<path d="M12 3v12"/><path d="M7.5 11L12 15.5 16.5 11"/><path d="M4 20h16"/>', c.color);
+    r.appendChild(dl);
+    r.addEventListener("click",function(){
+      var t=r.querySelector(".r2"), antes=t.textContent;
+      t.textContent="Descargando…";
+      setTimeout(function(){ t.textContent=antes; },1200);
+    });
+    host.appendChild(r);
+  });
+  host.appendChild(el("div","nota-foro","Los archivos quedan disponibles sin conexión una vez descargados."));
 }
 
 /* ===================== HORARIO ===================== */

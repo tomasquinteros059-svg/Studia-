@@ -31,16 +31,17 @@ python3 -m http.server 8000
 2. Entra a la clase **en vivo** desde el banner rojo: silencia y activa el micrófono, pide la palabra
 3. Vuelve con el chevron: caes en **Cálculo I** → recorre *Materia*, *Clases*, *Tareas*, *Horario*
 4. Abre una **clase grabada** y usa el reproductor y los capítulos
-5. Toca la **campana**: cada notificación te deja en el lugar exacto
-6. *Ver notas* → entra a **Investigación de Operaciones**: vas con 4,2 y te dice cuánto necesitas
-7. En una asignatura, entra al **Foro** y responde un hilo
-8. En **Tareas**, abre una y toca *Pedir guía al tutor*
-9. Escríbele **"dame la respuesta"** y observa qué hace
+5. Toca los **tres puntitos (⋮)** de la asignatura: ahí están Notas, Programa, Compañeros y Archivos
+6. Toca la **campana**: cada notificación te deja en el lugar exacto
+7. *Ver notas* → entra a **Investigación de Operaciones**: vas con 4,2 y te dice cuánto necesitas
+8. En una asignatura, entra al **Foro** y responde un hilo
+9. En **Tareas**, abre una y toca *Pedir guía al tutor*
+10. Escríbele **"dame la respuesta"** y observa qué hace
 
 ## Qué hay dentro
 
 - **Inicio** — clase en vivo, bloques de hoy, próximas entregas y las seis asignaturas
-- **Asignatura** — materia en módulos plegables, clases, tareas, foro, notas y horario del ramo
+- **Asignatura** — nueve secciones tras los tres puntitos: materia, clases, tareas, foro, notas, horario, programa, compañeros y archivos
 - **Clase en vivo** — audio con ecualizador, participantes, micrófono, pedir la palabra
 - **Clase grabada** — reproductor con velocidades y capítulos
 - **Horario** — semana Lun–Vie con salas, tipos de bloque y entregas del día

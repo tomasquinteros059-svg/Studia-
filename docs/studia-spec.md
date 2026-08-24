@@ -67,6 +67,8 @@ Asignatura
   evals[]        — { título, peso (%), nota | null }
   foro[]         — { id, título, autor, rol, fijado?, cuándo, cuerpo, respuestas[] }
   créditos       — para ponderar el promedio general
+  ayudante       — quien hace la ayudantía
+  programa       — { descripción, requisitos, bibliografía[] }
 
 Notificación
   { id, tipo: clase|anuncio|tarea|nota, asignatura, título, detalle, cuándo, leída, ref }
@@ -137,8 +139,8 @@ Bienvenida → Login / Registro → [ Inicio · Horario · Tareas · Tutor ]
      ┌───────────────────────────────┼──────────────────────┐
      ↓                               ↓                      ↓
   Asignatura                    Detalle de tarea        Clase en vivo
-  (Materia · Clases · Tareas ·       │                      │
-   Foro · Notas · Horario)           └──> Tutor <───────────┘
+  (⋮ nueve secciones)                │                      │
+                                     └──> Tutor <───────────┘
      │
      ├──> Clase grabada ──> Tutor
      └──> Hilo del foro
@@ -165,7 +167,16 @@ color, código, profesor, barra de progreso y conteo de pendientes.
 ### Asignatura
 
 Cabecera del color del ramo con código, nombre, profesor, progreso y acceso al tutor.
-Cuatro secciones:
+
+**Cómo se llega a las secciones.** La fila superior muestra solo tres —Materia, Clases,
+Tareas— y **no se arrastra**: si hubiera que descubrir el resto deslizando, ese resto no
+existe. Todo lo demás vive detrás de los **tres puntitos** (⋮), que abren una hoja inferior
+con las nueve secciones, cada una con un resumen de lo que hay dentro (*"Vas con 6,3"*,
+*"3 hilos · 4 respuestas"*, *"En vivo ahora · 3 grabadas"*). Al elegir una sección que no está
+en la fila, esa sección aparece **primero** entre los chips, de modo que siempre se ve dónde
+estás sin desplazar nada.
+
+Las nueve secciones:
 
 - **Materia** — módulos plegables al estilo Canvas. El primero abre por defecto. Cada módulo
   muestra `completados/total` y sus ítems: video, documento o ejercicios, con visto cuando
@@ -175,6 +186,9 @@ Cuatro secciones:
 - **Foro** — hilos de la asignatura, con los del profesor fijados arriba. Se puede responder.
 - **Notas** — nota actual, cada evaluación con su peso, y la proyección para aprobar.
 - **Horario** — los bloques semanales del ramo con día, hora, sala y tipo (cátedra, ayudantía, laboratorio).
+- **Programa del curso** — descripción, requisitos, créditos, la ponderación de cada evaluación y bibliografía.
+- **Compañeros** — equipo docente (profesor y ayudante, destacados en el color del ramo) y los inscritos.
+- **Archivos** — todos los documentos del ramo reunidos, con el módulo del que vienen y descarga.
 
 ### Clase en vivo (audio)
 
@@ -294,17 +308,20 @@ La clase en vivo invierte todo: fondo `#0E1726` y texto blanco.
 4. **Las tareas atrasadas van primero**, no escondidas al final de la lista.
 5. **Salir de una clase en vivo es explícito.** El chevron minimiza; solo el botón rojo cuelga.
 6. **Una notificación lleva al lugar exacto**, nunca al inicio, y volver regresa a la lista.
-7. **La nota parcial pondera solo lo rendido.** Mostrar un promedio hundido por evaluaciones
+7. **Nada vive solo detrás de un desplazamiento horizontal.** Lo que no cabe en la fila va al
+   menú de los tres puntitos, con su resumen: una sección que hay que descubrir arrastrando
+   es una sección que nadie encuentra.
+8. **La nota parcial pondera solo lo rendido.** Mostrar un promedio hundido por evaluaciones
    que aún no ocurren desinforma al estudiante justo cuando más necesita saber dónde está.
-8. **El foro no es el tutor.** Entre compañeros se discute; con el tutor se piensa a solas.
+9. **El foro no es el tutor.** Entre compañeros se discute; con el tutor se piensa a solas.
 
 ---
 
 ## 8. Estado
 
-**Hecho** — prototipo navegable completo: 14 pantallas, seis asignaturas con datos realistas,
-clases en vivo y grabadas, horario, tareas, foro, notas, notificaciones y tutor, con el
-sistema visual y el tono definidos.
+**Hecho** — prototipo navegable completo: 14 pantallas y nueve secciones por asignatura, seis
+asignaturas con datos realistas, clases en vivo y grabadas, horario, tareas, foro, notas,
+programa, compañeros, archivos, notificaciones y tutor, con el sistema visual y el tono definidos.
 
 **Pendiente**
 - App real en Expo. El prototipo es HTML: define el producto, no lo implementa.
@@ -314,6 +331,7 @@ sistema visual y el tono definidos.
 - Entrega de tareas con archivos adjuntos.
 - Notificaciones reales: push del dispositivo y las reglas de cuándo se emiten.
 - Foro: crear hilos nuevos, adjuntos, menciones y moderación del profesor.
+- Archivos: descarga real y disponibilidad sin conexión.
 
 ## 9. Decisiones abiertas
 
