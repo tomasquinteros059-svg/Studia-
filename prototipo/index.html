@@ -257,6 +257,55 @@
   .prose li{margin-bottom:5px}
   .acts{padding:12px 16px 18px; display:flex; flex-direction:column; gap:9px}
 
+
+  /* ---- campana de notificaciones ---- */
+  .greet{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+  .bell{position:relative; background:none; border:none; cursor:pointer; color:var(--app-sec); padding:5px; margin-top:2px; flex:0 0 auto}
+  .bell:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:8px}
+  .badge{position:absolute; top:-1px; right:-1px; min-width:17px; height:17px; border-radius:99px; background:var(--live); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 4px; border:2px solid var(--app-bg)}
+  .badge.hide{display:none}
+
+  /* ---- notificaciones ---- */
+  .nrow{position:relative}
+  .nrow.unread{background:rgba(32,138,239,.045)}
+  .nrow.unread .r1::after{content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--brand); margin-left:7px; vertical-align:middle}
+
+  /* ---- notas ---- */
+  .gradehero{padding:20px 16px 16px; text-align:center; border-bottom:1px solid var(--app-sel)}
+  .gradehero .gh-l{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--app-sec); font-weight:600}
+  .gradehero .gh-v{font-size:44px; font-weight:600; letter-spacing:-.02em; line-height:1.05; margin-top:4px; font-variant-numeric:tabular-nums}
+  .gradehero .gh-d{font-size:12.5px; color:var(--app-sec); margin-top:4px}
+  .gnum{font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+  .gnum.rojo{color:var(--live)}
+  .gnum.gris{color:var(--app-sec); font-weight:500}
+  .evrow{display:flex; align-items:center; gap:11px; padding:11px 14px; border-bottom:1px solid var(--app-sel)}
+  .evrow .et{flex:1; min-width:0}
+  .evrow .e1{font-size:14px; font-weight:600; line-height:1.3}
+  .evrow .e2{font-size:12px; color:var(--app-sec); margin-top:2px}
+  .proj{margin:12px 14px; padding:12px 13px; border:1px solid var(--app-sel); border-radius:13px; background:var(--app-el)}
+  .proj .pj1{font-size:12.5px; font-weight:600; margin-bottom:4px}
+  .proj .pj2{font-size:12.5px; color:var(--app-sec); line-height:1.5}
+
+  /* ---- foro ---- */
+  .thread{display:flex; flex-direction:column; gap:5px; padding:13px 14px; border-bottom:1px solid var(--app-sel); cursor:pointer; background:none; border-top:none; border-left:none; border-right:none; width:100%; text-align:left; font-family:var(--sans); color:var(--app-text)}
+  .thread:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+  .thread .th1{font-size:14.5px; font-weight:600; line-height:1.35; display:flex; align-items:center; gap:6px}
+  .thread .th2{font-size:12.5px; color:var(--app-sec); line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .thread .th3{font-size:11.5px; color:var(--app-sec); display:flex; align-items:center; gap:8px; margin-top:1px}
+  .pin{color:var(--amber); display:flex; flex:0 0 auto}
+  .who{display:flex; align-items:center; gap:7px}
+  .who .wav{width:26px; height:26px; border-radius:50%; background:var(--app-el); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; color:var(--app-sec); flex:0 0 auto}
+  .who .wav.prof{background:var(--brand); color:#fff}
+  .who .wn{font-size:12.5px; font-weight:600}
+  .who .wr{font-size:11px; color:var(--app-sec)}
+  .post{padding:13px 14px; border-bottom:1px solid var(--app-sel)}
+  .post .pb{font-size:13.5px; line-height:1.6; margin-top:8px}
+  .post.op{background:var(--app-el)}
+  .post.op .th1{font-size:16px; font-weight:600; line-height:1.3; letter-spacing:-.01em; margin-bottom:9px; text-wrap:balance}
+  .post.op .pb{font-size:14px}
+  .reply-box{display:flex; gap:8px; padding:12px; border-top:1px solid var(--app-sel); flex:0 0 auto}
+  .nota-foro{font-size:11.5px; color:var(--app-sec); text-align:center; padding:10px 20px 4px; line-height:1.5}
+
   .foot{font-size:12.5px; color:var(--muted); text-align:center; max-width:520px; line-height:1.6}
   svg{display:block}
   @media (prefers-reduced-motion: reduce){ .screen{transition:none} .spin,.eq i,.dot-live{animation:none} }
@@ -313,15 +362,21 @@
       <section class="screen" id="s-home" aria-label="Inicio">
         <div class="body">
           <div class="greet">
-            <div class="hi">Hola, Eduardo</div>
-            <div class="dsub" id="home-day">Martes 25 de agosto</div>
+            <div>
+              <div class="hi">Hola, Eduardo</div>
+              <div class="dsub" id="home-day">Martes 25 de agosto</div>
+            </div>
+            <button class="bell" id="home-bell" aria-label="Notificaciones">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/></svg>
+              <span class="badge" id="bell-badge">0</span>
+            </button>
           </div>
           <div id="home-live"></div>
           <div class="sec-h"><h3>Hoy</h3><button class="lnk" data-go="horario">Ver horario</button></div>
           <div id="home-hoy"></div>
           <div class="sec-h"><h3>Próximas entregas</h3><button class="lnk" data-go="tareas">Ver todas</button></div>
           <div id="home-tareas"></div>
-          <div class="sec-h"><h3>Mis asignaturas</h3></div>
+          <div class="sec-h"><h3>Mis asignaturas</h3><button class="lnk" data-go="notas">Ver notas</button></div>
           <div class="cards" id="home-cards"></div>
           <div style="padding:18px 14px 22px">
             <button class="btn btn-ghost" data-go="welcome">Cerrar sesión</button>
@@ -480,6 +535,55 @@
             <button class="btn btn-ghost" id="tarea-ask">Pedir guía al tutor</button>
             <p class="muted-row" style="text-align:center; margin:2px 0 0">El tutor no la resuelve por ti: te ayuda a encontrar el camino.</p>
           </div>
+        </div>
+      </section>
+
+      <!-- ============ NOTIFICACIONES ============ -->
+      <section class="screen" id="s-notif" aria-label="Notificaciones">
+        <div class="top">
+          <button class="iconbtn" id="notif-back" aria-label="Volver">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="ttl">Notificaciones</div>
+          <button class="lnk" id="notif-todas" style="font-size:12px">Marcar leídas</button>
+        </div>
+        <div class="body" id="notif-body"></div>
+      </section>
+
+      <!-- ============ NOTAS (todas las asignaturas) ============ -->
+      <section class="screen" id="s-notas" aria-label="Mis notas">
+        <div class="top">
+          <button class="iconbtn" data-go="home" aria-label="Volver a inicio">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="ttl">Mis notas</div>
+          <span style="width:28px"></span>
+        </div>
+        <div class="body">
+          <div class="gradehero">
+            <div class="gh-l">Promedio ponderado</div>
+            <div class="gh-v" id="notas-prom">—</div>
+            <div class="gh-d" id="notas-prom-d"></div>
+          </div>
+          <div class="sec-h"><h3>Por asignatura</h3></div>
+          <div id="notas-lista"></div>
+          <div class="nota-foro">Escala de 1,0 a 7,0. Se aprueba con 4,0.<br>Las notas parciales se ponderan solo entre las evaluaciones ya rendidas.</div>
+        </div>
+      </section>
+
+      <!-- ============ HILO DEL FORO ============ -->
+      <section class="screen" id="s-hilo" aria-label="Hilo del foro">
+        <div class="top">
+          <button class="iconbtn" id="hilo-back" aria-label="Volver">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="ttl" id="hilo-ttl">Foro</div>
+          <span style="width:28px"></span>
+        </div>
+        <div class="body" id="hilo-body"></div>
+        <div class="reply-box">
+          <input class="fld" id="hilo-input" placeholder="Responder al hilo…" aria-label="Tu respuesta" />
+          <button class="send" id="hilo-send">Enviar</button>
         </div>
       </section>
 
@@ -695,6 +799,122 @@ var CURSOS = [
   }
 ];
 
+/* ---- Evaluaciones (escala chilena 1,0–7,0; se aprueba con 4,0) ---- */
+var CREDITOS = { cal1:10, alg:10, fis1:10, io:10, micro:8, prog:10 };
+var EVALUACIONES = {
+  cal1:[
+    {t:"Control 1 · Límites", peso:20, nota:6.2},
+    {t:"Control 2 · Derivadas", peso:20, nota:6.3},
+    {t:"Guías y talleres", peso:15, nota:6.5},
+    {t:"Examen final", peso:45, nota:null}
+  ],
+  alg:[
+    {t:"Control 1 · Sistemas", peso:25, nota:4.8},
+    {t:"Guías", peso:15, nota:5.5},
+    {t:"Control 2 · Espacios vectoriales", peso:25, nota:null},
+    {t:"Examen final", peso:35, nota:null}
+  ],
+  fis1:[
+    {t:"Control 1 · Cinemática", peso:20, nota:5.2},
+    {t:"Laboratorios", peso:20, nota:6.0},
+    {t:"Control 2 · Dinámica", peso:25, nota:null},
+    {t:"Examen final", peso:35, nota:null}
+  ],
+  io:[
+    {t:"Control 1 · Modelamiento", peso:30, nota:4.2},
+    {t:"Casos", peso:20, nota:null},
+    {t:"Examen final", peso:50, nota:null}
+  ],
+  micro:[
+    {t:"Control 1 · Oferta y demanda", peso:25, nota:6.4},
+    {t:"Trabajos", peso:20, nota:6.8},
+    {t:"Control 2 · Elasticidad", peso:25, nota:null},
+    {t:"Examen final", peso:30, nota:null}
+  ],
+  prog:[
+    {t:"Tarea 1 · Fundamentos", peso:15, nota:6.9},
+    {t:"Tarea 2 · Estructuras", peso:15, nota:6.8},
+    {t:"Control 1", peso:25, nota:6.1},
+    {t:"Tarea 3 · Análisis de datos", peso:15, nota:null},
+    {t:"Examen final", peso:30, nota:null}
+  ]
+};
+
+/* ---- Foro por asignatura ---- */
+var FOROS = {
+  cal1:[
+    {id:"c1", t:"Sala del control del miércoles", autor:"Ana Ríos", rol:"Profesora", fijado:true, cuando:"Ayer 18:40",
+     cuerpo:"El control 3 se rinde en la sala A-301, no en la A-201 de siempre. Llevar calculadora y cédula. Entramos 8:25 en punto.",
+     respuestas:[{autor:"Josefa Pérez", rol:"Estudiante", cuando:"Ayer 19:02", cuerpo:"Gracias por avisar. ¿Entra la materia del teorema del valor medio?"},
+                 {autor:"Ana Ríos", rol:"Profesora", cuando:"Ayer 19:15", cuerpo:"Sí, entra todo hasta la clase de hoy inclusive."}]},
+    {id:"c2", t:"Duda del ejercicio 7 de la guía 4", autor:"Matías Cortés", rol:"Estudiante", cuando:"Hoy 09:12",
+     cuerpo:"Me piden maximizar el área de un rectángulo inscrito en una parábola. Ya tengo la función objetivo pero me pierdo con el dominio. ¿Alguien lo intentó?",
+     respuestas:[{autor:"Sofía Valdés", rol:"Estudiante", cuando:"Hoy 09:40", cuerpo:"A mí me sirvió pensar primero qué valores de x tienen sentido geométrico. Ahí el dominio sale solo."},
+                 {autor:"Eduardo Q.", rol:"Estudiante", cuando:"Hoy 10:05", cuerpo:"Yo estaba en la misma. Con esa pista me cerró, gracias."}]},
+    {id:"c3", t:"Grupo de estudio para el examen", autor:"Tomás González", rol:"Estudiante", cuando:"Lun 24, 21:30",
+     cuerpo:"Estamos juntándonos los jueves después de la ayudantía en la biblioteca. Quien quiera caer, bienvenido.",
+     respuestas:[]}
+  ],
+  alg:[
+    {id:"a1", t:"Criterio de corrección de la guía 2", autor:"Diego Fuentes", rol:"Profesor", fijado:true, cuando:"Lun 24, 12:00",
+     cuerpo:"Recuerden que se corrige el procedimiento, no solo la conclusión. Una respuesta correcta sin justificación vale la mitad.",
+     respuestas:[]},
+    {id:"a2", t:"¿Cómo saben si un conjunto genera el espacio?", autor:"Laura Bravo", rol:"Estudiante", cuando:"Hoy 08:20",
+     cuerpo:"Entiendo la definición pero no me sale aplicarla. ¿Hay alguna forma rápida de verlo con la matriz?",
+     respuestas:[{autor:"Diego Fuentes", rol:"Profesor", cuando:"Hoy 08:55", cuerpo:"Piensen en el rango. Si el rango es igual a la dimensión del espacio, generan. Intenten primero con un ejemplo de dos vectores en el plano."}]}
+  ],
+  fis1:[
+    {id:"f1", t:"Informe de laboratorio: formato IMRyD", autor:"Carla Núñez", rol:"Profesora", fijado:true, cuando:"Vie 22, 16:10",
+     cuerpo:"El informe va en formato IMRyD, máximo 6 páginas. La discusión pesa más que los resultados: quiero ver qué explican, no solo qué midieron.",
+     respuestas:[{autor:"Eduardo Q.", rol:"Estudiante", cuando:"Vie 22, 17:30", cuerpo:"¿La incertidumbre va en la tabla o en el gráfico?"},
+                 {autor:"Carla Núñez", rol:"Profesora", cuando:"Vie 22, 18:02", cuerpo:"En ambos. En la tabla como ± y en el gráfico como barras de error."}]},
+    {id:"f2", t:"Se me va el signo en el plano inclinado", autor:"Sofía Valdés", rol:"Estudiante", cuando:"Hoy 11:45",
+     cuerpo:"Cuando el bloque baja me queda la aceleración negativa y no sé si está mal o es el sistema de referencia.",
+     respuestas:[{autor:"Tomás González", rol:"Estudiante", cuando:"Hoy 12:10", cuerpo:"Depende de hacia dónde apuntaste el eje. Si lo pones bajando la pendiente, te queda positiva."}]}
+  ],
+  io:[
+    {id:"i1", t:"Software para resolver el caso 1", autor:"Rodrigo Salas", rol:"Profesor", fijado:true, cuando:"Jue 21, 10:00",
+     cuerpo:"Pueden usar Solver de Excel, Python con PuLP o lo que manejen. Lo que se evalúa es el modelo, no la herramienta.",
+     respuestas:[]},
+    {id:"i2", t:"¿Las variables pueden ser fraccionarias?", autor:"Josefa Pérez", rol:"Estudiante", cuando:"Hoy 10:30",
+     cuerpo:"En el caso de la mezcla, ¿tiene sentido producir 3,4 unidades o hay que forzar enteros?",
+     respuestas:[]}
+  ],
+  micro:[
+    {id:"m1", t:"Control 2 es en sala, no en línea", autor:"Paula Vergara", rol:"Profesora", fijado:true, cuando:"Hoy 07:50",
+     cuerpo:"El control del miércoles es presencial en la E-105, a la hora de cátedra. Sin apuntes.",
+     respuestas:[]},
+    {id:"m2", t:"Elasticidad e ingreso total", autor:"Matías Cortés", rol:"Estudiante", cuando:"Lun 24, 20:15",
+     cuerpo:"Si la demanda es inelástica y sube el precio, ¿el ingreso total sube o baja? Me confundo siempre.",
+     respuestas:[{autor:"Laura Bravo", rol:"Estudiante", cuando:"Lun 24, 20:40", cuerpo:"Piensa en cuánto cae la cantidad comparado con cuánto sube el precio. Con ese orden de magnitud sale."}]}
+  ],
+  prog:[
+    {id:"p1", t:"Casos borde de la tarea 3", autor:"Matías Leiva", rol:"Profesor", fijado:true, cuando:"Lun 24, 09:00",
+     cuerpo:"El corrector prueba con un CSV vacío y con filas mal formadas. Si su programa se cae ahí, pierden los puntos de robustez.",
+     respuestas:[{autor:"Eduardo Q.", rol:"Estudiante", cuando:"Lun 24, 09:35", cuerpo:"¿Una fila mal formada se salta o se avisa por pantalla?"},
+                 {autor:"Matías Leiva", rol:"Profesor", cuando:"Lun 24, 10:12", cuerpo:"Se salta y se informa al final cuántas se descartaron. Que el programa no muera es lo importante."}]},
+    {id:"p2", t:"¿Diccionario o lista de tuplas?", autor:"Tomás González", rol:"Estudiante", cuando:"Hoy 12:50",
+     cuerpo:"Para guardar las notas por sección, ¿conviene un diccionario o una lista de tuplas? Ambas me funcionan.",
+     respuestas:[]}
+  ]
+};
+
+/* ---- Notificaciones ---- */
+var NOTIFS = [
+  {id:"n1", tipo:"clase",  curso:"cal1", t:"Cálculo I está en vivo",              d:"Teorema del valor medio · comenzó hace 12 min", cuando:"Ahora",       leida:false},
+  {id:"n2", tipo:"anuncio",curso:"micro",t:"Paula Vergara publicó un aviso",       d:"Control 2 es en sala, no en línea",             cuando:"Hoy 07:50",   leida:false, ref:"m1"},
+  {id:"n3", tipo:"tarea",  curso:"alg",  t:"Guía 2 vence mañana",                  d:"Independencia lineal · Mié 26 ago, 23:59",      cuando:"Hoy 07:00",   leida:false, ref:"t3"},
+  {id:"n4", tipo:"nota",   curso:"prog", t:"Tienes una nota nueva",                d:"Tarea 2 · Estructuras — 6,8",                   cuando:"Ayer 16:20",  leida:true},
+  {id:"n5", tipo:"anuncio",curso:"cal1", t:"Ana Ríos publicó un aviso",            d:"Sala del control del miércoles",                cuando:"Ayer 18:40",  leida:true,  ref:"c1"},
+  {id:"n6", tipo:"tarea",  curso:"fis1", t:"Guía 2 quedó atrasada",                d:"Planos inclinados · venció el lunes",           cuando:"Ayer 09:00",  leida:true,  ref:"t5"}
+];
+
+CURSOS.forEach(function(c){
+  c.creditos = CREDITOS[c.id];
+  c.evals    = EVALUACIONES[c.id];
+  c.foro     = FOROS[c.id];
+});
+
 var DIAS = [
   {n:1, l:"Lun", num:"24"},
   {n:2, l:"Mar", num:"25"},
@@ -790,6 +1010,8 @@ function go(name){
   if(name==="home")    pintarInicio();
   if(name==="horario") pintarHorario();
   if(name==="tareas")  pintarTareas();
+  if(name==="notas")   pintarNotas();
+  if(name==="notif")   pintarNotif();
   if(name==="chat")    entrarChat();
 }
 var botones=document.querySelectorAll("[data-go]");
@@ -808,9 +1030,13 @@ function filaCurso(c){
   var bar=el("div","bar"); var fill=el("i"); fill.style.width=c.prog+"%"; fill.style.background=c.color; bar.appendChild(fill);
   cb.appendChild(bar);
   var cm=el("div","cm");
-  cm.appendChild(el("span",null,c.prog+"% del curso"));
   var pend=c.tareas.filter(function(t){ return t.est!=="entregada"; }).length;
   cm.appendChild(el("span",null, pend===0 ? "Sin pendientes" : pend+(pend===1?" tarea pendiente":" tareas pendientes")));
+  var a=notaActual(c);
+  var nn=el("span",null,"Nota "+nota1(a.nota));
+  if(a.nota!==null && a.nota<4) nn.style.color="var(--live)";
+  nn.style.fontWeight="600";
+  cm.appendChild(nn);
   cb.appendChild(cm);
   b.appendChild(strip); b.appendChild(cb);
   b.addEventListener("click",function(){ abrirCurso(c.id); });
@@ -818,6 +1044,8 @@ function filaCurso(c){
 }
 
 function pintarInicio(){
+  pintarCampana();
+
   /* clase en vivo */
   var host=$("home-live"); host.innerHTML="";
   var cv=claseEnVivo();
@@ -873,8 +1101,8 @@ function filaTarea(c,t){
 /* ===================== ASIGNATURA ===================== */
 var cursoActual=null, segActual="materia";
 
-function abrirCurso(id){
-  cursoActual=curso(id); segActual="materia";
+function abrirCurso(id, seg){
+  cursoActual=curso(id); segActual=seg||"materia";
   var c=cursoActual;
   $("curso-head").style.background=c.color;
   $("curso-cod").textContent=c.cod;
@@ -889,15 +1117,20 @@ function abrirCurso(id){
 $("curso-tutor").addEventListener("click",function(){ abrirChat(cursoActual.id,"curso"); });
 
 function pintarSegs(){
-  var segs=[{id:"materia",l:"Materia"},{id:"clases",l:"Clases"},{id:"tareas",l:"Tareas"},{id:"horario",l:"Horario"}];
+  var segs=[{id:"materia",l:"Materia"},{id:"clases",l:"Clases"},{id:"tareas",l:"Tareas"},
+            {id:"foro",l:"Foro"},{id:"notas",l:"Notas"},{id:"horario",l:"Horario"}];
   var host=$("curso-segs"); host.innerHTML="";
+  var activo=null;
   segs.forEach(function(s){
     var b=el("button","seg"+(s.id===segActual?" on":""),s.l);
     b.setAttribute("role","tab");
     b.setAttribute("aria-selected", s.id===segActual ? "true":"false");
     b.addEventListener("click",function(){ segActual=s.id; pintarSegs(); pintarCursoBody(); });
     host.appendChild(b);
+    if(s.id===segActual) activo=b;
   });
+  /* si se llega desde otra pantalla, la sección activa puede quedar fuera de vista */
+  if(activo && activo.scrollIntoView) activo.scrollIntoView({block:"nearest", inline:"center"});
 }
 
 function pintarCursoBody(){
@@ -974,6 +1207,10 @@ function pintarCursoBody(){
     });
     return;
   }
+
+  if(segActual==="foro"){ pintarForoCurso(host); return; }
+
+  if(segActual==="notas"){ pintarNotasCurso(host); return; }
 
   if(segActual==="tareas"){
     if(!c.tareas.length){ host.appendChild(el("div","empty","Sin tareas en esta asignatura.")); return; }
@@ -1093,7 +1330,8 @@ function abrirTarea(cid,tid){
   var c=curso(cid), t=null;
   c.tareas.forEach(function(x){ if(x.id===tid) t=x; });
   tareaActual=t; tareaCurso=c;
-  volverTarea = (pantalla==="curso") ? "curso" : (pantalla==="horario" ? "horario" : (pantalla==="home" ? "home":"tareas"));
+  volverTarea = (pantalla==="curso" || pantalla==="horario" || pantalla==="home" || pantalla==="notif")
+    ? pantalla : "tareas";
 
   $("tarea-tit").textContent=t.t;
   var cur=$("tarea-cur"); cur.innerHTML="";
@@ -1120,7 +1358,10 @@ function abrirTarea(cid,tid){
   sub.textContent = t.est==="entregada" ? "Ver mi entrega" : "Entregar tarea";
   go("tarea");
 }
-$("tarea-back").addEventListener("click",function(){ go(volverTarea); });
+$("tarea-back").addEventListener("click",function(){
+  if(volverTarea==="notif"){ pintarNotif(); }
+  go(volverTarea);
+});
 $("tarea-ask").addEventListener("click",function(){
   abrirChat(tareaCurso.id,"tarea","Estoy con “"+tareaActual.t+"”.");
 });
@@ -1346,8 +1587,230 @@ function enviar(){
 $("send-btn").addEventListener("click",enviar);
 $("chat-input").addEventListener("keydown",function(e){ if(e.key==="Enter") enviar(); });
 
+/* ===================== NOTAS ===================== */
+function nota1(n){ return n===null||n===undefined ? "—" : n.toFixed(1).replace(".",","); }
+function notaActual(c){
+  var sp=0, sn=0;
+  c.evals.forEach(function(e){ if(e.nota!==null){ sp+=e.peso; sn+=e.peso*e.nota; } });
+  return sp ? {nota:sn/sp, rendido:sp} : {nota:null, rendido:0};
+}
+function claseNota(n){ return n===null ? "gnum gris" : (n<4 ? "gnum rojo" : "gnum"); }
+function promedioGeneral(){
+  var sc=0, sn=0;
+  CURSOS.forEach(function(c){
+    var a=notaActual(c);
+    if(a.nota!==null){ sc+=c.creditos; sn+=c.creditos*a.nota; }
+  });
+  return sc ? sn/sc : null;
+}
+
+function pintarNotas(){
+  var pg=promedioGeneral();
+  $("notas-prom").textContent=nota1(pg);
+  $("notas-prom-d").textContent = pg===null ? "Sin evaluaciones rendidas"
+    : "Ponderado por créditos · " + CURSOS.length + " asignaturas";
+  var host=$("notas-lista"); host.innerHTML="";
+  CURSOS.forEach(function(c){
+    var a=notaActual(c);
+    var b=el("button","row");
+    var d=el("span","cdot"); d.style.background=c.color;
+    var ic=el("span","ic"); ic.appendChild(d); ic.style.background="transparent"; ic.style.width="10px";
+    b.appendChild(ic);
+    var rt=el("div","rt");
+    rt.appendChild(el("div","r1",c.nom));
+    rt.appendChild(el("div","r2", a.rendido + "% del curso evaluado · " + c.creditos + " créditos"));
+    b.appendChild(rt);
+    b.appendChild(el("div",claseNota(a.nota),nota1(a.nota)));
+    b.addEventListener("click",function(){ abrirCurso(c.id,"notas"); });
+    host.appendChild(b);
+  });
+}
+
+function pintarNotasCurso(host){
+  var c=cursoActual, a=notaActual(c);
+  var hero=el("div","gradehero");
+  hero.appendChild(el("div","gh-l","Nota actual"));
+  var v=el("div","gh-v",nota1(a.nota));
+  if(a.nota!==null && a.nota<4) v.style.color="var(--live)";
+  hero.appendChild(v);
+  hero.appendChild(el("div","gh-d", a.rendido===0 ? "Todavía sin evaluaciones rendidas"
+    : "Con el " + a.rendido + "% del curso evaluado"));
+  host.appendChild(hero);
+
+  var sh=el("div","sec-h"); sh.appendChild(el("h3",null,"Evaluaciones")); host.appendChild(sh);
+  c.evals.forEach(function(e){
+    var r=el("div","evrow");
+    var et=el("div","et");
+    et.appendChild(el("div","e1",e.t));
+    et.appendChild(el("div","e2", e.peso + "% de la nota final"));
+    r.appendChild(et);
+    r.appendChild(el("div",claseNota(e.nota),nota1(e.nota)));
+    host.appendChild(r);
+  });
+
+  var falta=0;
+  c.evals.forEach(function(e){ if(e.nota===null) falta+=e.peso; });
+  if(falta>0 && a.nota!==null){
+    /* nota que se necesita en lo que queda para llegar a 4,0 */
+    var req=(4 - (a.nota*a.rendido)/100) / (falta/100);
+    var pj=el("div","proj");
+    if(req<=1){
+      pj.appendChild(el("div","pj1","Ya tienes el ramo aprobado"));
+      pj.appendChild(el("div","pj2","Con lo rendido hasta ahora superas el 4,0 pase lo que pase en lo que queda."));
+    } else if(req>7){
+      pj.appendChild(el("div","pj1","No alcanza con lo que queda"));
+      pj.appendChild(el("div","pj2","Necesitarías más de un 7,0 en el " + falta + "% restante. Habla con tu profesor."));
+    } else {
+      pj.appendChild(el("div","pj1","Para aprobar con 4,0"));
+      pj.appendChild(el("div","pj2","Necesitas " + nota1(Math.ceil(req*10)/10) + " en el " + falta + "% que falta."));
+    }
+    host.appendChild(pj);
+  }
+  host.appendChild(el("div","nota-foro","Escala de 1,0 a 7,0. Se aprueba con 4,0."));
+}
+
+/* ===================== FORO ===================== */
+var hiloActual=null, volverHilo="curso";
+
+function iniciales(nombre){
+  var p=nombre.replace(/\./g,"").split(" ").filter(function(x){ return x.length; });
+  return ((p[0]||"")[0] + ((p[1]||"")[0]||"")).toUpperCase();
+}
+function bloqueAutor(autor, rol, cuando){
+  var w=el("div","who");
+  var av=el("div","wav"+(rol.indexOf("Profe")===0?" prof":""),iniciales(autor));
+  w.appendChild(av);
+  var t=el("div");
+  t.appendChild(el("div","wn",autor));
+  t.appendChild(el("div","wr",rol+" · "+cuando));
+  w.appendChild(t);
+  return w;
+}
+
+function pintarForoCurso(host){
+  var c=cursoActual;
+  c.foro.forEach(function(h){
+    var b=el("button","thread");
+    var th1=el("div","th1");
+    if(h.fijado){
+      var pin=el("span","pin");
+      pin.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M14 2l8 8-3 1-1.5 1.5L19 17l-2 2-5-5-5 5-1-1 5-5-5-5 2-2 4.5 1.5L14 5l-1-3Z"/></svg>';
+      pin.title="Fijado por el profesor";
+      th1.appendChild(pin);
+    }
+    th1.appendChild(el("span",null,h.t));
+    b.appendChild(th1);
+    b.appendChild(el("div","th2",h.cuerpo));
+    var th3=el("div","th3");
+    th3.appendChild(el("span",null,h.autor));
+    th3.appendChild(el("span",null,"·"));
+    th3.appendChild(el("span",null, h.respuestas.length===0 ? "Sin respuestas"
+      : h.respuestas.length + (h.respuestas.length===1 ? " respuesta":" respuestas")));
+    th3.appendChild(el("span",null,"·"));
+    th3.appendChild(el("span",null,h.cuando));
+    b.appendChild(th3);
+    b.addEventListener("click",function(){ abrirHilo(c.id,h.id); });
+    host.appendChild(b);
+  });
+  host.appendChild(el("div","nota-foro","El foro es entre compañeros y el profesor. El tutor no responde aquí: para eso está el chat."));
+}
+
+function abrirHilo(cid, hid){
+  var c=curso(cid), h=null;
+  c.foro.forEach(function(x){ if(x.id===hid) h=x; });
+  if(!h) return;
+  hiloActual={c:c, h:h};
+  volverHilo = pantalla==="notif" ? "notif" : "curso";
+  if(cursoActual===null || cursoActual.id!==c.id) cursoActual=c;
+  $("hilo-ttl").textContent="Foro · "+c.nom;
+  pintarHilo();
+  go("hilo");
+}
+function pintarHilo(){
+  var h=hiloActual.h;
+  var host=$("hilo-body"); host.innerHTML="";
+  var op=el("div","post op");
+  op.appendChild(el("div","th1",h.t));
+  op.appendChild(bloqueAutor(h.autor,h.rol,h.cuando));
+  op.appendChild(el("div","pb",h.cuerpo));
+  host.appendChild(op);
+  if(!h.respuestas.length){
+    host.appendChild(el("div","empty","Nadie ha respondido todavía. Parte tú."));
+  }
+  h.respuestas.forEach(function(r){
+    var pr=el("div","post");
+    pr.appendChild(bloqueAutor(r.autor,r.rol,r.cuando));
+    pr.appendChild(el("div","pb",r.cuerpo));
+    host.appendChild(pr);
+  });
+  host.scrollTop=0;
+}
+$("hilo-back").addEventListener("click",function(){
+  if(volverHilo==="notif"){ go("notif"); return; }
+  segActual="foro"; abrirCurso(hiloActual.c.id,"foro");
+});
+function responderHilo(){
+  var inp=$("hilo-input");
+  var txt=(inp.value||"").trim();
+  if(!txt) return;
+  hiloActual.h.respuestas.push({autor:"Eduardo Q.", rol:"Estudiante", cuando:"Ahora", cuerpo:txt});
+  inp.value="";
+  pintarHilo();
+  $("hilo-body").scrollTop=$("hilo-body").scrollHeight;
+}
+$("hilo-send").addEventListener("click",responderHilo);
+$("hilo-input").addEventListener("keydown",function(e){ if(e.key==="Enter") responderHilo(); });
+
+/* ===================== NOTIFICACIONES ===================== */
+var volverNotif="home";
+var ICONO_NOTIF = {
+  clase:  '<path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/>',
+  anuncio:'<path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M17 9a4 4 0 0 1 0 6"/>',
+  tarea:  '<path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6l1 1 2-2"/><path d="M4 12l1 1 2-2"/><path d="M4 18l1 1 2-2"/>',
+  nota:   '<path d="M12 3l2.6 5.6 6.4.8-4.7 4.3 1.2 6.3L12 17l-5.5 3 1.2-6.3L3 9.4l6.4-.8L12 3Z"/>'
+};
+function sinLeer(){ return NOTIFS.filter(function(n){ return !n.leida; }).length; }
+function pintarCampana(){
+  var n=sinLeer(), b=$("bell-badge");
+  b.textContent=n;
+  b.classList.toggle("hide", n===0);
+  $("home-bell").setAttribute("aria-label", n===0 ? "Notificaciones" : "Notificaciones, "+n+" sin leer");
+}
+function pintarNotif(){
+  var host=$("notif-body"); host.innerHTML="";
+  if(!NOTIFS.length){ host.appendChild(el("div","empty","No tienes notificaciones.")); return; }
+  NOTIFS.forEach(function(n){
+    var c=curso(n.curso);
+    var b=el("button","row nrow"+(n.leida?"":" unread"));
+    var ic=el("span","ic");
+    ic.innerHTML=svgIc(ICONO_NOTIF[n.tipo], c.color);
+    ic.style.background=c.color+"1F";
+    b.appendChild(ic);
+    var rt=el("div","rt");
+    rt.appendChild(el("div","r1",n.t));
+    rt.appendChild(el("div","r2",n.d));
+    b.appendChild(rt);
+    b.appendChild(el("div","rr",n.cuando));
+    b.addEventListener("click",function(){
+      n.leida=true; pintarCampana();
+      if(n.tipo==="clase")   { abrirVivo(n.curso); return; }
+      if(n.tipo==="anuncio") { abrirHilo(n.curso, n.ref); return; }
+      if(n.tipo==="tarea")   { abrirTarea(n.curso, n.ref); return; }
+      abrirCurso(n.curso,"notas");
+    });
+    host.appendChild(b);
+  });
+}
+$("home-bell").addEventListener("click",function(){ volverNotif="home"; pintarNotif(); go("notif"); });
+$("notif-back").addEventListener("click",function(){ go(volverNotif); });
+$("notif-todas").addEventListener("click",function(){
+  NOTIFS.forEach(function(n){ n.leida=true; });
+  pintarCampana(); pintarNotif();
+});
+
 /* ===================== ARRANQUE ===================== */
 buildTabs();
+pintarCampana();
 pintarInicio();
 })();
 </script>

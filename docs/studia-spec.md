@@ -64,7 +64,23 @@ Asignatura
       item       — { tipo: video|documento|ejercicios, título, detalle, completado }
   grabadas[]     — { título, fecha, duración (s) }
   tareas[]       — { id, título, vence, días restantes, puntos, estado, nota?, descripción, criterios[] }
+  evals[]        — { título, peso (%), nota | null }
+  foro[]         — { id, título, autor, rol, fijado?, cuándo, cuerpo, respuestas[] }
+  créditos       — para ponderar el promedio general
+
+Notificación
+  { id, tipo: clase|anuncio|tarea|nota, asignatura, título, detalle, cuándo, leída, ref }
 ```
+
+### Calificaciones
+
+Escala chilena: **1,0 a 7,0**, se aprueba con **4,0**. La nota de una asignatura se pondera
+solo entre las evaluaciones **ya rendidas**, de modo que refleje cómo va el estudiante hoy y
+no cómo iría si sacara cero en lo que falta. El promedio general se pondera por créditos.
+
+Cuando queda evaluación pendiente, la app calcula **qué nota se necesita en lo que falta
+para llegar a 4,0** y lo dice en una frase. Si ya está aprobado pase lo que pase, lo dice; si
+ya no alcanza ni con un 7,0, también.
 
 **Estados de tarea**: `pendiente` · `entregada` · `atrasada`.
 
@@ -121,10 +137,14 @@ Bienvenida → Login / Registro → [ Inicio · Horario · Tareas · Tutor ]
      ┌───────────────────────────────┼──────────────────────┐
      ↓                               ↓                      ↓
   Asignatura                    Detalle de tarea        Clase en vivo
-  (Materia · Clases ·                │                      │
-   Tareas · Horario)                 └──> Tutor <───────────┘
+  (Materia · Clases · Tareas ·       │                      │
+   Foro · Notas · Horario)           └──> Tutor <───────────┘
      │
-     └──> Clase grabada ──> Tutor
+     ├──> Clase grabada ──> Tutor
+     └──> Hilo del foro
+
+Campana (en Inicio) ──> Notificaciones ──> hilo / tarea / notas / clase en vivo
+"Ver notas" (en Inicio) ──> Mis notas ──> Asignatura · Notas
 ```
 
 El **Tutor es alcanzable desde todo**: desde la pestaña, desde la cabecera de la asignatura,
@@ -152,6 +172,8 @@ Cuatro secciones:
   está hecho. Tocar un ítem abre el tutor con ese ítem como contexto.
 - **Clases** — banner de la clase en vivo si la hay, y la lista de grabaciones con fecha y duración.
 - **Tareas** — las tareas del ramo, la más urgente arriba.
+- **Foro** — hilos de la asignatura, con los del profesor fijados arriba. Se puede responder.
+- **Notas** — nota actual, cada evaluación con su peso, y la proyección para aprobar.
 - **Horario** — los bloques semanales del ramo con día, hora, sala y tipo (cátedra, ayudantía, laboratorio).
 
 ### Clase en vivo (audio)
@@ -190,6 +212,31 @@ tiempo restante en lenguaje natural ("Mañana", "En 3 días", "Venció").
 Título, ramo, entrega, puntos y estado · enunciado con sus criterios de evaluación ·
 calificación si ya fue evaluada · **Entregar tarea** · **Pedir guía al tutor**, con el
 recordatorio de que el tutor no la resuelve.
+
+### Notificaciones
+
+Se llega por la campana de Inicio, que lleva el contador de no leídas. Cuatro tipos, cada uno
+con el color de su ramo: **clase en vivo**, **aviso del profesor**, **tarea** (por vencer o
+atrasada) y **nota publicada**. Las no leídas van sobre un fondo tenue y con un punto azul.
+Tocar una la marca leída y **lleva al lugar exacto**: el aviso al hilo del foro, la tarea a su
+detalle, la nota a las notas del ramo, la clase a la sala en vivo. Volver desde ahí regresa a
+la lista, no al inicio.
+
+### Mis notas
+
+Promedio general ponderado por créditos y, debajo, cada asignatura con su nota actual y qué
+porcentaje del curso lleva evaluado. Las notas bajo 4,0 van en rojo; las asignaturas sin
+evaluaciones rendidas muestran un guión, no un cero.
+
+### Foro y sus hilos
+
+Lista de hilos con extracto de dos líneas, autor, número de respuestas y fecha. Los avisos del
+profesor van fijados arriba con una chincheta ámbar. Dentro del hilo, el mensaje original
+queda destacado sobre fondo gris y las respuestas debajo, cada una con su avatar de iniciales
+—azul si es del profesor— y su rol. Abajo, un campo para responder.
+
+El foro aclara su propio rol: *"El foro es entre compañeros y el profesor. El tutor no
+responde aquí: para eso está el chat."* Son dos espacios distintos a propósito.
 
 ### Tutor
 
@@ -246,14 +293,18 @@ La clase en vivo invierte todo: fondo `#0E1726` y texto blanco.
 3. **El color es del ramo**, no de la pantalla. Se mantiene en todas las vistas.
 4. **Las tareas atrasadas van primero**, no escondidas al final de la lista.
 5. **Salir de una clase en vivo es explícito.** El chevron minimiza; solo el botón rojo cuelga.
+6. **Una notificación lleva al lugar exacto**, nunca al inicio, y volver regresa a la lista.
+7. **La nota parcial pondera solo lo rendido.** Mostrar un promedio hundido por evaluaciones
+   que aún no ocurren desinforma al estudiante justo cuando más necesita saber dónde está.
+8. **El foro no es el tutor.** Entre compañeros se discute; con el tutor se piensa a solas.
 
 ---
 
 ## 8. Estado
 
-**Hecho** — prototipo navegable completo: 11 pantallas, seis asignaturas con datos
-realistas, clases en vivo y grabadas, horario, tareas y tutor, con el sistema visual y el
-tono definidos.
+**Hecho** — prototipo navegable completo: 14 pantallas, seis asignaturas con datos realistas,
+clases en vivo y grabadas, horario, tareas, foro, notas, notificaciones y tutor, con el
+sistema visual y el tono definidos.
 
 **Pendiente**
 - App real en Expo. El prototipo es HTML: define el producto, no lo implementa.
@@ -261,7 +312,8 @@ tono definidos.
 - Función de servidor que llame a Claude con el *system prompt* socrático.
 - Audio en vivo de verdad (ver §9).
 - Entrega de tareas con archivos adjuntos.
-- Notificaciones: clase por empezar, tarea por vencer, nota publicada.
+- Notificaciones reales: push del dispositivo y las reglas de cuándo se emiten.
+- Foro: crear hilos nuevos, adjuntos, menciones y moderación del profesor.
 
 ## 9. Decisiones abiertas
 
@@ -274,3 +326,7 @@ tono definidos.
 - **Quién carga la materia**: ¿el profesor, la institución vía integración, o el propio estudiante?
 - **Insistencia**: qué hace el tutor cuando el estudiante pide la respuesta cinco veces seguidas.
 - **Modo offline**: si las grabaciones se descargan para escuchar sin conexión.
+- **Quién publica las notas**: ¿se sincronizan desde el sistema de la universidad o las carga
+  el profesor en StudIA? De esto depende si las notas son fuente de verdad o solo un reflejo.
+- **Anonimato en el foro**: preguntar en público cuesta. Vale evaluar si se permite preguntar
+  sin nombre visible para el resto del curso.

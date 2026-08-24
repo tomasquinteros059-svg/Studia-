@@ -12,7 +12,8 @@ por diseño, **nunca resuelve el ejercicio**.
 
 | Ruta | Qué es |
 |---|---|
-| [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo navegable — 11 pantallas, sin dependencias |
+| [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo navegable — 14 pantallas, sin dependencias |
+| [`prototipo/build-artifact.sh`](prototipo/build-artifact.sh) | Genera la versión publicable como Artifact a partir del prototipo |
 | [`docs/studia-spec.md`](docs/studia-spec.md) | Especificación: producto, modelo de datos, navegación, pantallas, sistema visual y decisiones abiertas |
 
 ## Ver el prototipo
@@ -30,17 +31,23 @@ python3 -m http.server 8000
 2. Entra a la clase **en vivo** desde el banner rojo: silencia y activa el micrófono, pide la palabra
 3. Vuelve con el chevron: caes en **Cálculo I** → recorre *Materia*, *Clases*, *Tareas*, *Horario*
 4. Abre una **clase grabada** y usa el reproductor y los capítulos
-5. En **Tareas**, abre una y toca *Pedir guía al tutor*
-6. Escríbele **"dame la respuesta"** y observa qué hace
+5. Toca la **campana**: cada notificación te deja en el lugar exacto
+6. *Ver notas* → entra a **Investigación de Operaciones**: vas con 4,2 y te dice cuánto necesitas
+7. En una asignatura, entra al **Foro** y responde un hilo
+8. En **Tareas**, abre una y toca *Pedir guía al tutor*
+9. Escríbele **"dame la respuesta"** y observa qué hace
 
 ## Qué hay dentro
 
 - **Inicio** — clase en vivo, bloques de hoy, próximas entregas y las seis asignaturas
-- **Asignatura** — materia en módulos plegables, clases en vivo y grabadas, tareas y horario del ramo
+- **Asignatura** — materia en módulos plegables, clases, tareas, foro, notas y horario del ramo
 - **Clase en vivo** — audio con ecualizador, participantes, micrófono, pedir la palabra
 - **Clase grabada** — reproductor con velocidades y capítulos
 - **Horario** — semana Lun–Vie con salas, tipos de bloque y entregas del día
 - **Tareas** — pendientes, entregadas y todas, con criterios de evaluación
+- **Foro** — hilos por asignatura, avisos del profesor fijados, respuestas
+- **Notas** — escala 1,0–7,0, ponderación por evaluación y cuánto necesitas para aprobar
+- **Notificaciones** — clase en vivo, avisos, vencimientos y notas publicadas
 - **Tutor** — accesible desde cualquier pantalla, con el contexto de dónde venías
 
 ## Stack previsto
