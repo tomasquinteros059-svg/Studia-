@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>StudIA — Prototipo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{color-scheme:light}
+  html,body{height:100%}
+  body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}
+  img{max-width:100%}
+</style>
+</head>
+<body>
+<style>
+  :root{
+    --ground:#EAEEF3; --ground-2:#E1E7EE; --ink:#0E1726; --muted:#5A6473;
+    --brand:#208AEF; --brand-ink:#0C447C; --amber:#C9701C;
+    --app-bg:#ffffff; --app-text:#0b1220; --app-sec:#60646C;
+    --app-el:#F1F1F4; --app-sel:#E1E2E7; --on-brand:#ffffff;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  .wrap{
+    min-height:100%; padding:40px 20px 56px; font-family:var(--sans); color:var(--ink);
+    background:
+      radial-gradient(circle at center, rgba(32,138,239,.05), transparent 60%),
+      radial-gradient(rgba(14,23,38,.10) 1px, transparent 1.4px);
+    background-color:var(--ground);
+    background-size:auto, 22px 22px;
+    display:flex; flex-direction:column; align-items:center; gap:26px;
+  }
+  .intro{max-width:560px; text-align:center; display:flex; flex-direction:column; gap:10px}
+  .eyebrow{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--brand-ink); font-weight:600}
+  .title{font-family:var(--serif); font-size:40px; line-height:1.05; margin:0; text-wrap:balance; font-weight:600}
+  .title em{font-style:italic; color:var(--brand)}
+  .lede{font-size:16px; line-height:1.6; color:var(--muted); margin:0}
+  .hints{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:4px}
+  .hint{font-size:12.5px; color:var(--brand-ink); background:rgba(32,138,239,.10); border:1px solid rgba(32,138,239,.22); padding:5px 11px; border-radius:999px}
+
+  .device{
+    width:min(348px,94vw); height:696px; max-height:86vh; background:#0d1117;
+    border-radius:40px; padding:11px; box-shadow:0 24px 60px -22px rgba(14,23,38,.55), 0 4px 12px rgba(14,23,38,.12);
+    position:relative;
+  }
+  .screen-host{position:relative; width:100%; height:100%; background:var(--app-bg); border-radius:30px; overflow:hidden}
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:26px; background:#0d1117; border-radius:0 0 16px 16px; z-index:5}
+
+  .screen{position:absolute; inset:0; display:flex; flex-direction:column; opacity:0; visibility:hidden; transition:opacity .28s ease; color:var(--app-text)}
+  .screen.on{opacity:1; visibility:visible}
+  .pad{padding:30px 26px}
+  .center-col{justify-content:center; align-items:center; text-align:center; gap:16px}
+
+  .logo{width:66px; height:66px; border-radius:19px; background:var(--brand); display:flex; align-items:center; justify-content:center}
+  .brand-xl{font-size:36px; font-weight:600; letter-spacing:-.01em}
+  .tagline{font-size:18px; font-weight:600; color:var(--app-sec)}
+  .sub{font-size:14.5px; color:var(--app-sec); line-height:1.55}
+  .h-lg{font-size:25px; font-weight:600; margin:0}
+
+  .fld{width:100%; border:1px solid var(--app-sel); border-radius:11px; padding:13px; font-size:15px; font-family:var(--sans); background:#F7F8FA; color:var(--app-text)}
+  .fld::placeholder{color:#9aa0a6}
+  .fld:focus-visible{outline:2px solid var(--brand); outline-offset:1px; border-color:var(--brand)}
+
+  .btn{border:none; border-radius:12px; padding:14px; font-size:15px; font-weight:600; font-family:var(--sans); cursor:pointer; width:100%}
+  .btn-primary{background:var(--brand); color:var(--on-brand)}
+  .btn-ghost{background:transparent; color:var(--app-sec); border:1px solid var(--app-sel)}
+  .btn:focus-visible{outline:2px solid var(--brand-ink); outline-offset:2px}
+  .lnk{color:var(--brand); font-weight:600; cursor:pointer; background:none; border:none; font-size:13.5px; font-family:var(--sans)}
+  .muted-row{font-size:13.5px; color:var(--app-sec)}
+
+  .top{display:flex; align-items:center; gap:8px; padding:14px 14px; border-bottom:1px solid var(--app-sel)}
+  .top .ttl{flex:1; text-align:center; font-size:14px; font-weight:600}
+  .iconbtn{background:none; border:none; cursor:pointer; color:var(--brand); display:flex; padding:4px}
+  .iconbtn:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:6px}
+
+  .chips{display:flex; gap:7px; overflow-x:auto; padding:11px 14px; scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto; border:none; border-radius:999px; padding:8px 14px; font-size:13px; cursor:pointer; background:var(--app-el); color:var(--app-sec); white-space:nowrap; font-family:var(--sans)}
+  .chip.on{background:var(--brand); color:var(--on-brand)}
+  .chip:focus-visible{outline:2px solid var(--brand-ink); outline-offset:2px}
+
+  .msgs{flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:9px}
+  .bub{max-width:84%; padding:11px 13px; border-radius:15px; font-size:14px; line-height:1.5}
+  .bub.u{align-self:flex-end; background:var(--brand); color:var(--on-brand); border-bottom-right-radius:5px}
+  .bub.a{align-self:flex-start; background:var(--app-el); color:var(--app-text); border-bottom-left-radius:5px}
+  .empty{flex:1; display:flex; flex-direction:column; justify-content:center; gap:12px; padding:0 22px; text-align:center}
+  .typing{display:none; align-items:center; gap:7px; padding:0 16px 8px; font-size:13px; color:var(--app-sec)}
+  .typing.on{display:flex}
+  .spin{width:15px; height:15px; border:2px solid var(--app-sel); border-top-color:var(--brand); border-radius:50%; animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .composer{display:flex; align-items:flex-end; gap:8px; padding:12px; border-top:1px solid var(--app-sel)}
+  .send{background:var(--brand); color:var(--on-brand); border:none; border-radius:11px; padding:0 15px; height:44px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--sans)}
+
+  .foot{font-size:12.5px; color:var(--muted); text-align:center; max-width:440px}
+  svg{display:block}
+  @media (prefers-reduced-motion: reduce){ .screen{transition:none} .spin{animation:none} }
+</style>
+
+<div class="wrap">
+  <div class="intro">
+    <span class="eyebrow">Prototipo interactivo</span>
+    <h1 class="title">StudIA — un tutor que <em>guía</em>, no resuelve</h1>
+    <p class="lede">Recorre la app: crea sesión, elige un ramo de Ingeniería Civil Industrial y conversa. Es una demo navegable — el tutor responde con guiones de ejemplo.</p>
+    <div class="hints">
+      <span class="hint">Empieza en “Comenzar”</span>
+      <span class="hint">Pídele “dame la respuesta” y observa</span>
+    </div>
+  </div>
+
+  <div class="device" role="application" aria-label="Prototipo de la app StudIA">
+    <div class="notch" aria-hidden="true"></div>
+    <div class="screen-host">
+
+      <section class="screen on pad center-col" id="s-welcome" aria-label="Bienvenida">
+        <div class="logo" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2 9l10 5 10-5-10-5Z"/><path d="M5 11v4.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V11"/><path d="M22 9v5"/></svg>
+        </div>
+        <div class="brand-xl">StudIA</div>
+        <div class="tagline">Aprende pensando, no copiando.</div>
+        <p class="sub">Tu tutor nunca te da la respuesta:<br>te guía para que la descubras.</p>
+        <button class="btn btn-primary" style="margin-top:6px" data-go="login">Comenzar</button>
+      </section>
+
+      <section class="screen pad" id="s-login" style="justify-content:center; gap:13px" aria-label="Iniciar sesión">
+        <h2 class="h-lg">Hola de nuevo</h2>
+        <p class="sub" style="margin:-4px 0 4px">Inicia sesión para seguir aprendiendo.</p>
+        <input class="fld" value="eduardo@studia.cl" aria-label="Correo" />
+        <input class="fld" type="password" value="clave-demo" aria-label="Contraseña" />
+        <button class="btn btn-primary" data-go="home">Iniciar sesión</button>
+        <p class="muted-row" style="text-align:center">¿No tienes cuenta? <button class="lnk" data-go="signup">Crear cuenta</button></p>
+      </section>
+
+      <section class="screen pad" id="s-signup" style="justify-content:center; gap:13px" aria-label="Crear cuenta">
+        <h2 class="h-lg">Crear cuenta</h2>
+        <p class="sub" style="margin:-4px 0 4px">Empieza con un tutor que te guía, no que te da la respuesta.</p>
+        <input class="fld" placeholder="Correo" aria-label="Correo" />
+        <input class="fld" type="password" placeholder="Contraseña (mín. 6)" aria-label="Contraseña" />
+        <button class="btn btn-primary" data-go="home">Crear cuenta</button>
+        <p class="muted-row" style="text-align:center">¿Ya tienes cuenta? <button class="lnk" data-go="login">Iniciar sesión</button></p>
+      </section>
+
+      <section class="screen pad center-col" id="s-home" aria-label="Inicio">
+        <div class="brand-xl">StudIA</div>
+        <p class="sub">Hola, Eduardo</p>
+        <p class="sub">Elige un ramo y conversa con tu tutor.</p>
+        <button class="btn btn-primary" style="margin-top:4px" data-go="chat">Conversar con un tutor</button>
+        <button class="btn btn-ghost" data-go="welcome">Cerrar sesión</button>
+      </section>
+
+      <section class="screen" id="s-chat" aria-label="Chat con el tutor">
+        <div class="top">
+          <button class="iconbtn" data-go="home" aria-label="Volver">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="ttl" id="chat-title">Tutor · Cálculo I</div>
+          <span style="width:28px"></span>
+        </div>
+        <div class="chips" id="chips" role="tablist" aria-label="Ramos"></div>
+        <div class="msgs" id="msgs"></div>
+        <div class="typing" id="typing"><span class="spin"></span> El tutor está pensando…</div>
+        <div class="composer">
+          <input class="fld" id="chat-input" placeholder="Escribe tu duda…" aria-label="Tu mensaje" />
+          <button class="send" id="send-btn" aria-label="Enviar">Enviar</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <p class="foot">Demo de producto de StudIA. Las pantallas, textos y colores replican la app real (Expo + Supabase); en producción, las respuestas del tutor las genera Claude a través de una función segura en el servidor.</p>
+</div>
+
+<script>
+(function(){
+  var ramos=["Cálculo I","Álgebra Lineal","Física I","Investigación de Operaciones","Microeconomía","Programación"];
+  var current=ramos[0], step=0;
+  var intro={
+    "Cálculo I":"Cuéntame en qué problema de cálculo estás. ¿Qué te piden encontrar y qué datos tienes?",
+    "Álgebra Lineal":"¿En qué andas? Antes de operar: ¿qué esperas de la solución del sistema, única, infinitas o ninguna?",
+    "Física I":"Partamos por el diagrama de cuerpo libre. ¿Qué fuerzas actúan sobre el cuerpo?",
+    "Investigación de Operaciones":"Modelemos juntos. ¿Cuáles serían tus variables de decisión, en palabras?",
+    "Microeconomía":"Vamos con un ejemplo concreto. ¿Qué cambia en el mercado y por qué crees que se mueve?",
+    "Programación":"Descríbeme el algoritmo en palabras. ¿Cuál sería el primer paso antes de escribir código?"
+  };
+  var guias=[
+    "Buena intuición. ¿Qué paso crees que viene ahora, y por qué ese?",
+    "Vas bien. Antes de seguir, ¿cómo podrías verificar si eso funciona?",
+    "Interesante. ¿Qué dato del enunciado todavía no has usado?",
+    "Casi. ¿Qué pasaría si lo pruebas con un caso simple para comprobarlo?",
+    "Vas encaminado. ¿Qué regla o concepto crees que aplica aquí, con tus palabras?"
+  ];
+  function $(id){return document.getElementById(id);}
+  function go(name){
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
+    var el=$('s-'+name); if(el) el.classList.add('on');
+    if(name==='chat') resetChat();
+  }
+  document.querySelectorAll('[data-go]').forEach(function(b){ b.addEventListener('click',function(){go(b.getAttribute('data-go'));}); });
+
+  function renderChips(){
+    var c=$('chips'); c.innerHTML='';
+    ramos.forEach(function(r){
+      var b=document.createElement('button');
+      b.className='chip'+(r===current?' on':''); b.textContent=r; b.setAttribute('role','tab');
+      b.addEventListener('click',function(){ current=r; $('chat-title').textContent='Tutor · '+r; renderChips(); resetMsgs(); });
+      c.appendChild(b);
+    });
+  }
+  function addBub(role,text){
+    var m=$('msgs'); var d=document.createElement('div'); d.className='bub '+role; d.textContent=text;
+    m.appendChild(d); m.scrollTop=m.scrollHeight;
+  }
+  function resetMsgs(){ $('msgs').innerHTML=''; addBub('a', intro[current]); }
+  function resetChat(){ renderChips(); resetMsgs(); }
+
+  function reply(t){
+    t=t.toLowerCase();
+    if(/respuesta|dame|resultado|soluci|cu[aá]nto es|resu[eé]lvelo|hazlo por m/.test(t)){
+      return "Sé que sería cómodo que te la diera, pero mi misión es que la descubras tú: así de verdad aprendes. Vamos por partes. ¿Qué es lo primero que sabes que debes calcular?";
+    }
+    return guias[step++ % guias.length];
+  }
+  function send(){
+    var inp=$('chat-input'); var txt=(inp.value||'').trim(); if(!txt) return;
+    addBub('u',txt); inp.value='';
+    var ty=$('typing'); ty.classList.add('on');
+    setTimeout(function(){ ty.classList.remove('on'); addBub('a',reply(txt)); },700);
+  }
+  $('send-btn').addEventListener('click',send);
+  $('chat-input').addEventListener('keydown',function(e){ if(e.key==='Enter') send(); });
+
+  renderChips();
+})();
+</script>
+</body>
+</html>
