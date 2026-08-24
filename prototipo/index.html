@@ -15,7 +15,7 @@
 <style>
   :root{
     --ground:#EAEEF3; --ground-2:#E1E7EE; --ink:#0E1726; --muted:#5A6473;
-    --brand:#208AEF; --brand-ink:#0C447C; --amber:#C9701C;
+    --brand:#208AEF; --brand-ink:#0C447C; --amber:#C9701C; --live:#D93B3B; --ok:#1E8E5A;
     --app-bg:#ffffff; --app-text:#0b1220; --app-sec:#60646C;
     --app-el:#F1F1F4; --app-sel:#E1E2E7; --on-brand:#ffffff;
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
@@ -31,7 +31,7 @@
     background-size:auto, 22px 22px;
     display:flex; flex-direction:column; align-items:center; gap:26px;
   }
-  .intro{max-width:560px; text-align:center; display:flex; flex-direction:column; gap:10px}
+  .intro{max-width:600px; text-align:center; display:flex; flex-direction:column; gap:10px}
   .eyebrow{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--brand-ink); font-weight:600}
   .title{font-family:var(--serif); font-size:40px; line-height:1.05; margin:0; text-wrap:balance; font-weight:600}
   .title em{font-style:italic; color:var(--brand)}
@@ -69,42 +69,206 @@
   .lnk{color:var(--brand); font-weight:600; cursor:pointer; background:none; border:none; font-size:13.5px; font-family:var(--sans)}
   .muted-row{font-size:13.5px; color:var(--app-sec)}
 
-  .top{display:flex; align-items:center; gap:8px; padding:14px 14px; border-bottom:1px solid var(--app-sel)}
-  .top .ttl{flex:1; text-align:center; font-size:14px; font-weight:600}
+  /* ---- barra superior / navegación ---- */
+  .top{display:flex; align-items:center; gap:8px; padding:14px; border-bottom:1px solid var(--app-sel); flex:0 0 auto}
+  .top .ttl{flex:1; text-align:center; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .iconbtn{background:none; border:none; cursor:pointer; color:var(--brand); display:flex; padding:4px}
   .iconbtn:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:6px}
+  .body{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch}
+  .body.p{padding:14px}
 
-  .chips{display:flex; gap:7px; overflow-x:auto; padding:11px 14px; scrollbar-width:none}
+  /* ---- barra de pestañas inferior (estilo Canvas) ---- */
+  .tabbar{flex:0 0 auto; display:flex; border-top:1px solid var(--app-sel); background:var(--app-bg)}
+  .tab{flex:1; background:none; border:none; cursor:pointer; padding:9px 2px 11px; display:flex; flex-direction:column; align-items:center; gap:3px; font-family:var(--sans); font-size:10.5px; color:var(--app-sec)}
+  .tab.on{color:var(--brand); font-weight:600}
+  .tab:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+
+  /* ---- inicio / tarjetas de asignatura ---- */
+  .greet{padding:18px 16px 6px}
+  .greet .hi{font-size:22px; font-weight:600; letter-spacing:-.01em}
+  .greet .dsub{font-size:13px; color:var(--app-sec); margin-top:2px}
+  .sec-h{display:flex; align-items:baseline; justify-content:space-between; padding:16px 16px 8px}
+  .sec-h h3{margin:0; font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--app-sec); font-weight:600}
+  .sec-h .lnk{font-size:12.5px}
+
+  .livebar{margin:8px 14px 0; border:1px solid rgba(217,59,59,.28); background:rgba(217,59,59,.06); border-radius:14px; padding:12px 13px; display:flex; align-items:center; gap:11px; cursor:pointer; width:calc(100% - 28px); text-align:left; font-family:var(--sans)}
+  .livebar:focus-visible{outline:2px solid var(--live); outline-offset:2px}
+  .dot-live{width:9px; height:9px; border-radius:50%; background:var(--live); flex:0 0 auto; animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .livebar .lt{flex:1; min-width:0}
+  .livebar .l1{font-size:11px; font-weight:700; color:var(--live); letter-spacing:.06em}
+  .livebar .l2{font-size:14px; font-weight:600; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .livebar .l3{font-size:12px; color:var(--app-sec); margin-top:1px}
+
+  .cards{display:flex; flex-direction:column; gap:10px; padding:0 14px}
+  .card{border:1px solid var(--app-sel); border-radius:14px; overflow:hidden; cursor:pointer; background:var(--app-bg); text-align:left; font-family:var(--sans); padding:0; width:100%}
+  .card:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+  .card .strip{height:34px; display:flex; align-items:center; padding:0 12px}
+  .card .strip .cod{font-size:11px; font-weight:700; color:#fff; letter-spacing:.05em; opacity:.92}
+  .card .cb{padding:10px 12px 12px}
+  .card .cn{font-size:15px; font-weight:600; letter-spacing:-.005em}
+  .card .cp{font-size:12.5px; color:var(--app-sec); margin-top:2px}
+  .bar{height:5px; border-radius:99px; background:var(--app-el); margin-top:9px; overflow:hidden}
+  .bar i{display:block; height:100%; border-radius:99px}
+  .card .cm{font-size:11.5px; color:var(--app-sec); margin-top:6px; display:flex; justify-content:space-between}
+
+  /* ---- filas de lista ---- */
+  .row{display:flex; align-items:center; gap:11px; padding:12px 14px; border-bottom:1px solid var(--app-sel); cursor:pointer; background:none; border-left:none; border-right:none; border-top:none; width:100%; text-align:left; font-family:var(--sans); color:var(--app-text)}
+  .row:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+  .row .ic{width:32px; height:32px; border-radius:9px; background:var(--app-el); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:var(--app-sec)}
+  .row .rt{flex:1; min-width:0}
+  .row .r1{font-size:14px; font-weight:600; line-height:1.3}
+  .row .r2{font-size:12px; color:var(--app-sec); margin-top:2px}
+  .row .rr{font-size:11.5px; color:var(--app-sec); flex:0 0 auto; text-align:right}
+  .cdot{width:8px; height:8px; border-radius:50%; flex:0 0 auto}
+
+  .pill{display:inline-block; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px; letter-spacing:.03em}
+  .p-pend{background:rgba(201,112,28,.12); color:var(--amber)}
+  .p-ok{background:rgba(30,142,90,.12); color:var(--ok)}
+  .p-late{background:rgba(217,59,59,.12); color:var(--live)}
+  .p-live{background:rgba(217,59,59,.12); color:var(--live)}
+
+  .empty{padding:34px 24px; text-align:center; color:var(--app-sec); font-size:13.5px; line-height:1.55}
+
+  /* ---- detalle de asignatura ---- */
+  .chead{padding:14px 16px 12px; color:#fff}
+  .chead .cc{font-size:11px; font-weight:700; letter-spacing:.06em; opacity:.85}
+  .chead .cn{font-size:20px; font-weight:600; margin-top:2px; letter-spacing:-.01em}
+  .chead .cp{font-size:12.5px; opacity:.88; margin-top:2px}
+  .chead .bar{background:rgba(255,255,255,.28)}
+  .chead .bar i{background:#fff}
+  .chead .cm{font-size:11.5px; opacity:.88; margin-top:6px}
+
+  .segs{display:flex; gap:6px; padding:11px 14px; border-bottom:1px solid var(--app-sel); overflow-x:auto; scrollbar-width:none}
+  .segs::-webkit-scrollbar{display:none}
+  .seg{flex:0 0 auto; border:none; border-radius:999px; padding:7px 13px; font-size:12.5px; cursor:pointer; background:var(--app-el); color:var(--app-sec); font-family:var(--sans); white-space:nowrap}
+  .seg.on{background:var(--brand); color:var(--on-brand); font-weight:600}
+  .seg:focus-visible{outline:2px solid var(--brand-ink); outline-offset:2px}
+
+  .modh{display:flex; align-items:center; gap:9px; padding:11px 14px; background:var(--app-el); border:none; width:100%; text-align:left; cursor:pointer; font-family:var(--sans); color:var(--app-text); border-bottom:1px solid var(--app-sel)}
+  .modh .mt{flex:1; font-size:13px; font-weight:600}
+  .modh .mc{font-size:11.5px; color:var(--app-sec)}
+  .modh .car{transition:transform .2s ease; color:var(--app-sec); display:flex}
+  .modh[aria-expanded="true"] .car{transform:rotate(90deg)}
+  .modh:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+
+  /* ---- clase en vivo (audio) ---- */
+  #s-live{background:#0E1726; color:#fff}
+  .live-top{display:flex; align-items:center; gap:8px; padding:14px; flex:0 0 auto}
+  .live-top .ttl{flex:1; text-align:center; font-size:13px; font-weight:600; opacity:.9}
+  .live-top .iconbtn{color:#fff}
+  .badge-live{display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:.05em; background:rgba(217,59,59,.2); color:#FF8A8A; padding:4px 9px; border-radius:99px}
+  .live-body{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:0 24px; text-align:center; overflow-y:auto}
+  .live-course{font-size:12px; letter-spacing:.09em; text-transform:uppercase; opacity:.6; font-weight:600}
+  .live-topic{font-size:21px; font-weight:600; line-height:1.25; letter-spacing:-.01em}
+  .live-timer{font-size:13px; opacity:.55; font-variant-numeric:tabular-nums}
+  .eq{display:flex; align-items:flex-end; gap:5px; height:52px; margin:4px 0}
+  .eq i{width:6px; border-radius:99px; background:var(--brand); animation:eqa 1s ease-in-out infinite}
+  .eq i:nth-child(1){height:18px; animation-delay:0s}
+  .eq i:nth-child(2){height:34px; animation-delay:.12s}
+  .eq i:nth-child(3){height:50px; animation-delay:.24s}
+  .eq i:nth-child(4){height:30px; animation-delay:.36s}
+  .eq i:nth-child(5){height:42px; animation-delay:.48s}
+  .eq i:nth-child(6){height:22px; animation-delay:.6s}
+  .eq i:nth-child(7){height:36px; animation-delay:.72s}
+  @keyframes eqa{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+  .eq.mute i{animation:none; transform:scaleY(.3); background:rgba(255,255,255,.3)}
+  .live-speaker{font-size:13.5px; opacity:.85}
+  .live-speaker b{font-weight:600}
+  .parts{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:4px}
+  .av{width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:600; letter-spacing:.02em}
+  .av.sp{background:var(--brand); box-shadow:0 0 0 2px rgba(32,138,239,.35)}
+  .av.more{font-size:11px; opacity:.65}
+  .hand-note{font-size:12.5px; color:#FFD08A; min-height:17px}
+  .live-ctrl{flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:16px; padding:16px 16px 24px}
+  .cbtn{width:52px; height:52px; border-radius:50%; border:none; cursor:pointer; background:rgba(255,255,255,.12); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--sans)}
+  .cbtn.off{background:#fff; color:#0E1726}
+  .cbtn.up{background:#FFD08A; color:#0E1726}
+  .cbtn.end{background:var(--live)}
+  .cbtn:focus-visible{outline:2px solid #fff; outline-offset:3px}
+  .cwrap{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:10.5px; opacity:.75}
+
+  /* ---- reproductor de grabada ---- */
+  .play-hero{padding:20px 16px 14px; text-align:center}
+  .play-hero .ph-c{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--app-sec); font-weight:600}
+  .play-hero .ph-t{font-size:18px; font-weight:600; margin-top:4px; line-height:1.3; letter-spacing:-.01em}
+  .play-hero .ph-d{font-size:12.5px; color:var(--app-sec); margin-top:3px}
+  .scrub{padding:0 16px}
+  .scrub .track{height:5px; border-radius:99px; background:var(--app-el); overflow:hidden; cursor:pointer}
+  .scrub .track i{display:block; height:100%; background:var(--brand); border-radius:99px}
+  .scrub .times{display:flex; justify-content:space-between; font-size:11px; color:var(--app-sec); margin-top:6px; font-variant-numeric:tabular-nums}
+  .pctrl{display:flex; align-items:center; justify-content:center; gap:22px; padding:12px 0 6px}
+  .pbtn{background:none; border:none; cursor:pointer; color:var(--app-sec); display:flex; padding:6px; font-family:var(--sans)}
+  .pbtn.main{width:56px; height:56px; border-radius:50%; background:var(--brand); color:#fff; align-items:center; justify-content:center}
+  .pbtn:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:8px}
+  .speeds{display:flex; gap:6px; justify-content:center; padding:4px 0 12px}
+  .sp-b{border:1px solid var(--app-sel); background:none; border-radius:99px; padding:4px 10px; font-size:11.5px; cursor:pointer; color:var(--app-sec); font-family:var(--sans)}
+  .sp-b.on{background:var(--brand); color:#fff; border-color:var(--brand); font-weight:600}
+  .sp-b:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+
+  /* ---- horario ---- */
+  .days{display:flex; gap:6px; padding:12px 14px; border-bottom:1px solid var(--app-sel)}
+  .day{flex:1; border:none; background:var(--app-el); border-radius:11px; padding:8px 0; cursor:pointer; font-family:var(--sans); color:var(--app-sec); display:flex; flex-direction:column; align-items:center; gap:2px}
+  .day .dl{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase}
+  .day .dn{font-size:15px; font-weight:600}
+  .day.on{background:var(--brand); color:#fff}
+  .day.on .dl{opacity:.85}
+  .day:focus-visible{outline:2px solid var(--brand-ink); outline-offset:2px}
+  .slot{display:flex; gap:11px; padding:12px 14px; border-bottom:1px solid var(--app-sel); cursor:pointer; background:none; border-top:none; border-left:none; border-right:none; width:100%; text-align:left; font-family:var(--sans); color:var(--app-text)}
+  .slot:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+  .slot .hh{width:46px; flex:0 0 auto; font-size:12px; font-variant-numeric:tabular-nums; color:var(--app-sec); line-height:1.5}
+  .slot .hh b{display:block; font-size:13px; color:var(--app-text); font-weight:600}
+  .slot .vb{width:3px; border-radius:99px; flex:0 0 auto}
+  .slot .st{flex:1; min-width:0}
+  .slot .s1{font-size:14px; font-weight:600; line-height:1.3}
+  .slot .s2{font-size:12px; color:var(--app-sec); margin-top:2px}
+
+  /* ---- chat del tutor ---- */
+  .chips{display:flex; gap:7px; overflow-x:auto; padding:11px 14px; scrollbar-width:none; flex:0 0 auto; border-bottom:1px solid var(--app-sel)}
   .chips::-webkit-scrollbar{display:none}
   .chip{flex:0 0 auto; border:none; border-radius:999px; padding:8px 14px; font-size:13px; cursor:pointer; background:var(--app-el); color:var(--app-sec); white-space:nowrap; font-family:var(--sans)}
   .chip.on{background:var(--brand); color:var(--on-brand)}
   .chip:focus-visible{outline:2px solid var(--brand-ink); outline-offset:2px}
-
   .msgs{flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:9px}
   .bub{max-width:84%; padding:11px 13px; border-radius:15px; font-size:14px; line-height:1.5}
   .bub.u{align-self:flex-end; background:var(--brand); color:var(--on-brand); border-bottom-right-radius:5px}
   .bub.a{align-self:flex-start; background:var(--app-el); color:var(--app-text); border-bottom-left-radius:5px}
-  .empty{flex:1; display:flex; flex-direction:column; justify-content:center; gap:12px; padding:0 22px; text-align:center}
-  .typing{display:none; align-items:center; gap:7px; padding:0 16px 8px; font-size:13px; color:var(--app-sec)}
+  .ctx{align-self:center; font-size:11.5px; color:var(--app-sec); background:var(--app-el); padding:5px 11px; border-radius:99px; text-align:center}
+  .typing{display:none; align-items:center; gap:7px; padding:0 16px 8px; font-size:13px; color:var(--app-sec); flex:0 0 auto}
   .typing.on{display:flex}
   .spin{width:15px; height:15px; border:2px solid var(--app-sel); border-top-color:var(--brand); border-radius:50%; animation:sp .8s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
-  .composer{display:flex; align-items:flex-end; gap:8px; padding:12px; border-top:1px solid var(--app-sel)}
+  .composer{display:flex; align-items:flex-end; gap:8px; padding:12px; border-top:1px solid var(--app-sel); flex:0 0 auto}
   .send{background:var(--brand); color:var(--on-brand); border:none; border-radius:11px; padding:0 15px; height:44px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--sans)}
 
-  .foot{font-size:12.5px; color:var(--muted); text-align:center; max-width:440px}
+  /* ---- detalle de tarea ---- */
+  .th{padding:16px 16px 12px; border-bottom:1px solid var(--app-sel)}
+  .th .t1{font-size:19px; font-weight:600; line-height:1.3; letter-spacing:-.01em}
+  .th .t2{font-size:12.5px; color:var(--app-sec); margin-top:5px; display:flex; align-items:center; gap:7px}
+  .meta{display:flex; gap:10px; padding:12px 16px; border-bottom:1px solid var(--app-sel)}
+  .meta div{flex:1}
+  .meta .ml{font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--app-sec); font-weight:600}
+  .meta .mv{font-size:14px; font-weight:600; margin-top:3px}
+  .prose{padding:14px 16px; font-size:13.5px; line-height:1.6; color:var(--app-text)}
+  .prose p{margin:0 0 10px}
+  .prose ul{margin:0; padding-left:19px}
+  .prose li{margin-bottom:5px}
+  .acts{padding:12px 16px 18px; display:flex; flex-direction:column; gap:9px}
+
+  .foot{font-size:12.5px; color:var(--muted); text-align:center; max-width:520px; line-height:1.6}
   svg{display:block}
-  @media (prefers-reduced-motion: reduce){ .screen{transition:none} .spin{animation:none} }
+  @media (prefers-reduced-motion: reduce){ .screen{transition:none} .spin,.eq i,.dot-live{animation:none} }
 </style>
 
 <div class="wrap">
   <div class="intro">
     <span class="eyebrow">Prototipo interactivo</span>
-    <h1 class="title">StudIA — un tutor que <em>guía</em>, no resuelve</h1>
-    <p class="lede">Recorre la app: crea sesión, elige un ramo de Ingeniería Civil Industrial y conversa. Es una demo navegable — el tutor responde con guiones de ejemplo.</p>
+    <h1 class="title">StudIA — el aula completa, con un tutor que <em>guía</em></h1>
+    <p class="lede">Asignaturas, materia, horario, tareas, clases en vivo por audio y grabadas — y en el centro, un tutor que nunca te da la respuesta. Demo navegable con datos de ejemplo.</p>
     <div class="hints">
-      <span class="hint">Empieza en “Comenzar”</span>
-      <span class="hint">Pídele “dame la respuesta” y observa</span>
+      <span class="hint">Entra a una clase en vivo</span>
+      <span class="hint">Abre una asignatura → Materia</span>
+      <span class="hint">Pídele al tutor “dame la respuesta”</span>
     </div>
   </div>
 
@@ -112,16 +276,18 @@
     <div class="notch" aria-hidden="true"></div>
     <div class="screen-host">
 
+      <!-- ============ BIENVENIDA ============ -->
       <section class="screen on pad center-col" id="s-welcome" aria-label="Bienvenida">
         <div class="logo" aria-hidden="true">
           <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2 9l10 5 10-5-10-5Z"/><path d="M5 11v4.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V11"/><path d="M22 9v5"/></svg>
         </div>
         <div class="brand-xl">StudIA</div>
         <div class="tagline">Aprende pensando, no copiando.</div>
-        <p class="sub">Tu tutor nunca te da la respuesta:<br>te guía para que la descubras.</p>
+        <p class="sub">Tus clases, tu materia y tus tareas en un solo lugar.<br>Y un tutor que te guía para que descubras la respuesta.</p>
         <button class="btn btn-primary" style="margin-top:6px" data-go="login">Comenzar</button>
       </section>
 
+      <!-- ============ INICIAR SESIÓN ============ -->
       <section class="screen pad" id="s-login" style="justify-content:center; gap:13px" aria-label="Iniciar sesión">
         <h2 class="h-lg">Hola de nuevo</h2>
         <p class="sub" style="margin:-4px 0 4px">Inicia sesión para seguir aprendiendo.</p>
@@ -131,6 +297,7 @@
         <p class="muted-row" style="text-align:center">¿No tienes cuenta? <button class="lnk" data-go="signup">Crear cuenta</button></p>
       </section>
 
+      <!-- ============ CREAR CUENTA ============ -->
       <section class="screen pad" id="s-signup" style="justify-content:center; gap:13px" aria-label="Crear cuenta">
         <h2 class="h-lg">Crear cuenta</h2>
         <p class="sub" style="margin:-4px 0 4px">Empieza con un tutor que te guía, no que te da la respuesta.</p>
@@ -140,97 +307,1046 @@
         <p class="muted-row" style="text-align:center">¿Ya tienes cuenta? <button class="lnk" data-go="login">Iniciar sesión</button></p>
       </section>
 
-      <section class="screen pad center-col" id="s-home" aria-label="Inicio">
-        <div class="brand-xl">StudIA</div>
-        <p class="sub">Hola, Eduardo</p>
-        <p class="sub">Elige un ramo y conversa con tu tutor.</p>
-        <button class="btn btn-primary" style="margin-top:4px" data-go="chat">Conversar con un tutor</button>
-        <button class="btn btn-ghost" data-go="welcome">Cerrar sesión</button>
+      <!-- ============ INICIO (tablero) ============ -->
+      <section class="screen" id="s-home" aria-label="Inicio">
+        <div class="body">
+          <div class="greet">
+            <div class="hi">Hola, Eduardo</div>
+            <div class="dsub" id="home-day">Martes 25 de agosto</div>
+          </div>
+          <div id="home-live"></div>
+          <div class="sec-h"><h3>Hoy</h3><button class="lnk" data-go="horario">Ver horario</button></div>
+          <div id="home-hoy"></div>
+          <div class="sec-h"><h3>Próximas entregas</h3><button class="lnk" data-go="tareas">Ver todas</button></div>
+          <div id="home-tareas"></div>
+          <div class="sec-h"><h3>Mis asignaturas</h3></div>
+          <div class="cards" id="home-cards"></div>
+          <div style="padding:18px 14px 22px">
+            <button class="btn btn-ghost" data-go="welcome">Cerrar sesión</button>
+          </div>
+        </div>
+        <nav class="tabbar" id="tb-home" aria-label="Navegación principal"></nav>
       </section>
 
-      <section class="screen" id="s-chat" aria-label="Chat con el tutor">
+      <!-- ============ ASIGNATURA ============ -->
+      <section class="screen" id="s-curso" aria-label="Asignatura">
+        <div class="chead" id="curso-head">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+            <button class="iconbtn" style="color:#fff" data-go="home" aria-label="Volver a inicio">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span style="flex:1"></span>
+            <button class="iconbtn" style="color:#fff" id="curso-tutor" aria-label="Preguntar al tutor">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.3-.6L3 21l1.8-5a8.3 8.3 0 0 1-.8-3.6 8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 8.5 8.4Z"/></svg>
+            </button>
+          </div>
+          <div class="cc" id="curso-cod"></div>
+          <div class="cn" id="curso-nom"></div>
+          <div class="cp" id="curso-prof"></div>
+          <div class="bar"><i id="curso-bar"></i></div>
+          <div class="cm" id="curso-prog"></div>
+        </div>
+        <div class="segs" id="curso-segs" role="tablist" aria-label="Secciones de la asignatura"></div>
+        <div class="body" id="curso-body"></div>
+      </section>
+
+      <!-- ============ CLASE EN VIVO (AUDIO) ============ -->
+      <section class="screen" id="s-live" aria-label="Clase en vivo">
+        <div class="live-top">
+          <button class="iconbtn" id="live-min" aria-label="Salir sin colgar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="ttl">Clase en vivo</div>
+          <span class="badge-live"><span class="dot-live"></span>EN VIVO</span>
+        </div>
+        <div class="live-body">
+          <div class="live-course" id="live-course"></div>
+          <div class="live-topic" id="live-topic"></div>
+          <div class="live-timer" id="live-timer">00:00</div>
+          <div class="eq" id="live-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="live-speaker" id="live-speaker"></div>
+          <div class="parts" id="live-parts" aria-label="Participantes"></div>
+          <div class="hand-note" id="live-hand"></div>
+        </div>
+        <div class="live-ctrl">
+          <div class="cwrap">
+            <button class="cbtn off" id="live-mic" aria-label="Activar micrófono" aria-pressed="false">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M9 9v3a3 3 0 0 0 5.1 2.1"/><path d="M15 9.3V5a3 3 0 0 0-5.9-.7"/><path d="M19 10v1a7 7 0 0 1-.7 3"/><path d="M5 10v1a7 7 0 0 0 12 5"/><path d="M12 19v3"/></svg>
+            </button>
+            <span id="live-mic-l">Silenciado</span>
+          </div>
+          <div class="cwrap">
+            <button class="cbtn" id="live-raise" aria-label="Pedir la palabra" aria-pressed="false">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a1.5 1.5 0 0 0-3 0"/><path d="M15 6V4.5a1.5 1.5 0 0 0-3 0V6"/><path d="M12 6V5a1.5 1.5 0 0 0-3 0v7"/><path d="M9 9a1.5 1.5 0 0 0-3 0v5a7 7 0 0 0 7 7h1a6 6 0 0 0 6-6v-3"/></svg>
+            </button>
+            <span>Pedir palabra</span>
+          </div>
+          <div class="cwrap">
+            <button class="cbtn end" id="live-end" aria-label="Salir de la clase">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a14 14 0 0 1 18 0v3.5l-4.5-1V10a9.6 9.6 0 0 0-9 0v2.5L3 13.5Z"/></svg>
+            </button>
+            <span>Salir</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CLASE GRABADA ============ -->
+      <section class="screen" id="s-rec" aria-label="Clase grabada">
         <div class="top">
-          <button class="iconbtn" data-go="home" aria-label="Volver">
+          <button class="iconbtn" id="rec-back" aria-label="Volver">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <div class="ttl" id="chat-title">Tutor · Cálculo I</div>
+          <div class="ttl">Clase grabada</div>
           <span style="width:28px"></span>
         </div>
-        <div class="chips" id="chips" role="tablist" aria-label="Ramos"></div>
+        <div class="body">
+          <div class="play-hero">
+            <div class="ph-c" id="rec-course"></div>
+            <div class="ph-t" id="rec-title"></div>
+            <div class="ph-d" id="rec-date"></div>
+          </div>
+          <div class="scrub">
+            <div class="track" id="rec-track" role="slider" tabindex="0" aria-label="Avance de la grabación" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="rec-fill" style="width:0%"></i></div>
+            <div class="times"><span id="rec-cur">00:00</span><span id="rec-tot">00:00</span></div>
+          </div>
+          <div class="pctrl">
+            <button class="pbtn" id="rec-b15" aria-label="Retroceder 15 segundos">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v5h5"/><path d="M3.5 10a9 9 0 1 1 .8 5"/></svg>
+            </button>
+            <button class="pbtn main" id="rec-play" aria-label="Reproducir">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" id="rec-icon"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
+            </button>
+            <button class="pbtn" id="rec-f15" aria-label="Avanzar 15 segundos">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5v5h-5"/><path d="M20.5 10a9 9 0 1 0-.8 5"/></svg>
+            </button>
+          </div>
+          <div class="speeds" id="rec-speeds" aria-label="Velocidad de reproducción"></div>
+          <div class="sec-h"><h3>Capítulos</h3></div>
+          <div id="rec-chaps"></div>
+          <div class="acts">
+            <button class="btn btn-ghost" id="rec-ask">Preguntar al tutor sobre esta clase</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ HORARIO ============ -->
+      <section class="screen" id="s-horario" aria-label="Horario">
+        <div class="top">
+          <span style="width:28px"></span>
+          <div class="ttl">Horario</div>
+          <span style="width:28px"></span>
+        </div>
+        <div class="days" id="hor-days" role="tablist" aria-label="Día de la semana"></div>
+        <div class="body" id="hor-body"></div>
+        <nav class="tabbar" id="tb-horario" aria-label="Navegación principal"></nav>
+      </section>
+
+      <!-- ============ TAREAS ============ -->
+      <section class="screen" id="s-tareas" aria-label="Tareas">
+        <div class="top">
+          <span style="width:28px"></span>
+          <div class="ttl">Tareas</div>
+          <span style="width:28px"></span>
+        </div>
+        <div class="segs" id="tar-segs" role="tablist" aria-label="Filtro de tareas"></div>
+        <div class="body" id="tar-body"></div>
+        <nav class="tabbar" id="tb-tareas" aria-label="Navegación principal"></nav>
+      </section>
+
+      <!-- ============ DETALLE DE TAREA ============ -->
+      <section class="screen" id="s-tarea" aria-label="Detalle de la tarea">
+        <div class="top">
+          <button class="iconbtn" id="tarea-back" aria-label="Volver">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="ttl">Tarea</div>
+          <span style="width:28px"></span>
+        </div>
+        <div class="body">
+          <div class="th">
+            <div class="t1" id="tarea-tit"></div>
+            <div class="t2" id="tarea-cur"></div>
+          </div>
+          <div class="meta">
+            <div><div class="ml">Entrega</div><div class="mv" id="tarea-vence"></div></div>
+            <div><div class="ml">Puntos</div><div class="mv" id="tarea-pts"></div></div>
+            <div><div class="ml">Estado</div><div class="mv" id="tarea-est" style="font-size:12px"></div></div>
+          </div>
+          <div class="prose" id="tarea-desc"></div>
+          <div class="acts">
+            <button class="btn btn-primary" id="tarea-sub">Entregar tarea</button>
+            <button class="btn btn-ghost" id="tarea-ask">Pedir guía al tutor</button>
+            <p class="muted-row" style="text-align:center; margin:2px 0 0">El tutor no la resuelve por ti: te ayuda a encontrar el camino.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TUTOR ============ -->
+      <section class="screen" id="s-chat" aria-label="Chat con el tutor">
+        <div class="top">
+          <button class="iconbtn" id="chat-back" aria-label="Volver">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="ttl" id="chat-title">Tutor</div>
+          <span style="width:28px"></span>
+        </div>
+        <div class="chips" id="chips" role="tablist" aria-label="Asignaturas"></div>
         <div class="msgs" id="msgs"></div>
         <div class="typing" id="typing"><span class="spin"></span> El tutor está pensando…</div>
         <div class="composer">
           <input class="fld" id="chat-input" placeholder="Escribe tu duda…" aria-label="Tu mensaje" />
           <button class="send" id="send-btn" aria-label="Enviar">Enviar</button>
         </div>
+        <nav class="tabbar" id="tb-chat" aria-label="Navegación principal"></nav>
       </section>
 
     </div>
   </div>
 
-  <p class="foot">Demo de producto de StudIA. Las pantallas, textos y colores replican la app real (Expo + Supabase); en producción, las respuestas del tutor las genera Claude a través de una función segura en el servidor.</p>
+  <p class="foot">Demo de producto de StudIA. Las pantallas, textos y colores replican la app real (Expo + Supabase). El audio de las clases en vivo y las grabaciones están simulados; en producción, las respuestas del tutor las genera Claude a través de una función segura en el servidor.</p>
 </div>
 
 <script>
 (function(){
-  var ramos=["Cálculo I","Álgebra Lineal","Física I","Investigación de Operaciones","Microeconomía","Programación"];
-  var current=ramos[0], step=0;
-  var intro={
-    "Cálculo I":"Cuéntame en qué problema de cálculo estás. ¿Qué te piden encontrar y qué datos tienes?",
-    "Álgebra Lineal":"¿En qué andas? Antes de operar: ¿qué esperas de la solución del sistema, única, infinitas o ninguna?",
-    "Física I":"Partamos por el diagrama de cuerpo libre. ¿Qué fuerzas actúan sobre el cuerpo?",
-    "Investigación de Operaciones":"Modelemos juntos. ¿Cuáles serían tus variables de decisión, en palabras?",
-    "Microeconomía":"Vamos con un ejemplo concreto. ¿Qué cambia en el mercado y por qué crees que se mueve?",
-    "Programación":"Descríbeme el algoritmo en palabras. ¿Cuál sería el primer paso antes de escribir código?"
-  };
-  var guias=[
-    "Buena intuición. ¿Qué paso crees que viene ahora, y por qué ese?",
-    "Vas bien. Antes de seguir, ¿cómo podrías verificar si eso funciona?",
-    "Interesante. ¿Qué dato del enunciado todavía no has usado?",
-    "Casi. ¿Qué pasaría si lo pruebas con un caso simple para comprobarlo?",
-    "Vas encaminado. ¿Qué regla o concepto crees que aplica aquí, con tus palabras?"
-  ];
-  function $(id){return document.getElementById(id);}
-  function go(name){
-    document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
-    var el=$('s-'+name); if(el) el.classList.add('on');
-    if(name==='chat') resetChat();
-  }
-  document.querySelectorAll('[data-go]').forEach(function(b){ b.addEventListener('click',function(){go(b.getAttribute('data-go'));}); });
+"use strict";
 
-  function renderChips(){
-    var c=$('chips'); c.innerHTML='';
-    ramos.forEach(function(r){
-      var b=document.createElement('button');
-      b.className='chip'+(r===current?' on':''); b.textContent=r; b.setAttribute('role','tab');
-      b.addEventListener('click',function(){ current=r; $('chat-title').textContent='Tutor · '+r; renderChips(); resetMsgs(); });
-      c.appendChild(b);
+/* ===================== DATOS DE EJEMPLO ===================== */
+/* El día de referencia de la demo es martes 25 de agosto. */
+var HOY = 2; // 1=Lun … 5=Vie
+
+var CURSOS = [
+  {
+    id:"cal1", nom:"Cálculo I", cod:"MAT1610", prof:"Ana Ríos", color:"#208AEF", prog:62,
+    intro:"Cuéntame en qué problema de cálculo estás. ¿Qué te piden encontrar y qué datos tienes?",
+    horario:[{d:1,i:"08:30",f:"10:00",sala:"A-201"},{d:2,i:"08:30",f:"10:00",sala:"A-201"},{d:4,i:"11:30",f:"13:00",sala:"Lab B-3",tipo:"Ayudantía"}],
+    vivo:{tema:"Teorema del valor medio", desde:12},
+    modulos:[
+      {t:"1 · Límites y continuidad", items:[
+        {k:"v",t:"Idea intuitiva de límite",d:"Video · 14 min",ok:true},
+        {k:"d",t:"Apunte: límites laterales",d:"PDF · 8 páginas",ok:true},
+        {k:"e",t:"Ejercicios 1.1 — resueltos",d:"12 ítems",ok:true}
+      ]},
+      {t:"2 · La derivada", items:[
+        {k:"v",t:"Definición y regla de la cadena",d:"Video · 19 min",ok:true},
+        {k:"d",t:"Formulario de derivadas",d:"PDF · 2 páginas",ok:true},
+        {k:"e",t:"Guía 3 — derivación",d:"15 ítems",ok:false}
+      ]},
+      {t:"3 · Aplicaciones", items:[
+        {k:"v",t:"Optimización: máximos y mínimos",d:"Video · 22 min",ok:false},
+        {k:"d",t:"Casos de estudio",d:"PDF · 11 páginas",ok:false},
+        {k:"e",t:"Guía 4 — optimización",d:"9 ítems",ok:false}
+      ]}
+    ],
+    grabadas:[
+      {t:"Clase 12 · Regla de L'Hôpital", fecha:"Jue 20 ago", dur:3840},
+      {t:"Clase 11 · Derivadas implícitas", fecha:"Mar 18 ago", dur:3300},
+      {t:"Clase 10 · Continuidad en un intervalo", fecha:"Jue 13 ago", dur:3600}
+    ],
+    tareas:[
+      {id:"t1", t:"Guía 4 · Optimización", vence:"Vie 28 ago, 23:59", dias:3, pts:20, est:"pendiente",
+       desc:["Resuelve los 9 problemas de optimización de la guía. Para cada uno debes entregar el planteamiento antes del cálculo.","Se evalúa especialmente:"],
+       lista:["El diagrama o esquema de la situación","La función objetivo y su dominio","La justificación de por qué el punto hallado es máximo o mínimo"]},
+      {id:"t2", t:"Control 2 · Derivadas", vence:"Lun 18 ago, 10:00", dias:-7, pts:30, est:"entregada", nota:"27 / 30",
+       desc:["Control escrito sobre reglas de derivación y aplicaciones."], lista:[]}
+    ]
+  },
+  {
+    id:"alg", nom:"Álgebra Lineal", cod:"MAT1203", prof:"Diego Fuentes", color:"#7A4FD6", prog:48,
+    intro:"¿En qué andas? Antes de operar: ¿qué esperas de la solución del sistema, única, infinitas o ninguna?",
+    horario:[{d:2,i:"10:15",f:"11:45",sala:"B-104"},{d:5,i:"08:30",f:"10:00",sala:"B-104"}],
+    vivo:null,
+    modulos:[
+      {t:"1 · Sistemas de ecuaciones", items:[
+        {k:"v",t:"Eliminación de Gauss",d:"Video · 17 min",ok:true},
+        {k:"d",t:"Apunte: matriz escalonada",d:"PDF · 6 páginas",ok:true}
+      ]},
+      {t:"2 · Espacios vectoriales", items:[
+        {k:"v",t:"Base y dimensión",d:"Video · 21 min",ok:true},
+        {k:"e",t:"Guía 2 — independencia lineal",d:"10 ítems",ok:false}
+      ]},
+      {t:"3 · Transformaciones lineales", items:[
+        {k:"v",t:"Matriz de una transformación",d:"Video · 16 min",ok:false},
+        {k:"d",t:"Apunte: núcleo e imagen",d:"PDF · 9 páginas",ok:false}
+      ]}
+    ],
+    grabadas:[
+      {t:"Clase 9 · Base y dimensión", fecha:"Vie 22 ago", dur:3480},
+      {t:"Clase 8 · Subespacios", fecha:"Mar 19 ago", dur:3540}
+    ],
+    tareas:[
+      {id:"t3", t:"Guía 2 · Independencia lineal", vence:"Mié 26 ago, 23:59", dias:1, pts:15, est:"pendiente",
+       desc:["Determina si cada conjunto de vectores es linealmente independiente y justifica el procedimiento."], lista:["Muestra el sistema planteado","Indica el rango de la matriz","Concluye en una frase"]}
+    ]
+  },
+  {
+    id:"fis1", nom:"Física I", cod:"FIS1503", prof:"Carla Núñez", color:"#C9701C", prog:55,
+    intro:"Partamos por el diagrama de cuerpo libre. ¿Qué fuerzas actúan sobre el cuerpo?",
+    horario:[{d:1,i:"11:30",f:"13:00",sala:"C-002"},{d:3,i:"11:30",f:"13:00",sala:"C-002"},{d:5,i:"14:00",f:"16:00",sala:"Lab Física",tipo:"Laboratorio"}],
+    vivo:null,
+    modulos:[
+      {t:"1 · Cinemática", items:[
+        {k:"v",t:"Movimiento en dos dimensiones",d:"Video · 18 min",ok:true},
+        {k:"e",t:"Guía 1 — tiro parabólico",d:"8 ítems",ok:true}
+      ]},
+      {t:"2 · Dinámica", items:[
+        {k:"v",t:"Leyes de Newton y diagramas",d:"Video · 24 min",ok:true},
+        {k:"d",t:"Apunte: roce estático y cinético",d:"PDF · 7 páginas",ok:false},
+        {k:"e",t:"Guía 2 — planos inclinados",d:"11 ítems",ok:false}
+      ]},
+      {t:"3 · Trabajo y energía", items:[
+        {k:"v",t:"Conservación de la energía",d:"Video · 20 min",ok:false}
+      ]}
+    ],
+    grabadas:[
+      {t:"Clase 10 · Roce y planos inclinados", fecha:"Mié 20 ago", dur:3720},
+      {t:"Clase 9 · Segunda ley de Newton", fecha:"Lun 18 ago", dur:3600}
+    ],
+    tareas:[
+      {id:"t4", t:"Informe de laboratorio 2", vence:"Jue 27 ago, 18:00", dias:2, pts:25, est:"pendiente",
+       desc:["Informe del experimento de plano inclinado, en formato IMRyD."], lista:["Tabla de datos con incertidumbre","Gráfico con ajuste lineal","Discusión del coeficiente de roce obtenido"]},
+      {id:"t5", t:"Guía 2 · Planos inclinados", vence:"Lun 24 ago, 23:59", dias:-1, pts:15, est:"atrasada",
+       desc:["Once problemas de dinámica con roce."], lista:[]}
+    ]
+  },
+  {
+    id:"io", nom:"Investigación de Operaciones", cod:"ICS2123", prof:"Rodrigo Salas", color:"#1E8E5A", prog:35,
+    intro:"Modelemos juntos. ¿Cuáles serían tus variables de decisión, en palabras?",
+    horario:[{d:2,i:"14:00",f:"15:30",sala:"D-310"},{d:4,i:"14:00",f:"15:30",sala:"D-310"}],
+    vivo:null,
+    modulos:[
+      {t:"1 · Programación lineal", items:[
+        {k:"v",t:"Formulación de modelos",d:"Video · 23 min",ok:true},
+        {k:"d",t:"Apunte: forma estándar",d:"PDF · 5 páginas",ok:true},
+        {k:"e",t:"Casos de modelamiento",d:"6 ítems",ok:false}
+      ]},
+      {t:"2 · Método simplex", items:[
+        {k:"v",t:"Simplex paso a paso",d:"Video · 28 min",ok:false},
+        {k:"d",t:"Tabla simplex comentada",d:"PDF · 4 páginas",ok:false}
+      ]},
+      {t:"3 · Dualidad", items:[
+        {k:"v",t:"Interpretación económica del dual",d:"Video · 19 min",ok:false}
+      ]}
+    ],
+    grabadas:[
+      {t:"Clase 7 · Formulación de modelos", fecha:"Jue 21 ago", dur:3300}
+    ],
+    tareas:[
+      {id:"t6", t:"Caso 1 · Mezcla de producción", vence:"Mar 1 sep, 23:59", dias:7, pts:20, est:"pendiente",
+       desc:["Formula el modelo de programación lineal del caso y resuélvelo con la herramienta que prefieras."], lista:["Variables de decisión definidas en palabras","Función objetivo","Restricciones con su interpretación"]}
+    ]
+  },
+  {
+    id:"micro", nom:"Microeconomía", cod:"EAE1110", prof:"Paula Vergara", color:"#D93B6B", prog:71,
+    intro:"Vamos con un ejemplo concreto. ¿Qué cambia en el mercado y por qué crees que se mueve?",
+    horario:[{d:3,i:"08:30",f:"10:00",sala:"E-105"},{d:5,i:"10:15",f:"11:45",sala:"E-105"}],
+    vivo:null,
+    modulos:[
+      {t:"1 · Oferta y demanda", items:[
+        {k:"v",t:"Equilibrio de mercado",d:"Video · 15 min",ok:true},
+        {k:"d",t:"Apunte: desplazamientos vs. movimientos",d:"PDF · 6 páginas",ok:true}
+      ]},
+      {t:"2 · Elasticidad", items:[
+        {k:"v",t:"Elasticidad precio de la demanda",d:"Video · 18 min",ok:true},
+        {k:"e",t:"Guía 2 — cálculo de elasticidades",d:"10 ítems",ok:true}
+      ]},
+      {t:"3 · Teoría del consumidor", items:[
+        {k:"v",t:"Curvas de indiferencia",d:"Video · 20 min",ok:false}
+      ]}
+    ],
+    grabadas:[
+      {t:"Clase 11 · Elasticidad e ingreso total", fecha:"Vie 22 ago", dur:3240}
+    ],
+    tareas:[
+      {id:"t7", t:"Control 2 · Elasticidad", vence:"Mié 26 ago, 08:30", dias:1, pts:25, est:"pendiente",
+       desc:["Control en sala sobre elasticidad y sus aplicaciones."], lista:[]}
+    ]
+  },
+  {
+    id:"prog", nom:"Programación", cod:"IIC1103", prof:"Matías Leiva", color:"#0C447C", prog:80,
+    intro:"Descríbeme el algoritmo en palabras. ¿Cuál sería el primer paso antes de escribir código?",
+    horario:[{d:1,i:"14:00",f:"15:30",sala:"Lab Comp 2"},{d:3,i:"14:00",f:"15:30",sala:"Lab Comp 2"}],
+    vivo:null,
+    modulos:[
+      {t:"1 · Fundamentos", items:[
+        {k:"v",t:"Variables, tipos y control de flujo",d:"Video · 16 min",ok:true},
+        {k:"e",t:"Ejercicios 1 — condicionales",d:"14 ítems",ok:true}
+      ]},
+      {t:"2 · Estructuras de datos", items:[
+        {k:"v",t:"Listas y diccionarios",d:"Video · 22 min",ok:true},
+        {k:"d",t:"Apunte: complejidad básica",d:"PDF · 5 páginas",ok:true},
+        {k:"e",t:"Ejercicios 2 — listas",d:"12 ítems",ok:true}
+      ]},
+      {t:"3 · Recursión", items:[
+        {k:"v",t:"Pensar recursivamente",d:"Video · 19 min",ok:false}
+      ]}
+    ],
+    grabadas:[
+      {t:"Clase 14 · Diccionarios en profundidad", fecha:"Mié 20 ago", dur:3120},
+      {t:"Clase 13 · Listas por comprensión", fecha:"Lun 18 ago", dur:2940}
+    ],
+    tareas:[
+      {id:"t8", t:"Tarea 3 · Análisis de datos", vence:"Vie 28 ago, 23:59", dias:3, pts:30, est:"pendiente",
+       desc:["Programa que lee un archivo CSV de notas y entrega estadísticas por sección."], lista:["Lectura robusta del archivo","Funciones separadas por responsabilidad","Casos borde: archivo vacío o con filas mal formadas"]},
+      {id:"t9", t:"Tarea 2 · Estructuras", vence:"Vie 15 ago, 23:59", dias:-10, pts:30, est:"entregada", nota:"29 / 30",
+       desc:["Implementación de un inventario con diccionarios."], lista:[]}
+    ]
+  }
+];
+
+var DIAS = [
+  {n:1, l:"Lun", num:"24"},
+  {n:2, l:"Mar", num:"25"},
+  {n:3, l:"Mié", num:"26"},
+  {n:4, l:"Jue", num:"27"},
+  {n:5, l:"Vie", num:"28"}
+];
+
+var PARTICIPANTES = ["AR","EQ","MC","JP","SV","TG","LB"];
+
+/* ===================== UTILIDADES ===================== */
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, txt){
+  var e=document.createElement(tag);
+  if(cls) e.className=cls;
+  if(txt!==undefined && txt!==null) e.textContent=txt;
+  return e;
+}
+function curso(id){ for(var i=0;i<CURSOS.length;i++){ if(CURSOS[i].id===id) return CURSOS[i]; } return null; }
+function mmss(s){
+  var m=Math.floor(s/60), r=Math.floor(s%60);
+  return (m<10?"0":"")+m+":"+(r<10?"0":"")+r;
+}
+function hms(s){
+  var h=Math.floor(s/3600);
+  return h>0 ? h+":"+mmss(s%3600) : mmss(s);
+}
+function pillEstado(t){
+  if(t.est==="entregada") return {cls:"p-ok", txt:"ENTREGADA"};
+  if(t.est==="atrasada")  return {cls:"p-late", txt:"ATRASADA"};
+  return {cls:"p-pend", txt:"PENDIENTE"};
+}
+function venceCorto(t){
+  if(t.est==="entregada") return t.nota ? t.nota : "Entregada";
+  if(t.dias<0) return "Venció";
+  if(t.dias===0) return "Hoy";
+  if(t.dias===1) return "Mañana";
+  return "En "+t.dias+" días";
+}
+function todasTareas(){
+  var out=[];
+  CURSOS.forEach(function(c){ c.tareas.forEach(function(t){ out.push({c:c, t:t}); }); });
+  out.sort(function(a,b){ return a.t.dias-b.t.dias; });
+  return out;
+}
+function claseEnVivo(){
+  for(var i=0;i<CURSOS.length;i++){ if(CURSOS[i].vivo) return CURSOS[i]; }
+  return null;
+}
+function iconoItem(k){
+  if(k==="v") return '<path d="M10 8.5v7l6-3.5-6-3.5Z"/><rect x="3" y="4" width="18" height="16" rx="3"/>';
+  if(k==="d") return '<path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M9 13h6"/><path d="M9 17h4"/>';
+  return '<path d="M9 11l2 2 4-4"/><rect x="3" y="4" width="18" height="16" rx="3"/>';
+}
+function svgIc(paths, stroke){
+  return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+(stroke||"currentColor")+'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>';
+}
+
+/* ===================== NAVEGACIÓN ===================== */
+var TABS = [
+  {id:"home",    l:"Inicio",  ic:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>'},
+  {id:"horario", l:"Horario", ic:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 11h18"/>'},
+  {id:"tareas",  l:"Tareas",  ic:'<path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6l1 1 2-2"/><path d="M4 12l1 1 2-2"/><path d="M4 18l1 1 2-2"/>'},
+  {id:"chat",    l:"Tutor",   ic:'<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.3-.6L3 21l1.8-5a8.3 8.3 0 0 1-.8-3.6 8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 8.5 8.4Z"/>'}
+];
+var pantalla = "welcome";
+
+function buildTabs(){
+  TABS.forEach(function(t){
+    var nav=$("tb-"+t.id); if(!nav) return;
+    nav.innerHTML="";
+    TABS.forEach(function(x){
+      var b=el("button","tab"+(x.id===t.id?" on":""));
+      b.innerHTML='<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+x.ic+"</svg>";
+      b.appendChild(el("span",null,x.l));
+      if(x.id===t.id) b.setAttribute("aria-current","page");
+      b.addEventListener("click",function(){
+        if(x.id==="chat"){ abrirChat(null,"home",null); return; }
+        go(x.id);
+      });
+      nav.appendChild(b);
     });
-  }
-  function addBub(role,text){
-    var m=$('msgs'); var d=document.createElement('div'); d.className='bub '+role; d.textContent=text;
-    m.appendChild(d); m.scrollTop=m.scrollHeight;
-  }
-  function resetMsgs(){ $('msgs').innerHTML=''; addBub('a', intro[current]); }
-  function resetChat(){ renderChips(); resetMsgs(); }
+  });
+}
 
-  function reply(t){
-    t=t.toLowerCase();
-    if(/respuesta|dame|resultado|soluci|cu[aá]nto es|resu[eé]lvelo|hazlo por m/.test(t)){
-      return "Sé que sería cómodo que te la diera, pero mi misión es que la descubras tú: así de verdad aprendes. Vamos por partes. ¿Qué es lo primero que sabes que debes calcular?";
+function go(name){
+  if(pantalla==="live" && name!=="live") pararVivo();
+  if(pantalla==="rec"  && name!=="rec")  pausarGrab();
+  var arr=document.querySelectorAll(".screen");
+  for(var i=0;i<arr.length;i++) arr[i].classList.remove("on");
+  var s=$("s-"+name); if(s) s.classList.add("on");
+  pantalla=name;
+  if(name==="home")    pintarInicio();
+  if(name==="horario") pintarHorario();
+  if(name==="tareas")  pintarTareas();
+  if(name==="chat")    entrarChat();
+}
+var botones=document.querySelectorAll("[data-go]");
+for(var bi=0; bi<botones.length; bi++){
+  (function(b){ b.addEventListener("click",function(){ go(b.getAttribute("data-go")); }); })(botones[bi]);
+}
+
+/* ===================== INICIO ===================== */
+function filaCurso(c){
+  var b=el("button","card");
+  var strip=el("div","strip"); strip.style.background=c.color;
+  strip.appendChild(el("span","cod",c.cod));
+  var cb=el("div","cb");
+  cb.appendChild(el("div","cn",c.nom));
+  cb.appendChild(el("div","cp",c.prof));
+  var bar=el("div","bar"); var fill=el("i"); fill.style.width=c.prog+"%"; fill.style.background=c.color; bar.appendChild(fill);
+  cb.appendChild(bar);
+  var cm=el("div","cm");
+  cm.appendChild(el("span",null,c.prog+"% del curso"));
+  var pend=c.tareas.filter(function(t){ return t.est!=="entregada"; }).length;
+  cm.appendChild(el("span",null, pend===0 ? "Sin pendientes" : pend+(pend===1?" tarea pendiente":" tareas pendientes")));
+  cb.appendChild(cm);
+  b.appendChild(strip); b.appendChild(cb);
+  b.addEventListener("click",function(){ abrirCurso(c.id); });
+  return b;
+}
+
+function pintarInicio(){
+  /* clase en vivo */
+  var host=$("home-live"); host.innerHTML="";
+  var cv=claseEnVivo();
+  if(cv){
+    var b=el("button","livebar");
+    b.appendChild(el("span","dot-live"));
+    var lt=el("div","lt");
+    lt.appendChild(el("div","l1","EN VIVO AHORA"));
+    lt.appendChild(el("div","l2",cv.nom));
+    lt.appendChild(el("div","l3",cv.vivo.tema+" · "+cv.prof));
+    b.appendChild(lt);
+    b.appendChild(el("span","pill p-live","ENTRAR"));
+    b.addEventListener("click",function(){ abrirVivo(cv.id); });
+    host.appendChild(b);
+  }
+
+  /* bloques de hoy */
+  var hoy=$("home-hoy"); hoy.innerHTML="";
+  var bloques=bloquesDe(HOY);
+  if(!bloques.length){ hoy.appendChild(el("div","empty","No tienes clases hoy.")); }
+  bloques.slice(0,3).forEach(function(b){ hoy.appendChild(filaBloque(b)); });
+
+  /* próximas entregas */
+  var tt=$("home-tareas"); tt.innerHTML="";
+  var prox=todasTareas().filter(function(x){ return x.t.est!=="entregada"; }).slice(0,3);
+  if(!prox.length){ tt.appendChild(el("div","empty","Estás al día. Nada por entregar.")); }
+  prox.forEach(function(x){ tt.appendChild(filaTarea(x.c,x.t)); });
+
+  /* asignaturas */
+  var cards=$("home-cards"); cards.innerHTML="";
+  CURSOS.forEach(function(c){ cards.appendChild(filaCurso(c)); });
+}
+
+function filaTarea(c,t){
+  var b=el("button","row");
+  var d=el("span","cdot"); d.style.background=c.color;
+  var ic=el("span","ic"); ic.appendChild(d); ic.style.background="transparent"; ic.style.width="10px";
+  b.appendChild(ic);
+  var rt=el("div","rt");
+  rt.appendChild(el("div","r1",t.t));
+  rt.appendChild(el("div","r2",c.nom+" · "+t.vence));
+  b.appendChild(rt);
+  var p=pillEstado(t);
+  var rr=el("div","rr");
+  var pill=el("span","pill "+p.cls,p.txt);
+  rr.appendChild(pill);
+  rr.appendChild(el("div",null,venceCorto(t)));
+  b.appendChild(rr);
+  b.addEventListener("click",function(){ abrirTarea(c.id,t.id); });
+  return b;
+}
+
+/* ===================== ASIGNATURA ===================== */
+var cursoActual=null, segActual="materia";
+
+function abrirCurso(id){
+  cursoActual=curso(id); segActual="materia";
+  var c=cursoActual;
+  $("curso-head").style.background=c.color;
+  $("curso-cod").textContent=c.cod;
+  $("curso-nom").textContent=c.nom;
+  $("curso-prof").textContent=c.prof;
+  $("curso-bar").style.width=c.prog+"%";
+  var pend=c.tareas.filter(function(t){ return t.est!=="entregada"; }).length;
+  $("curso-prog").textContent=c.prog+"% completado · "+pend+(pend===1?" pendiente":" pendientes");
+  pintarSegs(); pintarCursoBody();
+  go("curso");
+}
+$("curso-tutor").addEventListener("click",function(){ abrirChat(cursoActual.id,"curso"); });
+
+function pintarSegs(){
+  var segs=[{id:"materia",l:"Materia"},{id:"clases",l:"Clases"},{id:"tareas",l:"Tareas"},{id:"horario",l:"Horario"}];
+  var host=$("curso-segs"); host.innerHTML="";
+  segs.forEach(function(s){
+    var b=el("button","seg"+(s.id===segActual?" on":""),s.l);
+    b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", s.id===segActual ? "true":"false");
+    b.addEventListener("click",function(){ segActual=s.id; pintarSegs(); pintarCursoBody(); });
+    host.appendChild(b);
+  });
+}
+
+function pintarCursoBody(){
+  var host=$("curso-body"); host.innerHTML="";
+  var c=cursoActual;
+
+  if(segActual==="materia"){
+    c.modulos.forEach(function(m,mi){
+      var hechos=m.items.filter(function(i){ return i.ok; }).length;
+      var h=el("button","modh");
+      h.setAttribute("aria-expanded", mi===0 ? "true":"false");
+      var car=el("span","car");
+      car.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+      h.appendChild(car);
+      h.appendChild(el("span","mt",m.t));
+      h.appendChild(el("span","mc",hechos+"/"+m.items.length));
+      var cont=el("div"); cont.style.display = mi===0 ? "block":"none";
+      m.items.forEach(function(it){
+        var r=el("button","row");
+        var ic=el("span","ic");
+        ic.innerHTML=svgIc(iconoItem(it.k), it.ok ? c.color : "currentColor");
+        if(it.ok) ic.style.background=c.color+"1F";
+        r.appendChild(ic);
+        var rt=el("div","rt");
+        rt.appendChild(el("div","r1",it.t));
+        rt.appendChild(el("div","r2",it.d));
+        r.appendChild(rt);
+        if(it.ok){
+          var v=el("span","rr");
+          v.innerHTML=svgIc('<path d="M4 12.5l5 5L20 7"/>', c.color);
+          r.appendChild(v);
+        }
+        r.addEventListener("click",function(){ abrirChat(c.id,"curso","Estoy revisando “"+it.t+"”."); });
+        cont.appendChild(r);
+      });
+      h.addEventListener("click",function(){
+        var ab=h.getAttribute("aria-expanded")==="true";
+        h.setAttribute("aria-expanded", ab ? "false":"true");
+        cont.style.display = ab ? "none":"block";
+      });
+      host.appendChild(h); host.appendChild(cont);
+    });
+    return;
+  }
+
+  if(segActual==="clases"){
+    if(c.vivo){
+      var lb=el("button","livebar"); lb.style.margin="12px 14px";
+      lb.appendChild(el("span","dot-live"));
+      var lt=el("div","lt");
+      lt.appendChild(el("div","l1","EN VIVO AHORA"));
+      lt.appendChild(el("div","l2",c.vivo.tema));
+      lt.appendChild(el("div","l3","Comenzó hace "+c.vivo.desde+" min · "+c.prof));
+      lb.appendChild(lt);
+      lb.appendChild(el("span","pill p-live","ENTRAR"));
+      lb.addEventListener("click",function(){ abrirVivo(c.id); });
+      host.appendChild(lb);
     }
-    return guias[step++ % guias.length];
+    var sh=el("div","sec-h"); sh.appendChild(el("h3",null,"Clases grabadas")); host.appendChild(sh);
+    if(!c.grabadas.length){ host.appendChild(el("div","empty","Todavía no hay grabaciones de esta asignatura.")); }
+    c.grabadas.forEach(function(g,gi){
+      var r=el("button","row");
+      var ic=el("span","ic");
+      ic.innerHTML=svgIc('<path d="M10 8.5v7l6-3.5-6-3.5Z"/><rect x="3" y="4" width="18" height="16" rx="3"/>', c.color);
+      ic.style.background=c.color+"1F";
+      r.appendChild(ic);
+      var rt=el("div","rt");
+      rt.appendChild(el("div","r1",g.t));
+      rt.appendChild(el("div","r2",g.fecha+" · audio"));
+      r.appendChild(rt);
+      r.appendChild(el("div","rr",hms(g.dur)));
+      r.addEventListener("click",function(){ abrirGrab(c.id,gi); });
+      host.appendChild(r);
+    });
+    return;
   }
-  function send(){
-    var inp=$('chat-input'); var txt=(inp.value||'').trim(); if(!txt) return;
-    addBub('u',txt); inp.value='';
-    var ty=$('typing'); ty.classList.add('on');
-    setTimeout(function(){ ty.classList.remove('on'); addBub('a',reply(txt)); },700);
-  }
-  $('send-btn').addEventListener('click',send);
-  $('chat-input').addEventListener('keydown',function(e){ if(e.key==='Enter') send(); });
 
-  renderChips();
+  if(segActual==="tareas"){
+    if(!c.tareas.length){ host.appendChild(el("div","empty","Sin tareas en esta asignatura.")); return; }
+    c.tareas.slice().sort(function(a,b){ return a.dias-b.dias; }).forEach(function(t){
+      host.appendChild(filaTarea(c,t));
+    });
+    return;
+  }
+
+  /* horario del curso */
+  var nombres={1:"Lunes",2:"Martes",3:"Miércoles",4:"Jueves",5:"Viernes"};
+  c.horario.forEach(function(h){
+    var r=el("div","slot");
+    var hh=el("div","hh"); hh.innerHTML="<b>"+h.i+"</b>"+h.f; r.appendChild(hh);
+    var vb=el("div","vb"); vb.style.background=c.color; r.appendChild(vb);
+    var st=el("div","st");
+    st.appendChild(el("div","s1", h.tipo || "Cátedra"));
+    st.appendChild(el("div","s2", nombres[h.d]+" · "+h.sala));
+    r.appendChild(st);
+    host.appendChild(r);
+  });
+}
+
+/* ===================== HORARIO ===================== */
+var diaSel = HOY;
+
+function bloquesDe(d){
+  var out=[];
+  CURSOS.forEach(function(c){
+    c.horario.forEach(function(h){ if(h.d===d) out.push({c:c,h:h}); });
+  });
+  out.sort(function(a,b){ return a.h.i<b.h.i ? -1 : 1; });
+  return out;
+}
+
+function filaBloque(b){
+  var r=el("button","slot");
+  var hh=el("div","hh"); hh.innerHTML="<b>"+b.h.i+"</b>"+b.h.f; r.appendChild(hh);
+  var vb=el("div","vb"); vb.style.background=b.c.color; r.appendChild(vb);
+  var st=el("div","st");
+  var s1=el("div","s1",b.c.nom);
+  st.appendChild(s1);
+  st.appendChild(el("div","s2",(b.h.tipo||"Cátedra")+" · "+b.h.sala+" · "+b.c.prof));
+  r.appendChild(st);
+  if(b.c.vivo && b.h.d===HOY){
+    var p=el("span","pill p-live","EN VIVO"); p.style.alignSelf="center";
+    r.appendChild(p);
+    r.addEventListener("click",function(){ abrirVivo(b.c.id); });
+  } else {
+    r.addEventListener("click",function(){ abrirCurso(b.c.id); });
+  }
+  return r;
+}
+
+function pintarHorario(){
+  var host=$("hor-days"); host.innerHTML="";
+  DIAS.forEach(function(d){
+    var b=el("button","day"+(d.n===diaSel?" on":""));
+    b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", d.n===diaSel ? "true":"false");
+    b.appendChild(el("span","dl",d.l));
+    b.appendChild(el("span","dn",d.num));
+    b.addEventListener("click",function(){ diaSel=d.n; pintarHorario(); });
+    host.appendChild(b);
+  });
+
+  var body=$("hor-body"); body.innerHTML="";
+  var sh=el("div","sec-h");
+  sh.appendChild(el("h3",null, diaSel===HOY ? "Hoy" : "Clases del día"));
+  body.appendChild(sh);
+  var bl=bloquesDe(diaSel);
+  if(!bl.length){ body.appendChild(el("div","empty","Día libre. Buen momento para adelantar materia.")); }
+  bl.forEach(function(b){ body.appendChild(filaBloque(b)); });
+
+  /* entregas del día */
+  var venc=todasTareas().filter(function(x){ return x.t.dias === (diaSel-HOY) && x.t.est!=="entregada"; });
+  if(venc.length){
+    var sh2=el("div","sec-h"); sh2.appendChild(el("h3",null,"Entregas de este día"));
+    body.appendChild(sh2);
+    venc.forEach(function(x){ body.appendChild(filaTarea(x.c,x.t)); });
+  }
+}
+
+/* ===================== TAREAS ===================== */
+var filtroTareas="pendientes";
+
+function pintarTareas(){
+  var segs=[{id:"pendientes",l:"Pendientes"},{id:"entregadas",l:"Entregadas"},{id:"todas",l:"Todas"}];
+  var host=$("tar-segs"); host.innerHTML="";
+  segs.forEach(function(s){
+    var b=el("button","seg"+(s.id===filtroTareas?" on":""),s.l);
+    b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", s.id===filtroTareas ? "true":"false");
+    b.addEventListener("click",function(){ filtroTareas=s.id; pintarTareas(); });
+    host.appendChild(b);
+  });
+
+  var body=$("tar-body"); body.innerHTML="";
+  var lista=todasTareas().filter(function(x){
+    if(filtroTareas==="pendientes") return x.t.est!=="entregada";
+    if(filtroTareas==="entregadas") return x.t.est==="entregada";
+    return true;
+  });
+  lista.sort(function(a,b){
+    var ae = a.t.est==="entregada" ? 1:0, be = b.t.est==="entregada" ? 1:0;
+    if(ae!==be) return ae-be;                                   /* pendientes primero */
+    return ae ? b.t.dias-a.t.dias : a.t.dias-b.t.dias;          /* entregadas: la más reciente arriba */
+  });
+  if(!lista.length){ body.appendChild(el("div","empty","Nada por acá.")); return; }
+  lista.forEach(function(x){ body.appendChild(filaTarea(x.c,x.t)); });
+}
+
+/* ===================== DETALLE DE TAREA ===================== */
+var tareaActual=null, tareaCurso=null, volverTarea="tareas";
+
+function abrirTarea(cid,tid){
+  var c=curso(cid), t=null;
+  c.tareas.forEach(function(x){ if(x.id===tid) t=x; });
+  tareaActual=t; tareaCurso=c;
+  volverTarea = (pantalla==="curso") ? "curso" : (pantalla==="horario" ? "horario" : (pantalla==="home" ? "home":"tareas"));
+
+  $("tarea-tit").textContent=t.t;
+  var cur=$("tarea-cur"); cur.innerHTML="";
+  var d=el("span","cdot"); d.style.background=c.color; cur.appendChild(d);
+  cur.appendChild(el("span",null,c.nom+" · "+c.cod));
+  $("tarea-vence").textContent=t.vence;
+  $("tarea-pts").textContent=t.pts+" pts";
+  var p=pillEstado(t);
+  var est=$("tarea-est"); est.innerHTML="";
+  est.appendChild(el("span","pill "+p.cls,p.txt));
+
+  var desc=$("tarea-desc"); desc.innerHTML="";
+  t.desc.forEach(function(par){ desc.appendChild(el("p",null,par)); });
+  if(t.lista.length){
+    var ul=el("ul");
+    t.lista.forEach(function(li){ ul.appendChild(el("li",null,li)); });
+    desc.appendChild(ul);
+  }
+  if(t.nota){
+    var n=el("p",null,"Calificación obtenida: "+t.nota);
+    n.style.fontWeight="600"; desc.appendChild(n);
+  }
+  var sub=$("tarea-sub");
+  sub.textContent = t.est==="entregada" ? "Ver mi entrega" : "Entregar tarea";
+  go("tarea");
+}
+$("tarea-back").addEventListener("click",function(){ go(volverTarea); });
+$("tarea-ask").addEventListener("click",function(){
+  abrirChat(tareaCurso.id,"tarea","Estoy con “"+tareaActual.t+"”.");
+});
+$("tarea-sub").addEventListener("click",function(){
+  var a=$("tarea-sub");
+  a.textContent="Adjuntar archivo…"; a.disabled=true; a.style.opacity=".6";
+  setTimeout(function(){ a.textContent = tareaActual.est==="entregada" ? "Ver mi entrega":"Entregar tarea"; a.disabled=false; a.style.opacity="1"; },1400);
+});
+
+/* ===================== CLASE EN VIVO (audio) ===================== */
+var vivoCurso=null, vivoSeg=0, vivoTimer=null, micOn=false, manoArriba=false;
+
+function abrirVivo(cid){
+  vivoCurso=curso(cid);
+  vivoSeg = vivoCurso.vivo.desde*60;
+  micOn=false; manoArriba=false;
+  $("live-course").textContent=vivoCurso.nom+" · "+vivoCurso.cod;
+  $("live-topic").textContent=vivoCurso.vivo.tema;
+  $("live-speaker").innerHTML="Habla <b>"+vivoCurso.prof+"</b>";
+  $("live-hand").textContent="";
+  $("live-eq").classList.remove("mute");
+  pintarMic(); pintarMano();
+
+  var parts=$("live-parts"); parts.innerHTML="";
+  PARTICIPANTES.forEach(function(p,i){
+    var a=el("div","av"+(i===0?" sp":""),p);
+    if(i===0) a.title=vivoCurso.prof;
+    parts.appendChild(a);
+  });
+  parts.appendChild(el("div","av more","+18"));
+
+  $("live-timer").textContent=mmss(vivoSeg);
+  clearInterval(vivoTimer);
+  vivoTimer=setInterval(function(){ vivoSeg++; $("live-timer").textContent=mmss(vivoSeg); },1000);
+  go("live");
+}
+function pararVivo(){ clearInterval(vivoTimer); vivoTimer=null; }
+function pintarMic(){
+  var b=$("live-mic");
+  b.classList.toggle("off",!micOn);
+  b.setAttribute("aria-pressed", micOn?"true":"false");
+  b.setAttribute("aria-label", micOn?"Silenciar micrófono":"Activar micrófono");
+  $("live-mic-l").textContent = micOn ? "Micrófono abierto" : "Silenciado";
+}
+function pintarMano(){
+  var b=$("live-raise");
+  b.classList.toggle("up",manoArriba);
+  b.setAttribute("aria-pressed", manoArriba?"true":"false");
+  $("live-hand").textContent = manoArriba ? "Pediste la palabra. El profesor te dará el turno." : "";
+}
+$("live-mic").addEventListener("click",function(){ micOn=!micOn; pintarMic(); });
+$("live-raise").addEventListener("click",function(){ manoArriba=!manoArriba; pintarMano(); });
+$("live-end").addEventListener("click",function(){ pararVivo(); go("home"); });
+$("live-min").addEventListener("click",function(){ pararVivo(); abrirCurso(vivoCurso.id); });
+
+/* ===================== CLASE GRABADA ===================== */
+var grabCurso=null, grabIdx=0, grabPos=0, grabTimer=null, grabVel=1, volverGrab="curso";
+var VELOCIDADES=[1,1.25,1.5,2];
+
+function abrirGrab(cid,gi){
+  grabCurso=curso(cid); grabIdx=gi; grabPos=0; grabVel=1;
+  volverGrab = pantalla==="curso" ? "curso" : "home";
+  var g=grabCurso.grabadas[gi];
+  $("rec-course").textContent=grabCurso.nom;
+  $("rec-title").textContent=g.t;
+  $("rec-date").textContent=g.fecha+" · "+hms(g.dur)+" · "+grabCurso.prof;
+  $("rec-tot").textContent=hms(g.dur);
+  pintarGrab(); pintarVelocidades(); pintarCapitulos();
+  pausarGrab();
+  go("rec");
+}
+function pintarGrab(){
+  var g=grabCurso.grabadas[grabIdx];
+  var pc=Math.min(100,(grabPos/g.dur)*100);
+  $("rec-fill").style.width=pc+"%";
+  $("rec-cur").textContent=hms(Math.floor(grabPos));
+  $("rec-track").setAttribute("aria-valuenow",Math.round(pc));
+}
+function pintarVelocidades(){
+  var host=$("rec-speeds"); host.innerHTML="";
+  VELOCIDADES.forEach(function(v){
+    var b=el("button","sp-b"+(v===grabVel?" on":""),v+"×");
+    b.addEventListener("click",function(){ grabVel=v; pintarVelocidades(); });
+    host.appendChild(b);
+  });
+}
+function pintarCapitulos(){
+  var g=grabCurso.grabadas[grabIdx];
+  var caps=[
+    {t:"Repaso de la clase anterior", s:0},
+    {t:"Concepto central", s:Math.round(g.dur*0.18)},
+    {t:"Ejemplo desarrollado en pizarra", s:Math.round(g.dur*0.45)},
+    {t:"Preguntas del curso", s:Math.round(g.dur*0.78)}
+  ];
+  var host=$("rec-chaps"); host.innerHTML="";
+  caps.forEach(function(c){
+    var r=el("button","row");
+    var ic=el("span","ic");
+    ic.innerHTML=svgIc('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', grabCurso.color);
+    ic.style.background=grabCurso.color+"1F";
+    r.appendChild(ic);
+    var rt=el("div","rt"); rt.appendChild(el("div","r1",c.t)); r.appendChild(rt);
+    r.appendChild(el("div","rr",hms(c.s)));
+    r.addEventListener("click",function(){ grabPos=c.s; pintarGrab(); });
+    host.appendChild(r);
+  });
+}
+function reproducirGrab(){
+  clearInterval(grabTimer);
+  var g=grabCurso.grabadas[grabIdx];
+  $("rec-icon").innerHTML='<rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/>';
+  $("rec-play").setAttribute("aria-label","Pausar");
+  grabTimer=setInterval(function(){
+    grabPos+=grabVel;
+    if(grabPos>=g.dur){ grabPos=g.dur; pausarGrab(); }
+    pintarGrab();
+  },1000);
+}
+function pausarGrab(){
+  clearInterval(grabTimer); grabTimer=null;
+  var ic=$("rec-icon"); if(ic) ic.innerHTML='<path d="M8 5.5v13l11-6.5-11-6.5Z"/>';
+  var pb=$("rec-play"); if(pb) pb.setAttribute("aria-label","Reproducir");
+}
+$("rec-play").addEventListener("click",function(){ grabTimer ? pausarGrab() : reproducirGrab(); });
+$("rec-b15").addEventListener("click",function(){ grabPos=Math.max(0,grabPos-15); pintarGrab(); });
+$("rec-f15").addEventListener("click",function(){
+  var g=grabCurso.grabadas[grabIdx];
+  grabPos=Math.min(g.dur,grabPos+15); pintarGrab();
+});
+$("rec-track").addEventListener("click",function(e){
+  var g=grabCurso.grabadas[grabIdx];
+  var r=this.getBoundingClientRect();
+  grabPos=Math.max(0,Math.min(g.dur, ((e.clientX-r.left)/r.width)*g.dur));
+  pintarGrab();
+});
+$("rec-track").addEventListener("keydown",function(e){
+  var g=grabCurso.grabadas[grabIdx];
+  if(e.key==="ArrowRight"){ grabPos=Math.min(g.dur,grabPos+15); pintarGrab(); e.preventDefault(); }
+  if(e.key==="ArrowLeft"){ grabPos=Math.max(0,grabPos-15); pintarGrab(); e.preventDefault(); }
+});
+$("rec-back").addEventListener("click",function(){ pausarGrab(); go(volverGrab); });
+$("rec-ask").addEventListener("click",function(){
+  pausarGrab();
+  abrirChat(grabCurso.id,"rec","Estoy viendo “"+grabCurso.grabadas[grabIdx].t+"”.");
+});
+
+/* ===================== TUTOR ===================== */
+/* La regla del producto: el tutor nunca entrega la respuesta.
+   En la app real este comportamiento vive en el prompt del servidor, no en el cliente. */
+var chatCurso = CURSOS[0].id;
+var chatPaso = 0;
+var volverChat = "home";
+var contextoPendiente = null;
+
+var GUIAS=[
+  "Buena intuición. ¿Qué paso crees que viene ahora, y por qué ese?",
+  "Vas bien. Antes de seguir, ¿cómo podrías verificar si eso funciona?",
+  "Interesante. ¿Qué dato del enunciado todavía no has usado?",
+  "Casi. ¿Qué pasaría si lo pruebas con un caso simple para comprobarlo?",
+  "Vas encaminado. ¿Qué regla o concepto crees que aplica aquí, con tus palabras?"
+];
+
+function abrirChat(cid, desde, contexto){
+  if(cid) chatCurso=cid;
+  volverChat = desde==="curso" ? "curso" : (desde==="tarea" ? "tarea" : (desde==="rec" ? "rec" : "home"));
+  contextoPendiente = contexto || null;
+  chatPaso=0;
+  go("chat");
+}
+$("chat-back").addEventListener("click",function(){
+  if(volverChat==="curso" && cursoActual) { abrirCurso(cursoActual.id); return; }
+  go(volverChat==="tarea" ? "tarea" : (volverChat==="rec" ? "rec" : "home"));
+});
+
+function pintarChips(){
+  var host=$("chips"); host.innerHTML="";
+  CURSOS.forEach(function(c){
+    var b=el("button","chip"+(c.id===chatCurso?" on":""),c.nom);
+    b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", c.id===chatCurso ? "true":"false");
+    b.addEventListener("click",function(){
+      chatCurso=c.id; contextoPendiente=null; chatPaso=0;
+      pintarChips(); reiniciarMensajes(); pintarTituloChat();
+    });
+    host.appendChild(b);
+  });
+}
+function pintarTituloChat(){ $("chat-title").textContent="Tutor · "+curso(chatCurso).nom; }
+
+function burbuja(rol,texto){
+  var m=$("msgs");
+  var d=el("div","bub "+rol,texto);
+  m.appendChild(d); m.scrollTop=m.scrollHeight;
+}
+function reiniciarMensajes(){
+  $("msgs").innerHTML="";
+  if(contextoPendiente){
+    var c=el("div","ctx",contextoPendiente);
+    $("msgs").appendChild(c);
+  }
+  burbuja("a", curso(chatCurso).intro);
+}
+function entrarChat(){ pintarChips(); pintarTituloChat(); reiniciarMensajes(); }
+
+function respuesta(t){
+  t=t.toLowerCase();
+  if(/respuesta|dame|resultado|soluci|cu[aá]nto es|resu[eé]lvelo|hazlo por m/.test(t)){
+    return "Sé que sería cómodo que te la diera, pero mi misión es que la descubras tú: así de verdad aprendes. Vamos por partes. ¿Qué es lo primero que sabes que debes calcular?";
+  }
+  if(/no s[eé]|no entiendo|estoy perdid|ni idea/.test(t)){
+    return "Tranquilo, empecemos más atrás. Cuéntame con tus palabras qué dice el enunciado: ¿qué te dan y qué te piden?";
+  }
+  return GUIAS[chatPaso++ % GUIAS.length];
+}
+function enviar(){
+  var inp=$("chat-input");
+  var txt=(inp.value||"").trim();
+  if(!txt) return;
+  burbuja("u",txt); inp.value="";
+  var ty=$("typing"); ty.classList.add("on");
+  setTimeout(function(){ ty.classList.remove("on"); burbuja("a",respuesta(txt)); },700);
+}
+$("send-btn").addEventListener("click",enviar);
+$("chat-input").addEventListener("keydown",function(e){ if(e.key==="Enter") enviar(); });
+
+/* ===================== ARRANQUE ===================== */
+buildTabs();
+pintarInicio();
 })();
 </script>
 </body>
