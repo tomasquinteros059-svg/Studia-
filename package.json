@@ -3,7 +3,7 @@
   "private": true,
   "description": "StudIA — plataforma de estudio con un tutor que guía en vez de resolver",
   "scripts": {
-    "prueba": "node --experimental-strip-types --test 'app/src/dominio/*.prueba.ts' 'supabase/functions/_compartido/*.prueba.ts'",
+    "prueba": "node --experimental-strip-types --test 'app/src/dominio/*.prueba.ts' 'app/src/lib/*.prueba.ts' 'supabase/functions/_compartido/*.prueba.ts'",
     "prueba:bd": "./supabase/pruebas/correr.sh",
     "prueba:sintaxis": "node supabase/pruebas/sintaxis.mjs",
     "tipos": "npm --prefix app run tipos",

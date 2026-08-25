@@ -2,15 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const claveAnon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+import { CLAVE_ANON, MODO_DEMO, URL_SUPABASE } from "./config.ts";
 
-if (!url || !claveAnon) {
-  throw new Error(
-    "Faltan EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY. " +
-      "Copia app/.env.example a app/.env y complétalo.",
-  );
-}
+// Sin configuración no se revienta al importar: la app arranca en modo
+// demostración y este cliente nunca se usa. Reventar acá dejaba un APK que se
+// cerraba solo antes de mostrar nada.
+const url = MODO_DEMO ? "https://demostracion.invalid" : URL_SUPABASE;
+const claveAnon = MODO_DEMO ? "sin-clave" : CLAVE_ANON;
 
 export const supabase = createClient(url, claveAnon, {
   auth: {

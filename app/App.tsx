@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "./src/lib/supabase.ts";
+import { AVISO_DEMO, MODO_DEMO } from "./src/lib/config.ts";
 import { color } from "./src/ui/tema.ts";
 import type { RutasPestanas, RutasPila } from "./src/lib/rutas.ts";
 
@@ -65,6 +66,9 @@ export default function App() {
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
+    // En demostración no hay a quién preguntarle por la sesión: se entra directo.
+    if (MODO_DEMO) { setListo(true); return; }
+
     supabase.auth.getSession().then(({ data }) => {
       setSesion(data.session);
       setListo(true);
@@ -84,8 +88,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
+      {MODO_DEMO ? (
+        <SafeAreaView edges={["top"]} style={cinta.fondo}>
+          <Text style={cinta.texto}>{AVISO_DEMO}</Text>
+        </SafeAreaView>
+      ) : null}
       <NavigationContainer>
-        {sesion ? (
+        {sesion || MODO_DEMO ? (
           <Pila.Navigator
             screenOptions={{
               headerTintColor: color.marca,
@@ -114,3 +123,11 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const cinta = StyleSheet.create({
+  fondo: { backgroundColor: color.marcaOscura },
+  texto: {
+    color: "#fff", fontSize: 11.5, fontWeight: "600",
+    textAlign: "center", paddingVertical: 5, letterSpacing: 0.2,
+  },
+});

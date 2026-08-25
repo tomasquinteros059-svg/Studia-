@@ -8,10 +8,15 @@ Pero queda todo configurado para que salga con un comando desde tu máquina.
 
 - Node 22 o superior
 - Una cuenta gratuita en [expo.dev](https://expo.dev)
-- Un proyecto de Supabase con las migraciones aplicadas
 
-No necesitas instalar Android Studio ni el SDK: la compilación ocurre en la
-nube de Expo y te devuelve un enlace de descarga.
+**No necesitas Supabase para probarla.** Sin credenciales configuradas, la app
+arranca en **modo demostración**: datos de ejemplo en el propio teléfono, con
+las seis asignaturas, una clase en vivo, tareas, foro, notas y el tutor
+respondiendo con guiones. Se recorre entera. Lleva una cinta arriba que lo dice,
+para que nadie confunda los datos de ejemplo con los de verdad.
+
+Tampoco necesitas Android Studio ni el SDK: la compilación ocurre en la nube de
+Expo y te devuelve un enlace de descarga.
 
 ## Pasos
 
@@ -25,13 +30,17 @@ npm install
 npx eas-cli login
 npx eas-cli init          # crea el proyecto y escribe su id en app.json
 
-# 3 · Apuntar a tu Supabase
-#    Reemplaza los dos valores vacíos de "preview" en eas.json,
-#    o pásalos como secretos:
+# 3 · Compilar el APK
+npx eas-cli build --platform android --profile preview
+```
+
+Eso ya da un APK en modo demostración. **Cuando tengas Supabase**, agrega las
+credenciales como secretos y vuelve a compilar; la app las detecta sola y deja
+de estar en demo:
+
+```bash
 npx eas-cli secret:create --name EXPO_PUBLIC_SUPABASE_URL --value https://xxxx.supabase.co
 npx eas-cli secret:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value eyJhbGciOi...
-
-# 4 · Compilar el APK
 npx eas-cli build --platform android --profile preview
 ```
 
@@ -45,7 +54,8 @@ directamente** en un aparato.
 
 ## Probar el modo tablet
 
-1. Entra con `eduardo@studia.cl` / `clave-demo`
+1. En demostración entras directo, sin contraseña. Con Supabase configurado,
+   entra con `eduardo@studia.cl` / `clave-demo`
 2. Ve a la pestaña **Apuntes**: es el tablero, con las tarjetas repartidas en
    varias columnas. Toca **Nuevo apunte** y elige un ramo
 3. **Gira la tablet a horizontal**: aparecen las dos columnas, apuntes a la
@@ -55,6 +65,16 @@ directamente** en un aparato.
 
 En vertical, o en un teléfono, la misma pantalla muestra solo los apuntes con
 un botón flotante hacia el tutor.
+
+## Qué se puede y qué no en demostración
+
+Se recorre toda la app con datos de ejemplo. **Lo que no hace** es hablar con
+Claude: el tutor responde con guiones —los mismos del prototipo, fieles a la
+regla de no dar la respuesta— y el resumen de clase se arma con tus propias
+líneas. Eso necesita el servidor.
+
+Un ramo aparece bajo 4,0 a propósito, para que se vea la proyección de "qué
+necesitas para aprobar".
 
 ## Si prefieres no compilar todavía
 
