@@ -4,8 +4,8 @@
 
 import { supabase } from "./supabase.ts";
 import type {
-  Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
-  Hilo, MensajeTutor, Modulo, Notificacion, Respuesta, TareaConEstado,
+  Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
+  Hilo, MensajeTutor, Modulo, Notificacion, ResumenGuardado, Respuesta, TareaConEstado,
 } from "./tipos.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
@@ -308,6 +308,72 @@ export async function cambiarNombre(nombre: string): Promise<void> {
   const { error } = await supabase
     .from("perfiles").update({ nombre }).eq("id", sesion.user.id);
   reventar("No pude guardar tu nombre", error);
+}
+
+// ---------------------------------------------------------------- apuntes
+export async function misApuntes(asignaturaId?: string): Promise<Apunte[]> {
+  let consulta = supabase
+    .from("apuntes")
+    .select("id, asignatura_id, clase_id, titulo, contenido, actualizado_en")
+    .order("actualizado_en", { ascending: false });
+  if (asignaturaId) consulta = consulta.eq("asignatura_id", asignaturaId);
+
+  const { data, error } = await consulta;
+  reventar("No pude cargar tus apuntes", error);
+  return data ?? [];
+}
+
+export async function apuntePorId(apunteId: string): Promise<Apunte | null> {
+  const { data, error } = await supabase
+    .from("apuntes")
+    .select("id, asignatura_id, clase_id, titulo, contenido, actualizado_en")
+    .eq("id", apunteId)
+    .maybeSingle();
+  reventar("No pude cargar el apunte", error);
+  return data;
+}
+
+export async function crearApunte(
+  asignaturaId: string, titulo: string, claseId?: string | null,
+): Promise<Apunte> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+
+  const { data, error } = await supabase
+    .from("apuntes")
+    .insert({
+      estudiante_id: sesion.user.id,
+      asignatura_id: asignaturaId,
+      clase_id: claseId ?? null,
+      titulo,
+    })
+    .select("id, asignatura_id, clase_id, titulo, contenido, actualizado_en")
+    .single();
+  reventar("No pude crear el apunte", error);
+  if (!data) throw new Error("No pude crear el apunte.");
+  return data;
+}
+
+export async function guardarApunte(
+  apunteId: string, campos: { titulo?: string; contenido?: string },
+): Promise<void> {
+  const { error } = await supabase.from("apuntes").update(campos).eq("id", apunteId);
+  reventar("No pude guardar el apunte", error);
+}
+
+export async function borrarApunte(apunteId: string): Promise<void> {
+  const { error } = await supabase.from("apuntes").delete().eq("id", apunteId);
+  reventar("No pude borrar el apunte", error);
+}
+
+export async function resumenDe(apunteId: string): Promise<ResumenGuardado | null> {
+  const { data, error } = await supabase
+    .from("resumenes")
+    .select("cuerpo, vacios, consejos, creado_en")
+    .eq("apunte_id", apunteId)
+    .maybeSingle();
+  reventar("No pude cargar el resumen", error);
+  return data;
 }
 
 export async function misNotificaciones(): Promise<Notificacion[]> {

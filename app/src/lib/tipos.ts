@@ -103,3 +103,19 @@ export type Notificacion = {
 };
 
 export type MensajeTutor = { id: string; rol: "estudiante" | "tutor"; contenido: string };
+
+export type Apunte = {
+  id: string;
+  asignatura_id: string;
+  clase_id: string | null;
+  titulo: string;
+  contenido: string;
+  actualizado_en: string;
+};
+
+export type ResumenGuardado = {
+  cuerpo: string;
+  vacios: string[];
+  consejos: string[];
+  creado_en: string;
+};

@@ -62,8 +62,8 @@ el proyecto remoto.
 ## Verificación
 
 ```bash
-npm run prueba            # 34 pruebas del dominio y del núcleo del tutor
-npm run prueba:bd         # 29 aserciones de acceso contra un Postgres real
+npm run prueba            # 75 pruebas del dominio y de los núcleos del tutor
+npm run prueba:bd         # 35 aserciones de acceso contra un Postgres real
 npm run prueba:sintaxis   # las funciones de Deno son TypeScript válido
 npm run tipos             # tsc en modo estricto sobre la app
 ```
@@ -158,6 +158,57 @@ Y hay una razón de producto para no tocarlas: la clase en vivo sirve para estar
 la grabada, para no haber estado. Un estudiante que se enfermó o que repasa para
 el examen depende de la segunda.
 
+## Modo tablet: escribir con el tutor al lado
+
+En una pantalla de 900 puntos o más de ancho —una tablet en horizontal— la
+pantalla de apuntes se parte en dos columnas: los apuntes a la izquierda, el
+tutor a la derecha. En vertical o en teléfono es una sola columna con un botón
+flotante hacia el tutor.
+
+El corte va por **ancho disponible, no por tipo de aparato**: una tablet en
+vertical se comporta como teléfono, que es lo correcto.
+`app/src/lib/pantalla.ts`.
+
+Los apuntes **se guardan solos** un segundo y medio después de dejar de
+escribir. Nadie debería perder apuntes de clase por olvidar tocar un botón.
+
+Al terminar, **Terminar clase y resumir** llama a la función `resumen`, que
+devuelve tres cosas: el resumen de lo que el estudiante escribió, los temas del
+temario que su apunte no menciona, y consejos para estudiar ese contenido.
+
+**La regla del tutor sigue en pie ahí también.** Resumir lo que el propio
+estudiante escribió está permitido: eso no es hacerle la tarea. Terminarle un
+ejercicio que dejó a medias, no — el prompt lo dice explícitamente.
+
+### Lo que falta para que el tutor "escuche al profesor"
+
+Hoy el resumen se hace con los apuntes y el temario del ramo, y lo dice en
+pantalla en vez de aparentar que oyó la clase.
+
+Para cruzarlo con lo que se dijo en la sala hace falta la **transcripción**, y
+esa no puede salir del teléfono del estudiante por la misma razón que no puede
+salir de ahí la grabación: el sistema operativo no deja capturar el audio que
+reproduce otra app. Tiene que producirse del lado del servidor, sobre el mismo
+audio del transporte.
+
+La tabla `transcripciones` ya existe y la función `resumen` la usa **cuando hay
+filas**. El día que el transporte alimente esa tabla, el resumen mejora solo,
+sin tocar la app.
+
+## Consejos de estudio: dos clases distintas
+
+**Sobre la materia** los da Claude, dentro del resumen de la clase.
+
+**Sobre cómo estudia** los calcula la app con sus propios datos, en
+`app/src/dominio/habitos.ts`: un ramo bajo 4,0, tareas atrasadas con nombre y
+apellido, un ramo que se queda atrás del resto, la costumbre de entregar sobre
+la hora, un ramo que avanza sin dejar apuntes. Y cuando no hay nada que avisar,
+lo dice también.
+
+Se calculan localmente a propósito: si la app afirma "sueles entregar sobre la
+hora", tiene que poder mostrar cuáles. Un consejo que no se puede justificar con
+un dato concreto no se muestra.
+
 ## Elegir el transporte de audio en vivo
 
 Escenario real: **20 inscritos por ramo, asistencia típica ~14**, clases de 90
@@ -198,6 +249,8 @@ chico o una cátedra semanal, el piloto sale gratis en cualquiera de los tres.
 | Pantalla | Qué hace |
 |---|---|
 | Sesión | Entrar y crear cuenta |
+| Apuntes | Escribir en clase; en tablet horizontal, con el tutor al lado |
+| Consejos | Cómo va estudiando, calculado de sus propios datos |
 | Inicio | Clase en vivo, bloques de hoy, próximas entregas y las asignaturas |
 | Asignatura | Nueve secciones tras los tres puntitos |
 | Tarea | Enunciado, criterios de evaluación, entrega y acceso al tutor |

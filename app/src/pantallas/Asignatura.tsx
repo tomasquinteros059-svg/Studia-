@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   Cargando, Encabezado, Error, Fila, Pastilla, Vacio,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { color, duracion, espacio, fechaCorta, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
 import {
-  clasesDe, companerosDe, evaluacionesDe, foroDe, marcarMaterial, materiaDe,
-  miHorario, misAsignaturas, misTareas,
+  clasesDe, companerosDe, crearApunte, evaluacionesDe, foroDe, marcarMaterial,
+  materiaDe, miHorario, misApuntes, misAsignaturas, misTareas,
 } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
@@ -23,6 +23,7 @@ const SECCIONES = [
   { id: "clases", texto: "Clases", corto: "Clases" },
   { id: "tareas", texto: "Tareas", corto: "Tareas" },
   { id: "foro", texto: "Foro", corto: "Foro" },
+  { id: "apuntes", texto: "Mis apuntes", corto: "Apuntes" },
   { id: "notas", texto: "Notas", corto: "Notas" },
   { id: "horario", texto: "Horario", corto: "Horario" },
   { id: "programa", texto: "Programa del curso", corto: "Programa" },
@@ -43,9 +44,10 @@ export default function Asignatura({ route, navigation }: Props) {
         misTareas(asignaturaId), foroDe(asignaturaId), evaluacionesDe(asignaturaId),
         miHorario(), companerosDe(asignaturaId),
       ]);
+    const apuntes = await misApuntes(asignaturaId);
     const ramo = asignaturas.find((a) => a.id === asignaturaId) ?? null;
     return {
-      ramo, modulos, clases, tareas, foro, evaluaciones, companeros,
+      ramo, modulos, clases, tareas, foro, evaluaciones, companeros, apuntes,
       horario: horario.filter((b) => b.asignatura_id === asignaturaId),
     };
   }, [asignaturaId]);
@@ -236,6 +238,42 @@ export default function Asignatura({ route, navigation }: Props) {
             ))}
             <Encabezado texto="Bibliografía" />
             {ramo.bibliografia.map((b, i) => <Fila key={i} titulo={b} />)}
+          </>
+        ) : null}
+
+        {seccion === "apuntes" ? (
+          <>
+            <View style={{ padding: espacio.m }}>
+              <Pressable accessibilityRole="button" style={e.nuevoHilo}
+                onPress={async () => {
+                  try {
+                    const nuevo = await crearApunte(
+                      ramo.id,
+                      `Apuntes · ${new Date().toLocaleDateString("es-CL")}`,
+                      datos.clases.find((c) => c.estado === "en_vivo")?.id ?? null,
+                    );
+                    navigation.navigate("Apuntes", { apunteId: nuevo.id });
+                  } catch (err) {
+                    Alert.alert("No pude crear el apunte",
+                      err instanceof globalThis.Error ? err.message : "");
+                  }
+                }}>
+                <Icono nombre="nuevo" tamano={18} tono={color.marca} />
+                <Text style={e.nuevoHiloTexto}>Nuevo apunte</Text>
+              </Pressable>
+            </View>
+            {datos.apuntes.length === 0
+              ? <Vacio texto="Todavía no tienes apuntes de este ramo. En tablet puedes escribir con el tutor al lado." />
+              : datos.apuntes.map((a) => (
+                  <Fila key={a.id}
+                    izquierda={<Icono nombre="documento" tono={ramo.color} />}
+                    titulo={a.titulo}
+                    detalle={a.contenido.trim()
+                      ? `${a.contenido.trim().slice(0, 60)}…`
+                      : "Sin escribir todavía"}
+                    onPress={() => navigation.navigate("Apuntes", { apunteId: a.id })}
+                  />
+                ))}
           </>
         ) : null}
 

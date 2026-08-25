@@ -117,6 +117,14 @@ export default function Inicio({ navigation }: Props) {
             );
           })}
 
+      <Encabezado texto="Cómo vas estudiando" accion={
+        <Pressable onPress={() => navigation.navigate("Consejos")}>
+          <Text style={e.enlace}>Ver consejos</Text>
+        </Pressable>} />
+      <Text style={e.pistaConsejos}>
+        Salen de tus entregas, tu avance y tus apuntes.
+      </Text>
+
       <Encabezado texto="Mis asignaturas" accion={
         <Pressable onPress={() => navigation.navigate("Notas")}>
           <Text style={e.enlace}>Ver notas</Text>
@@ -177,6 +185,7 @@ const e = StyleSheet.create({
   barraColor: { width: 3, height: 34, borderRadius: 2 },
   enlace: { color: color.marca, fontWeight: "600", fontSize: 12.5 },
   vacio: { ...tipo.detalle, paddingHorizontal: espacio.m, paddingVertical: espacio.m },
+  pistaConsejos: { ...tipo.detalle, paddingHorizontal: espacio.m, lineHeight: 19 },
   tarjeta: {
     borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta, overflow: "hidden",
   },

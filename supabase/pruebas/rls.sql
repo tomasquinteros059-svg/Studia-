@@ -156,3 +156,60 @@ select pg_temp.afirmar('pero el nombre sí',
   (select count(*) from (select nombre from public.perfiles) x)::int, 1);
 
 select '— también pasaron las pruebas de compañeros —' as resultado;
+
+-- ====================== apuntes: míos y de nadie más ======================
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+insert into public.apuntes (estudiante_id, asignatura_id, titulo, contenido)
+values ('e0000000-0000-4000-8000-000000000001',
+        (select id from public.asignaturas where codigo = 'MAT1610'),
+        'Clase del valor medio', 'f continua en [a,b], derivable en (a,b)…');
+
+select pg_temp.afirmar('veo mi apunte', (select count(*) from public.apuntes)::int, 1);
+
+do $$
+begin
+  insert into public.apuntes (estudiante_id, asignatura_id, contenido)
+  values ('e0000000-0000-4000-8000-000000000002',
+          (select id from public.asignaturas where codigo = 'MAT1610'), 'ajeno');
+  raise exception 'FALLA · pude escribir un apunte a nombre de otro';
+exception when insufficient_privilege then
+  raise notice 'ok · no puedo escribir apuntes a nombre de otro';
+end $$;
+
+do $$
+begin
+  insert into public.apuntes (estudiante_id, asignatura_id, contenido)
+  values ('e0000000-0000-4000-8000-000000000001',
+          '00000000-0000-4000-8000-000000000099', 'ramo ajeno');
+  raise exception 'FALLA · pude apuntar en un ramo en que no estoy';
+exception when insufficient_privilege or foreign_key_violation then
+  raise notice 'ok · no puedo apuntar en un ramo en que no estoy';
+end $$;
+
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('otro no ve mis apuntes', (select count(*) from public.apuntes)::int, 0);
+
+-- El estudiante no puede fabricar un resumen: lo escribe la función.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+do $$
+begin
+  insert into public.resumenes (apunte_id, cuerpo)
+  values ((select id from public.apuntes limit 1), 'resumen inventado');
+  raise exception 'FALLA · pude fabricar un resumen';
+exception when insufficient_privilege then
+  raise notice 'ok · el estudiante no puede fabricar resúmenes';
+end $$;
+
+-- La transcripción se lee, no se escribe desde el cliente.
+do $$
+begin
+  insert into public.transcripciones (clase_id, segundo, texto)
+  values ((select id from public.clases limit 1), 0, 'texto inventado');
+  raise exception 'FALLA · pude escribir en la transcripción';
+exception when insufficient_privilege then
+  raise notice 'ok · la transcripción no se escribe desde el cliente';
+end $$;
+
+select '— también pasaron las pruebas de apuntes —' as resultado;

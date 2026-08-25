@@ -20,6 +20,8 @@ export type RutasPila = {
   NuevoHilo: { asignaturaId: string };
   Tarea: { tareaId: string };
   Perfil: undefined;
+  Apuntes: { apunteId: string };
+  Consejos: undefined;
   ClaseEnVivo: {
     titulo: string;
     asignatura: string;

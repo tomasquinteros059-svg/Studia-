@@ -3,7 +3,7 @@
     "name": "StudIA",
     "slug": "studia",
     "version": "0.1.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "scheme": "studia",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -11,11 +11,12 @@
       "backgroundColor": "#208AEF"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "cl.studia.app"
     },
     "android": {
-      "package": "cl.studia.app"
+      "package": "cl.studia.app",
+      "resizeableActivity": true
     },
     "extra": {
       "supabaseUrl": "",

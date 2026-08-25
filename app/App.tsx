@@ -25,6 +25,8 @@ import Tarea from "./src/pantallas/Tarea.tsx";
 import Perfil from "./src/pantallas/Perfil.tsx";
 import ClaseEnVivo from "./src/pantallas/ClaseEnVivo.tsx";
 import Grabacion from "./src/pantallas/Grabacion.tsx";
+import ApuntesPantalla from "./src/pantallas/Apuntes.tsx";
+import Consejos from "./src/pantallas/Consejos.tsx";
 import { Icono } from "./src/ui/Icono.tsx";
 
 const Pila = createNativeStackNavigator<RutasPila>();
@@ -96,6 +98,8 @@ export default function App() {
             <Pila.Screen name="NuevoHilo" component={NuevoHilo} options={{ title: "Nuevo hilo" }} />
             <Pila.Screen name="Tarea" component={Tarea} options={{ title: "Tarea" }} />
             <Pila.Screen name="Perfil" component={Perfil} options={{ title: "Mi perfil" }} />
+            <Pila.Screen name="Apuntes" component={ApuntesPantalla} options={{ title: "Apuntes de clase" }} />
+            <Pila.Screen name="Consejos" component={Consejos} options={{ title: "Cómo vas estudiando" }} />
             <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />
             <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}
               options={{ headerShown: false, presentation: "fullScreenModal" }} />

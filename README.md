@@ -15,6 +15,7 @@ por diseño, **nunca resuelve el ejercicio**.
 | [`app/`](app) | La aplicación en Expo (React Native) |
 | [`supabase/`](supabase) | Esquema, políticas de acceso, datos de ejemplo y la función del tutor |
 | [`docs/arquitectura.md`](docs/arquitectura.md) | Cómo levantarlo, cómo se verifica y qué está simplificado |
+| [`docs/instalar-en-tablet.md`](docs/instalar-en-tablet.md) | Compilar el APK y probarlo en una tablet Android |
 | [`docs/studia-spec.md`](docs/studia-spec.md) | Especificación de producto: navegación, pantallas, sistema visual y decisiones abiertas |
 | [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo — sigue siendo la referencia de diseño |
 
@@ -34,8 +35,8 @@ Los detalles y lo que falta están en [`docs/arquitectura.md`](docs/arquitectura
 ## Verificación
 
 ```bash
-npm run prueba          # 34 pruebas del dominio y del núcleo del tutor
-npm run prueba:bd       # 29 aserciones de acceso contra un Postgres real
+npm run prueba          # 75 pruebas del dominio y de los núcleos del tutor
+npm run prueba:bd       # 35 aserciones de acceso contra un Postgres real
 npm run tipos           # tsc en modo estricto
 ```
 
