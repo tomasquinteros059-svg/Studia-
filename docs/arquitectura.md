@@ -68,8 +68,14 @@ npm run prueba            # 87 pruebas del dominio y de los núcleos del tutor
 npm run prueba:ui         # 56 pruebas que renderizan las pantallas de verdad
 npm run prueba:sintaxis   # las funciones de Deno son TypeScript válido
 npm run tipos             # tsc en modo estricto sobre la app
+npm run prueba:paquete    # el bundle de la app compila de verdad
 npm run prueba:bd         # 35 aserciones de acceso contra un Postgres real
 ```
+
+`prueba:paquete` es el que atrapa lo que los tipos no ven: dependencias que
+faltan, versiones que no calzan con las que fija el SDK de Expo, imports que
+no resuelven en tiempo de ejecución. Si este pasa, la compilación en EAS tiene
+muchas más probabilidades de pasar también.
 
 ### Las pruebas de pantalla
 

@@ -9,7 +9,8 @@
     "tipos": "npm --prefix app run tipos",
     "test": "npm run prueba",
     "prueba:ui": "npm --prefix app run prueba:ui",
-    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run tipos && npm run prueba:bd"
+    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run tipos && npm run prueba:paquete && npm run prueba:bd",
+    "prueba:paquete": "npm --prefix app run paquete"
   },
   "engines": {
     "node": ">=22.6"
