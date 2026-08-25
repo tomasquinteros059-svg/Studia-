@@ -12,11 +12,34 @@ por diseño, **nunca resuelve el ejercicio**.
 
 | Ruta | Qué es |
 |---|---|
-| [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo navegable — 14 pantallas, sin dependencias |
-| [`prototipo/build-artifact.sh`](prototipo/build-artifact.sh) | Genera la versión publicable como Artifact a partir del prototipo |
-| [`docs/studia-spec.md`](docs/studia-spec.md) | Especificación: producto, modelo de datos, navegación, pantallas, sistema visual y decisiones abiertas |
+| [`app/`](app) | La aplicación en Expo (React Native) |
+| [`supabase/`](supabase) | Esquema, políticas de acceso, datos de ejemplo y la función del tutor |
+| [`docs/arquitectura.md`](docs/arquitectura.md) | Cómo levantarlo, cómo se verifica y qué está simplificado |
+| [`docs/studia-spec.md`](docs/studia-spec.md) | Especificación de producto: navegación, pantallas, sistema visual y decisiones abiertas |
+| [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo — sigue siendo la referencia de diseño |
 
-## Ver el prototipo
+## Levantarlo
+
+```bash
+supabase start && supabase db reset
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+supabase functions serve tutor
+
+cd app && cp .env.example .env && npm install && npm start
+```
+
+Cuenta de ejemplo: **eduardo@studia.cl / clave-demo**.
+Los detalles y lo que falta están en [`docs/arquitectura.md`](docs/arquitectura.md).
+
+## Verificación
+
+```bash
+npm run prueba          # 34 pruebas del dominio y del núcleo del tutor
+npm run prueba:bd       # 23 aserciones de acceso contra un Postgres real
+npm run tipos           # tsc en modo estricto
+```
+
+## Ver el prototipo (referencia de diseño)
 
 Abre `prototipo/index.html` en el navegador, o sirve la carpeta:
 
@@ -60,5 +83,7 @@ python3 -m http.server 8000
 
 ## Estado
 
-Prototipo de producto completo. La app real todavía no está implementada: el prototipo
-define el producto, no lo construye.
+La app existe y está tipada; el backend está montado y verificado. Falta el audio de
+las clases en vivo, la reproducción de las grabadas, la subida de archivos en las
+entregas y el panel docente — todo detallado en
+[`docs/arquitectura.md`](docs/arquitectura.md).

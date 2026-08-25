@@ -1,0 +1,39 @@
+import type { NavigatorScreenParams, CompositeScreenProps } from "@react-navigation/native";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+
+/** Las cuatro pestañas de abajo. */
+export type RutasPestanas = {
+  Inicio: undefined;
+  Horario: undefined;
+  Tareas: undefined;
+  Tutor: { asignaturaId?: string; contexto?: string } | undefined;
+};
+
+/** Lo que se apila encima de las pestañas. */
+export type RutasPila = {
+  Principal: NavigatorScreenParams<RutasPestanas> | undefined;
+  Asignatura: { asignaturaId: string; seccion?: string };
+  Notas: undefined;
+  Notificaciones: undefined;
+  Hilo: { hiloId: string; titulo: string };
+};
+
+/** Una pestaña también puede navegar a la pila que la contiene. */
+export type PropsPestana<T extends keyof RutasPestanas> = CompositeScreenProps<
+  BottomTabScreenProps<RutasPestanas, T>,
+  NativeStackScreenProps<RutasPila>
+>;
+
+export type PropsPila<T extends keyof RutasPila> = NativeStackScreenProps<RutasPila, T>;
+
+/** Ir al tutor desde cualquier parte, con el ramo y el contexto de dónde venías. */
+export const alTutor = (asignaturaId: string, contexto?: string) =>
+  ["Principal", { screen: "Tutor" as const, params: { asignaturaId, contexto } }] as const;
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace ReactNavigation {
+    interface RootParamList extends RutasPila {}
+  }
+}

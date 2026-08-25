@@ -38,7 +38,7 @@ export function cuandoVence(tarea: Tarea, ahora: Date = new Date()): string {
  * Orden de la lista: primero lo que hay que hacer —lo atrasado antes que
  * todo—, y las entregadas al final, la más reciente arriba.
  */
-export function ordenarTareas<T extends Tarea>(tareas: T[], ahora: Date = new Date()): T[] {
+export function ordenarTareas<T extends Tarea>(tareas: T[]): T[] {
   return [...tareas].sort((a, b) => {
     const entregadaA = a.entregada_en ? 1 : 0;
     const entregadaB = b.entregada_en ? 1 : 0;

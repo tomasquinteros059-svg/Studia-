@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "StudIA",
+    "slug": "studia",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "studia",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": { "backgroundColor": "#208AEF" },
+    "ios": { "supportsTablet": false, "bundleIdentifier": "cl.studia.app" },
+    "android": { "package": "cl.studia.app" },
+    "extra": {
+      "supabaseUrl": "",
+      "supabaseAnonKey": ""
+    }
+  }
+}

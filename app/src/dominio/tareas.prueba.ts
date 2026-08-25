@@ -47,7 +47,7 @@ test("primero lo atrasado, después por urgencia, y lo entregado al final", () =
     tarea({ id: "manana", vence_en: enDias(1) }),
     tarea({ id: "atrasada", vence_en: enDias(-1) }),
     tarea({ id: "entregada-reciente", vence_en: enDias(-2), entregada_en: enDias(-2) }),
-  ], AHORA).map((t) => t.id);
+  ]).map((t) => t.id);
 
   assert.deepEqual(orden, [
     "atrasada", "manana", "en-7-dias", "entregada-reciente", "entregada-vieja",
@@ -57,12 +57,12 @@ test("primero lo atrasado, después por urgencia, y lo entregado al final", () =
 test("ordenar no muta la lista original", () => {
   const original = [tarea({ id: "b", vence_en: enDias(5) }), tarea({ id: "a", vence_en: enDias(1) })];
   const copia = [...original];
-  ordenarTareas(original, AHORA);
+  ordenarTareas(original);
   assert.deepEqual(original, copia);
 });
 
 test("ordenar una lista vacía o de un elemento", () => {
-  assert.deepEqual(ordenarTareas([], AHORA), []);
+  assert.deepEqual(ordenarTareas([]), []);
   const una = [tarea({ id: "sola" })];
-  assert.equal(ordenarTareas(una, AHORA).length, 1);
+  assert.equal(ordenarTareas(una).length, 1);
 });
