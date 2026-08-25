@@ -31,6 +31,10 @@
           "enableBackgroundRecording": false
         }
       ]
-    ]
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
   }
 }
