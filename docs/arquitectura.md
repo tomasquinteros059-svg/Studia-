@@ -158,6 +158,41 @@ Y hay una razón de producto para no tocarlas: la clase en vivo sirve para estar
 la grabada, para no haber estado. Un estudiante que se enfermó o que repasa para
 el examen depende de la segunda.
 
+## Elegir el transporte de audio en vivo
+
+Escenario real: **20 inscritos por ramo, asistencia típica ~14**, clases de 90
+minutos. Seis ramos, dos cátedras por semana, quince semanas: **180 clases y
+226.800 minutos-participante por semestre**. Se graba una pista por clase
+—16.200 minutos—, no una por estudiante.
+
+| | Conexión | Grabación | Total por semestre |
+|---|---|---|---|
+| **LiveKit** | $91–113 | $65 | **$156–178** |
+| Agora | $225 | aparte | $225 + grabación |
+| Daily | $225 | $219 + $49 almacén | $492 |
+
+Precios de audio: LiveKit $0,0004–0,0005 por minuto-participante y $0,004 por
+minuto de egress de audio; Agora y Daily $0,99 por cada 1.000 minutos; Daily
+cobra la grabación a $0,01349 por minuto grabado más $0,0030 de almacenamiento.
+
+**Recomendación: LiveKit.** Es entre dos y tres veces más barato, su egress de
+audio produce la grabación como subproducto de la clase —una sola tubería, no
+dos—, tiene plugin propio de Expo (`@livekit/react-native-expo-plugin`), y es
+código abierto y autoalojable: si el costo crece, se puede mover a un servidor
+propio sin reescribir el cliente. Esa salida no la dan los otros dos.
+
+**Nota sobre las cifras.** Las páginas de precios de los tres proveedores están
+bloqueadas desde este entorno, así que los valores vienen de resúmenes de
+búsqueda y de páginas de terceros. Sirven para comparar órdenes de magnitud;
+hay que confirmarlos en la fuente antes de firmar nada.
+
+**Para un piloto**, un solo ramo consume unos 10.800 minutos-participante al
+mes, apenas por sobre los 10.000 gratuitos de Agora y Daily. Con un curso más
+chico o una cátedra semanal, el piloto sale gratis en cualquiera de los tres.
+
+**Almacenamiento**: las grabaciones en Opus mono ocupan unos 14 MB por hora,
+3,9 GB por semestre para todo el programa. No es un costo relevante.
+
 ## Pantallas
 
 | Pantalla | Qué hace |
