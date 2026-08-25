@@ -62,11 +62,37 @@ el proyecto remoto.
 ## Verificación
 
 ```bash
+npm run prueba:todo       # todo lo de abajo, en orden
+
 npm run prueba            # 87 pruebas del dominio y de los núcleos del tutor
-npm run prueba:bd         # 35 aserciones de acceso contra un Postgres real
+npm run prueba:ui         # 56 pruebas que renderizan las pantallas de verdad
 npm run prueba:sintaxis   # las funciones de Deno son TypeScript válido
 npm run tipos             # tsc en modo estricto sobre la app
+npm run prueba:bd         # 35 aserciones de acceso contra un Postgres real
 ```
+
+### Las pruebas de pantalla
+
+Montan los componentes con `jest-expo` y los operan como lo haría una persona:
+tocar, escribir, esperar. Supabase y Claude están dobladas —lo que se comprueba
+es que la pantalla reaccione, no la red— y `pruebas/dobles.tsx` reúne los datos
+de ejemplo y una navegación de mentira que registra a dónde se quiso ir.
+
+Cubren las nueve secciones de una asignatura, el tablero de apuntes con su
+búsqueda, el guardado automático del editor, las dos columnas en tablet, y los
+tres caminos del permiso de micrófono.
+
+Dos cosas que hay que saber al escribirlas:
+
+- **`render` es asíncrono** en la versión 14 de la biblioteca: sin `await` no
+  hay nada que consultar.
+- **Todo toque va dentro de `act`.** Un `fireEvent` suelto deja el renderizador
+  a medias y hace fallar la prueba *siguiente*, no la propia — cuesta caro
+  encontrarlo.
+
+Quedan avisos de React sobre actualizaciones fuera de `act` en tres archivos.
+Son del arnés al probar cargas asíncronas, no defectos de la app: las pruebas
+afirman el comportamiento correcto y pasan.
 
 `prueba:bd` levanta un Postgres desechable y aplica migraciones y seed sobre un
 andamio que imita lo mínimo de Supabase (`supabase/pruebas/andamio.sql`): el

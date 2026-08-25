@@ -7,7 +7,11 @@
     "prueba:bd": "./supabase/pruebas/correr.sh",
     "prueba:sintaxis": "node supabase/pruebas/sintaxis.mjs",
     "tipos": "npm --prefix app run tipos",
-    "test": "npm run prueba"
+    "test": "npm run prueba",
+    "prueba:ui": "npm --prefix app run prueba:ui",
+    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run tipos && npm run prueba:bd"
   },
-  "engines": { "node": ">=22.6" }
+  "engines": {
+    "node": ">=22.6"
+  }
 }

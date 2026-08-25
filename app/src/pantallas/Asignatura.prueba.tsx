@@ -1,0 +1,159 @@
+import { fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  CLASE_GRABADA, CLASE_VIVA, EVALUACIONES, HILO, MODULO, RAMO,
+  TAREA_PENDIENTE, APUNTE, BLOQUE, renderConNavegador, renderPantalla,
+} from "../../pruebas/dobles.tsx";
+
+jest.mock("../lib/consultas.ts", () => ({
+  misAsignaturas: jest.fn(), materiaDe: jest.fn(), clasesDe: jest.fn(),
+  misTareas: jest.fn(), foroDe: jest.fn(), evaluacionesDe: jest.fn(),
+  miHorario: jest.fn(), companerosDe: jest.fn(), misApuntes: jest.fn(),
+  marcarMaterial: jest.fn(), crearApunte: jest.fn(),
+}));
+
+import * as consultas from "../lib/consultas.ts";
+import Asignatura from "./Asignatura.tsx";
+
+const mock = consultas as jest.Mocked<typeof consultas>;
+
+function conDatos() {
+  mock.misAsignaturas.mockResolvedValue([RAMO] as never);
+  mock.materiaDe.mockResolvedValue([MODULO] as never);
+  mock.clasesDe.mockResolvedValue([CLASE_VIVA, CLASE_GRABADA] as never);
+  mock.misTareas.mockResolvedValue([TAREA_PENDIENTE] as never);
+  mock.foroDe.mockResolvedValue([HILO] as never);
+  mock.evaluacionesDe.mockResolvedValue(EVALUACIONES as never);
+  mock.miHorario.mockResolvedValue([BLOQUE] as never);
+  mock.companerosDe.mockResolvedValue([{ id: "p-1", nombre: "Josefa Pérez" }] as never);
+  mock.misApuntes.mockResolvedValue([APUNTE] as never);
+  mock.marcarMaterial.mockResolvedValue(undefined as never);
+}
+
+const abrir = async (seccion?: string) => {
+  conDatos();
+  const t = await renderPantalla(Asignatura, { asignaturaId: RAMO.id, seccion });
+  await waitFor(() => expect(t.getAllByText("Cálculo I").length).toBeGreaterThan(0));
+  return t;
+};
+
+/** El botón de los tres puntitos vive en la cabecera: hace falta un navegador. */
+async function abrirConCabecera() {
+  conDatos();
+  const t = await renderConNavegador(Asignatura, { asignaturaId: RAMO.id });
+  await waitFor(() => expect(t.getAllByText("Cálculo I").length).toBeGreaterThan(0));
+  return t;
+}
+
+beforeEach(() => jest.clearAllMocks());
+
+describe("Asignatura", () => {
+  test("abre en Materia y muestra el módulo con su avance", async () => {
+    const t = await abrir();
+    expect(t.getByText("1 · Límites")).toBeTruthy();
+    expect(t.getByText("1/2")).toBeTruthy();
+    expect(t.getByText("Idea de límite")).toBeTruthy();
+  });
+
+  test("la fila de secciones no obliga a arrastrar", async () => {
+    const t = await abrir();
+    // Solo tres chips visibles; el resto vive en el menú.
+    expect(t.getByText("Materia")).toBeTruthy();
+    expect(t.getByText("Clases")).toBeTruthy();
+    expect(t.getByText("Tareas")).toBeTruthy();
+    expect(t.queryByText("Compañeros")).toBeNull();
+  });
+
+  test("el menú ofrece las nueve secciones", async () => {
+    const t = await abrirConCabecera();
+    fireEvent.press(t.getByLabelText("Todas las secciones"));
+    await waitFor(() => expect(t.getByText("Programa del curso")).toBeTruthy());
+    for (const s of ["Materia", "Clases", "Tareas", "Foro", "Mis apuntes",
+                     "Notas", "Horario", "Programa del curso", "Compañeros", "Archivos"]) {
+      expect(t.getAllByText(s).length).toBeGreaterThan(0);
+    }
+  });
+
+  test("tocar un material marca el avance", async () => {
+    const t = await abrir();
+    fireEvent.press(t.getByText("Apunte de límites"));
+    await waitFor(() => expect(mock.marcarMaterial).toHaveBeenCalledWith("mat-2", true));
+  });
+
+  test("Clases muestra la que está en vivo y las grabadas", async () => {
+    const t = await abrir("clases");
+    await waitFor(() => expect(t.getByText("EN VIVO AHORA")).toBeTruthy());
+    expect(t.getByText("Teorema del valor medio")).toBeTruthy();
+    expect(t.getByText("Clase 12 · L'Hôpital")).toBeTruthy();
+  });
+
+  test("entrar a la clase en vivo lleva a su pantalla con el cronómetro corriendo", async () => {
+    const t = await abrir("clases");
+    await waitFor(() => expect(t.getByText("EN VIVO AHORA")).toBeTruthy());
+    fireEvent.press(t.getByText("EN VIVO AHORA"));
+    expect(t.navigation.navigate).toHaveBeenCalledWith("ClaseEnVivo", expect.objectContaining({
+      titulo: "Teorema del valor medio", asignatura: "Cálculo I",
+      desdeSegundos: expect.any(Number),
+    }));
+  });
+
+  test("una grabada abre el reproductor con su duración", async () => {
+    const t = await abrir("clases");
+    await waitFor(() => expect(t.getByText("Clase 12 · L'Hôpital")).toBeTruthy());
+    fireEvent.press(t.getByText("Clase 12 · L'Hôpital"));
+    expect(t.navigation.navigate).toHaveBeenCalledWith("Grabacion", expect.objectContaining({
+      claseId: CLASE_GRABADA.id, duracionSeg: 3840,
+    }));
+  });
+
+  test("Notas muestra la nota parcial y qué se necesita para aprobar", async () => {
+    const t = await abrir("notas");
+    await waitFor(() => expect(t.getByText("Nota actual")).toBeTruthy());
+    // Aparece dos veces: como nota grande del ramo y en la fila del control.
+    expect(t.getAllByText("6,2").length).toBe(2);
+    expect(t.getByText("Con el 30% del curso evaluado")).toBeTruthy();
+    expect(t.getByText("Para aprobar con 4,0")).toBeTruthy();
+  });
+
+  test("Foro fija arriba el aviso del profesor y deja abrir un hilo", async () => {
+    const t = await abrir("foro");
+    await waitFor(() => expect(t.getByText("Sala del control")).toBeTruthy());
+    expect(t.getByText("Abrir un hilo nuevo")).toBeTruthy();
+    fireEvent.press(t.getByText("Sala del control"));
+    expect(t.navigation.navigate).toHaveBeenCalledWith("Hilo", expect.objectContaining({ hiloId: HILO.id }));
+  });
+
+  test("Compañeros muestra el equipo docente y a los inscritos", async () => {
+    const t = await abrir("companeros");
+    await waitFor(() => expect(t.getByText("Josefa Pérez")).toBeTruthy());
+    // En la cabecera del ramo y en la fila del equipo docente.
+    expect(t.getAllByText("Ana Ríos").length).toBe(2);
+    expect(t.getByText("Ignacio Soto")).toBeTruthy();
+    expect(t.getByText("Ayudantía")).toBeTruthy();
+  });
+
+  test("Archivos reúne los documentos de todos los módulos", async () => {
+    const t = await abrir("archivos");
+    await waitFor(() => expect(t.getByText("Apunte de límites")).toBeTruthy());
+    // El video no es un archivo descargable.
+    expect(t.queryByText("Idea de límite")).toBeNull();
+  });
+
+  test("la sección elegida en el menú queda primera entre los chips", async () => {
+    const t = await abrirConCabecera();
+    fireEvent.press(t.getByLabelText("Todas las secciones"));
+    await waitFor(() => expect(t.getByText("Compañeros")).toBeTruthy());
+    fireEvent.press(t.getByText("Compañeros"));
+    await waitFor(() => expect(t.getByText("Equipo docente")).toBeTruthy());
+    // La activa se antepone, no reemplaza a las demás.
+    expect(t.getByText("Materia")).toBeTruthy();
+    expect(t.getAllByText("Curso").length).toBeGreaterThan(0);
+  });
+
+  test("Mis apuntes lista los del ramo y deja crear uno", async () => {
+    const t = await abrir("apuntes");
+    await waitFor(() => expect(t.getByText("Clase del valor medio")).toBeTruthy());
+    expect(t.getByText("Nuevo apunte")).toBeTruthy();
+    fireEvent.press(t.getByText("Clase del valor medio"));
+    expect(t.navigation.navigate).toHaveBeenCalledWith("Apunte", { apunteId: APUNTE.id });
+  });
+});
