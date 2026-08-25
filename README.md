@@ -35,7 +35,7 @@ Los detalles y lo que falta están en [`docs/arquitectura.md`](docs/arquitectura
 
 ```bash
 npm run prueba          # 34 pruebas del dominio y del núcleo del tutor
-npm run prueba:bd       # 23 aserciones de acceso contra un Postgres real
+npm run prueba:bd       # 29 aserciones de acceso contra un Postgres real
 npm run tipos           # tsc en modo estricto
 ```
 
@@ -83,7 +83,7 @@ python3 -m http.server 8000
 
 ## Estado
 
-La app existe y está tipada; el backend está montado y verificado. Falta el audio de
-las clases en vivo, la reproducción de las grabadas, la subida de archivos en las
-entregas y el panel docente — todo detallado en
-[`docs/arquitectura.md`](docs/arquitectura.md).
+La app tiene sus catorce pantallas y las nueve secciones por asignatura, sobre un
+backend verificado. Falta conectar el audio de las clases en vivo, subir los archivos
+de las grabaciones y las entregas, las notificaciones push y el panel docente — todo
+detallado en [`docs/arquitectura.md`](docs/arquitectura.md).

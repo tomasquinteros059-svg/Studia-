@@ -118,3 +118,41 @@ exception when raise_exception then
 end $$;
 
 select '— todas las pruebas de acceso pasaron —' as resultado;
+
+-- ================== compañeros: solo nombres, solo del curso ==============
+reset role;
+insert into public.inscripciones (estudiante_id, asignatura_id)
+values ('e0000000-0000-4000-8000-000000000002',
+        (select id from public.asignaturas where codigo = 'MAT1610'))
+on conflict do nothing;
+
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+select pg_temp.afirmar('veo a mis compañeros de Cálculo',
+  (select count(*) from public.companeros_de(
+     (select id from public.asignaturas where codigo = 'MAT1610')))::int, 2);
+
+select pg_temp.afirmar('no veo compañeros de un ramo en que no estoy',
+  (select count(*) from public.companeros_de('00000000-0000-4000-8000-000000000099'))::int, 0);
+
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('el otro solo ve el ramo que comparte',
+  (select count(*) from public.companeros_de(
+     (select id from public.asignaturas where codigo = 'MAT1610')))::int, 2);
+select pg_temp.afirmar('y nada del ramo que no comparte',
+  (select count(*) from public.companeros_de(
+     (select id from public.asignaturas where codigo = 'FIS1503')))::int, 0);
+
+do $$
+begin
+  perform correo from public.perfiles limit 1;
+  raise exception 'FALLA · pude leer el correo de un perfil';
+exception when insufficient_privilege then
+  raise notice 'ok · el correo no se puede leer desde el cliente';
+end $$;
+
+select pg_temp.afirmar('pero el nombre sí',
+  (select count(*) from (select nombre from public.perfiles) x)::int, 1);
+
+select '— también pasaron las pruebas de compañeros —' as resultado;

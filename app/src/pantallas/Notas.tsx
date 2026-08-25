@@ -14,7 +14,7 @@ export default function Notas({ navigation }: Props) {
     const [asignaturas, evaluaciones] = await Promise.all([misAsignaturas(), todasLasEvaluaciones()]);
     return { asignaturas, evaluaciones };
   }, []);
-  const { datos, cargando, error, recargar } = usarCarga(traer);
+  const { datos, cargando, refrescando, error, recargar, refrescar } = usarCarga(traer);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -28,7 +28,7 @@ export default function Notas({ navigation }: Props) {
   );
 
   return (
-    <Pantalla>
+    <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
       <View style={e.hero}>
         <Text style={tipo.etiqueta}>Promedio ponderado</Text>
         <Text style={e.heroNota}>{formatearNota(promedio)}</Text>

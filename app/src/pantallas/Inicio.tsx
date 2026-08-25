@@ -1,14 +1,14 @@
 import { useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  Boton, Cargando, Encabezado, Error, Fila, Pantalla, Pastilla, Punto,
+  Cargando, Encabezado, Error, Fila, Pantalla, Pastilla, Punto,
 } from "../ui/componentes.tsx";
+import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
 import { claseEnVivo, miHorario, misAsignaturas, misNotificaciones, misTareas, todasLasEvaluaciones } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { formatearNota, notaDelRamo } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
-import { supabase } from "../lib/supabase.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 
 type Props = PropsPestana<"Inicio">;
@@ -22,7 +22,7 @@ export default function Inicio({ navigation }: Props) {
     return { asignaturas, tareas, horario, vivo, notificaciones, evaluaciones };
   }, []);
 
-  const { datos, cargando, error, recargar } = usarCarga(traer);
+  const { datos, cargando, refrescando, error, recargar, refrescar } = usarCarga(traer);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -38,7 +38,7 @@ export default function Inicio({ navigation }: Props) {
   const ramoEnVivo = vivo ? porId.get(vivo.asignatura_id) : null;
 
   return (
-    <Pantalla>
+    <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
       <View style={e.saludo}>
         <View style={{ flex: 1 }}>
           <Text style={e.hola}>Hola</Text>
@@ -50,10 +50,14 @@ export default function Inicio({ navigation }: Props) {
           onPress={() => navigation.navigate("Notificaciones")}
           style={e.campana}
         >
-          <Text style={{ fontSize: 21 }}>🔔</Text>
+          <Icono nombre="campana" tamano={23} />
           {sinLeer > 0 ? (
             <View style={e.globo}><Text style={e.globoTexto}>{sinLeer}</Text></View>
           ) : null}
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Mi perfil"
+          onPress={() => navigation.navigate("Perfil")} style={e.campana}>
+          <Icono nombre="perfil" tamano={24} />
         </Pressable>
       </View>
 
@@ -108,7 +112,7 @@ export default function Inicio({ navigation }: Props) {
                 derecha={<Pastilla
                   texto={estadoDeTarea(t) === "atrasada" ? "ATRASADA" : "PENDIENTE"}
                   tono={estadoDeTarea(t) === "atrasada" ? "atrasada" : "pendiente"} />}
-                onPress={() => navigation.navigate("Tareas")}
+                onPress={() => navigation.navigate("Tarea", { tareaId: t.id })}
               />
             );
           })}
@@ -146,9 +150,6 @@ export default function Inicio({ navigation }: Props) {
         })}
       </View>
 
-      <View style={{ padding: espacio.l }}>
-        <Boton texto="Cerrar sesión" variante="suave" onPress={() => supabase.auth.signOut()} />
-      </View>
     </Pantalla>
   );
 }

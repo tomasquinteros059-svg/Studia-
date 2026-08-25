@@ -45,6 +45,7 @@ export type Clase = {
   estado: "programada" | "en_vivo" | "grabada";
   inicia_en: string;
   duracion_seg: number | null;
+  audio_url: string | null;
 };
 
 export type Capitulo = { id: string; titulo: string; segundo: number };

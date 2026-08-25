@@ -11,7 +11,9 @@ BIN="${PG_BIN:-/usr/lib/postgresql/16/bin}"
 SOCK="$BASE/sock"
 
 arrancar_si_hace_falta() {
-  if [ -S "$SOCK/.s.PGSQL.5432" ]; then return; fi
+  # Que el socket exista no significa que el servidor responda: puede haber
+  # quedado de una sesión anterior.
+  if "$BIN/pg_isready" -h "$SOCK" -q 2>/dev/null; then return; fi
   rm -rf "$BASE"; mkdir -p "$BASE/datos" "$SOCK"
   # initdb se niega a correr como root.
   if [ "$(id -u)" = 0 ]; then

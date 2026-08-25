@@ -17,6 +17,24 @@ export type RutasPila = {
   Notas: undefined;
   Notificaciones: undefined;
   Hilo: { hiloId: string; titulo: string };
+  NuevoHilo: { asignaturaId: string };
+  Tarea: { tareaId: string };
+  Perfil: undefined;
+  ClaseEnVivo: {
+    titulo: string;
+    asignatura: string;
+    codigo: string;
+    profesor: string;
+    desdeSegundos: number;
+  };
+  Grabacion: {
+    claseId: string;
+    asignaturaId: string;
+    titulo: string;
+    fecha: string | null;
+    duracionSeg: number | null;
+    audioUrl: string | null;
+  };
 };
 
 /** Una pestaña también puede navegar a la pila que la contiene. */

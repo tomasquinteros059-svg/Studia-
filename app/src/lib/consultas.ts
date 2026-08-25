@@ -70,7 +70,7 @@ export async function marcarMaterial(materialId: string, completado: boolean): P
 export async function clasesDe(asignaturaId: string): Promise<Clase[]> {
   const { data, error } = await supabase
     .from("clases")
-    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg")
+    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg, audio_url")
     .eq("asignatura_id", asignaturaId)
     .order("inicia_en", { ascending: false });
   reventar("No pude cargar las clases", error);
@@ -80,7 +80,7 @@ export async function clasesDe(asignaturaId: string): Promise<Clase[]> {
 export async function claseEnVivo(): Promise<Clase | null> {
   const { data, error } = await supabase
     .from("clases")
-    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg")
+    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg, audio_url")
     .eq("estado", "en_vivo")
     .order("inicia_en", { ascending: false })
     .limit(1);
@@ -220,6 +220,94 @@ export async function responderHilo(hiloId: string, cuerpo: string): Promise<voi
     cuerpo,
   });
   reventar("No pude publicar tu respuesta", error);
+}
+
+export async function companerosDe(asignaturaId: string): Promise<{ id: string; nombre: string }[]> {
+  // Función acotada del lado de la base: devuelve nombres, nunca correos, y
+  // solo si quien pregunta está inscrito en esa asignatura.
+  const { data, error } = await supabase.rpc("companeros_de", { p_asignatura: asignaturaId });
+  reventar("No pude cargar el curso", error);
+  return (data ?? []) as { id: string; nombre: string }[];
+}
+
+export async function crearHilo(
+  asignaturaId: string, titulo: string, cuerpo: string,
+): Promise<string> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+
+  const { data: perfil } = await supabase
+    .from("perfiles").select("nombre").eq("id", sesion.user.id).single();
+
+  const { data, error } = await supabase
+    .from("hilos")
+    .insert({
+      asignatura_id: asignaturaId,
+      autor_id: sesion.user.id,
+      autor_nombre: perfil?.nombre ?? "Estudiante",
+      autor_rol: "Estudiante",
+      titulo,
+      cuerpo,
+    })
+    .select("id")
+    .single();
+  reventar("No pude abrir el hilo", error);
+  if (!data) throw new Error("No pude abrir el hilo.");
+  return data.id;
+}
+
+export async function tareaPorId(tareaId: string): Promise<TareaConEstado | null> {
+  const { data, error } = await supabase
+    .from("tareas")
+    .select("id, asignatura_id, titulo, enunciado, criterios, puntos, vence_en, entregas(entregado_en, puntos_obtenidos)")
+    .eq("id", tareaId)
+    .maybeSingle();
+  reventar("No pude cargar la tarea", error);
+  if (!data) return null;
+
+  const entrega = data.entregas?.[0];
+  return {
+    id: data.id,
+    asignatura_id: data.asignatura_id,
+    titulo: data.titulo,
+    enunciado: data.enunciado,
+    criterios: data.criterios ?? [],
+    puntos: data.puntos,
+    vence_en: data.vence_en,
+    entregada_en: entrega?.entregado_en ?? null,
+    puntos_obtenidos: entrega?.puntos_obtenidos ?? null,
+  };
+}
+
+export async function hiloPorId(hiloId: string) {
+  const { data, error } = await supabase
+    .from("hilos")
+    .select("id, autor_nombre, autor_rol, titulo, cuerpo, creado_en")
+    .eq("id", hiloId)
+    .maybeSingle();
+  reventar("No pude cargar el hilo", error);
+  return data;
+}
+
+export async function miPerfil(): Promise<{ nombre: string; correo: string }> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+
+  const { data, error } = await supabase
+    .from("perfiles").select("nombre").eq("id", sesion.user.id).single();
+  reventar("No pude cargar tu perfil", error);
+
+  // El correo sale de la sesión, no de la base: la columna no es legible desde
+  // el cliente para que nadie pueda leer el de otro.
+  return { nombre: data?.nombre ?? "", correo: sesion.user.email ?? "" };
+}
+
+export async function cambiarNombre(nombre: string): Promise<void> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+  const { error } = await supabase
+    .from("perfiles").update({ nombre }).eq("id", sesion.user.id);
+  reventar("No pude guardar tu nombre", error);
 }
 
 export async function misNotificaciones(): Promise<Notificacion[]> {

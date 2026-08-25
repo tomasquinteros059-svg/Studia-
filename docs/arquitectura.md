@@ -63,7 +63,7 @@ el proyecto remoto.
 
 ```bash
 npm run prueba            # 34 pruebas del dominio y del núcleo del tutor
-npm run prueba:bd         # 23 aserciones de acceso contra un Postgres real
+npm run prueba:bd         # 29 aserciones de acceso contra un Postgres real
 npm run prueba:sintaxis   # las funciones de Deno son TypeScript válido
 npm run tipos             # tsc en modo estricto sobre la app
 ```
@@ -92,6 +92,15 @@ respuesta y luego pedirle que "continúe".
 **Tampoco puede publicar en el foro como otra persona ni como docente.** Las
 políticas exigen `autor_id = auth.uid()` y `autor_rol = 'Estudiante'`.
 
+**Los compañeros se ven por una función, no por una política amplia.**
+`companeros_de(asignatura)` devuelve solo nombres, y solo si quien pregunta
+está inscrito en esa asignatura. Las inscripciones siguen siendo privadas: no
+se puede averiguar en qué otros ramos está alguien.
+
+**El correo no se puede leer desde el cliente.** La columna `perfiles.correo`
+no está en el `grant`: el propio usuario obtiene el suyo de la sesión, y el de
+los demás no sale nunca de la base.
+
 **La clave anónima de Supabase es pública por diseño.** Lo que protege los
 datos son las políticas de acceso, no el secreto de esa clave.
 
@@ -105,13 +114,34 @@ Son deliberadas y están acotadas. Cada una tiene su costo anotado.
 |---|---|
 | Los docentes no tienen cuenta: viven como texto en `asignaturas`, y sus mensajes de foro llevan `autor_id` nulo | Ningún profesor puede entrar a la app todavía. Cuando se necesite, hay que darles perfil y un rol |
 | No hay panel docente | Las asignaturas, tareas, notas y avisos entran por el seed o a mano |
-| La clase en vivo no tiene audio real | La app muestra que hay clase en vivo, pero no conecta. Falta decidir el transporte (ver spec, §9) |
-| Las grabaciones no tienen archivo | `clases.audio_url` existe y está vacío; la app lista las clases pero aún no reproduce |
+| La clase en vivo no tiene audio real | La pantalla existe con sus controles, cronómetro y ecualizador, y dice con todas sus letras que el audio no está conectado. Falta decidir el transporte (ver spec, §9) |
+| Las grabaciones no tienen archivo | El reproductor está completo —avance, ±15 s, velocidades, capítulos— y suena en cuanto `clases.audio_url` tenga una URL. Con la columna vacía muestra el aviso y deja navegar los capítulos |
 | Las entregas no aceptan archivos | `entregas.archivo_url` existe; falta Supabase Storage y el selector de archivos |
 | No hay notificaciones push | Las notificaciones se leen dentro de la app, no llegan al teléfono |
-| No existe la sección "Compañeros" que sí tiene el prototipo | Mostrar el curso implica exponer los nombres de otros estudiantes, y las políticas hoy lo impiden a propósito. Es una decisión de privacidad pendiente, no un olvido |
+| Solo se ven nombres de compañeros, no correos ni en qué otros ramos están | Fue la exposición mínima que permite mostrar el curso. Si más adelante se quiere foto o perfil público, es una decisión aparte |
 
 ---
+
+## Pantallas
+
+| Pantalla | Qué hace |
+|---|---|
+| Sesión | Entrar y crear cuenta |
+| Inicio | Clase en vivo, bloques de hoy, próximas entregas y las asignaturas |
+| Asignatura | Nueve secciones tras los tres puntitos |
+| Tarea | Enunciado, criterios de evaluación, entrega y acceso al tutor |
+| Clase en vivo | Cronómetro, ecualizador, participantes, micrófono y pedir la palabra |
+| Grabación | Reproductor con ±15 s, velocidades y capítulos que saltan |
+| Horario | La semana, día por día |
+| Tareas | Pendientes, entregadas y todas |
+| Notas | Promedio ponderado por créditos y nota de cada ramo |
+| Notificaciones | Cada una lleva al lugar exacto |
+| Foro: hilo y hilo nuevo | Leer, responder y abrir un tema |
+| Tutor | El chat, con el ramo y el contexto de dónde venías |
+| Perfil | Nombre, correo y cerrar sesión |
+
+Las nueve secciones de una asignatura: **Materia, Clases, Tareas, Foro, Notas,
+Horario, Programa, Compañeros y Archivos**.
 
 ## Mapa del repositorio
 
@@ -121,7 +151,7 @@ Son deliberadas y están acotadas. Cada una tiene su costo anotado.
 | `app/src/dominio/` | Lógica pura y probada: notas, tareas |
 | `app/src/lib/` | Cliente de Supabase, consultas, cliente del tutor, rutas |
 | `app/src/ui/` | Tokens de diseño y componentes compartidos |
-| `app/src/pantallas/` | Una pantalla por archivo |
+| `app/src/pantallas/` | Una pantalla por archivo — catorce |
 | `supabase/migrations/` | Esquema y políticas de acceso |
 | `supabase/seed.sql` | Las seis asignaturas con datos realistas |
 | `supabase/functions/tutor/` | La función que habla con Claude |

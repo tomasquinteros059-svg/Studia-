@@ -20,13 +20,19 @@ import Asignatura from "./src/pantallas/Asignatura.tsx";
 import Notas from "./src/pantallas/Notas.tsx";
 import Notificaciones from "./src/pantallas/Notificaciones.tsx";
 import Hilo from "./src/pantallas/Hilo.tsx";
+import NuevoHilo from "./src/pantallas/NuevoHilo.tsx";
+import Tarea from "./src/pantallas/Tarea.tsx";
+import Perfil from "./src/pantallas/Perfil.tsx";
+import ClaseEnVivo from "./src/pantallas/ClaseEnVivo.tsx";
+import Grabacion from "./src/pantallas/Grabacion.tsx";
+import { Icono } from "./src/ui/Icono.tsx";
 
 const Pila = createNativeStackNavigator<RutasPila>();
 const Pestanas = createBottomTabNavigator<RutasPestanas>();
 
-const ICONOS: Record<string, string> = {
-  Inicio: "🏠", Horario: "🗓", Tareas: "📋", Tutor: "💬",
-};
+const ICONO_PESTANA = {
+  Inicio: "inicio", Horario: "horario", Tareas: "tareas", Tutor: "tutor",
+} as const;
 
 function Principal() {
   return (
@@ -35,9 +41,10 @@ function Principal() {
         headerShown: false,
         tabBarActiveTintColor: color.marca,
         tabBarInactiveTintColor: color.textoSuave,
-        tabBarIcon: () => null,
-        tabBarLabel: `${ICONOS[route.name] ?? ""}\n${route.name}`,
-        tabBarLabelStyle: { fontSize: 10.5, textAlign: "center" },
+        tabBarIcon: ({ color: tono, size }) => (
+          <Icono nombre={ICONO_PESTANA[route.name]} tamano={size} tono={tono} />
+        ),
+        tabBarLabelStyle: { fontSize: 10.5 },
       })}
     >
       <Pestanas.Screen name="Inicio" component={Inicio} />
@@ -86,6 +93,12 @@ export default function App() {
             <Pila.Screen name="Notificaciones" component={Notificaciones} />
             <Pila.Screen name="Hilo" component={Hilo}
               options={({ route }) => ({ title: route.params.titulo })} />
+            <Pila.Screen name="NuevoHilo" component={NuevoHilo} options={{ title: "Nuevo hilo" }} />
+            <Pila.Screen name="Tarea" component={Tarea} options={{ title: "Tarea" }} />
+            <Pila.Screen name="Perfil" component={Perfil} options={{ title: "Mi perfil" }} />
+            <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />
+            <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}
+              options={{ headerShown: false, presentation: "fullScreenModal" }} />
           </Pila.Navigator>
         ) : (
           <Sesion />

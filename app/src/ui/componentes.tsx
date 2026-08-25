@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { color, espacio, radio, tenue, tipo } from "./tema.ts";
 
@@ -123,8 +123,26 @@ export function Error({ mensaje, reintentar }: { mensaje: string; reintentar?: (
   );
 }
 
-export function Pantalla({ children }: { children: ReactNode }) {
-  return <ScrollView style={e.pantalla} contentContainerStyle={{ paddingBottom: espacio.xl }}>{children}</ScrollView>;
+export function Pantalla({
+  children, alRefrescar, refrescando,
+}: {
+  children: ReactNode;
+  alRefrescar?: () => void;
+  refrescando?: boolean;
+}) {
+  return (
+    <ScrollView
+      style={e.pantalla}
+      contentContainerStyle={{ paddingBottom: espacio.xl }}
+      refreshControl={
+        alRefrescar
+          ? <RefreshControl refreshing={refrescando ?? false} onRefresh={alRefrescar} tintColor={color.marca} />
+          : undefined
+      }
+    >
+      {children}
+    </ScrollView>
+  );
 }
 
 const e = StyleSheet.create({

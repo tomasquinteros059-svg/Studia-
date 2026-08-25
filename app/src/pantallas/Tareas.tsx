@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Cargando, Error, Fila, Pantalla, Pastilla, Punto, Vacio } from "../ui/componentes.tsx";
 import { color, espacio, fechaYHora, radio, tipo } from "../ui/tema.ts";
-import { entregarTarea, misAsignaturas, misTareas } from "../lib/consultas.ts";
+import { misAsignaturas, misTareas } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
-import { alTutor, type PropsPestana } from "../lib/rutas.ts";
+import type { PropsPestana } from "../lib/rutas.ts";
 
 type Props = PropsPestana<"Tareas">;
 const FILTROS = [
@@ -21,7 +21,7 @@ export default function Tareas({ navigation }: Props) {
     const [tareas, asignaturas] = await Promise.all([misTareas(), misAsignaturas()]);
     return { tareas, porId: new Map(asignaturas.map((a) => [a.id, a])) };
   }, []);
-  const { datos, cargando, error, recargar } = usarCarga(traer);
+  const { datos, cargando, refrescando, error, recargar, refrescar } = usarCarga(traer);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -34,21 +34,8 @@ export default function Tareas({ navigation }: Props) {
     return true;
   });
 
-  async function entregar(id: string, titulo: string) {
-    Alert.alert("Entregar tarea", `¿Entregar «${titulo}»?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Entregar",
-        onPress: async () => {
-          try { await entregarTarea(id); recargar(); }
-          catch (e) { Alert.alert("No pude entregarla", e instanceof globalThis.Error ? e.message : ""); }
-        },
-      },
-    ]);
-  }
-
   return (
-    <Pantalla>
+    <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
       <View style={e.filtros}>
         {FILTROS.map((f) => {
           const activo = f.id === filtro;
@@ -79,19 +66,12 @@ export default function Tareas({ navigation }: Props) {
                 <Text style={tipo.detalle}>{cuandoVence(t)}</Text>
               </View>
             }
-            onPress={() => {
-              if (estado === "entregada") {
-                navigation.navigate(...alTutor(t.asignatura_id, `Estoy con «${t.titulo}».`));
-              } else {
-                entregar(t.id, t.titulo);
-              }
-            }}
+            onPress={() => navigation.navigate("Tarea", { tareaId: t.id })}
           />
         );
       })}
       <Text style={e.pie}>
-        Toca una tarea pendiente para entregarla. El tutor no la resuelve por ti:
-        te ayuda a encontrar el camino.
+        El tutor no las resuelve por ti: te ayuda a encontrar el camino.
       </Text>
     </Pantalla>
   );

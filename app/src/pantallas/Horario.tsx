@@ -17,7 +17,7 @@ export default function Horario({ navigation }: Props) {
     const [bloques, asignaturas] = await Promise.all([miHorario(), misAsignaturas()]);
     return { bloques, porId: new Map(asignaturas.map((a) => [a.id, a])) };
   }, []);
-  const { datos, cargando, error, recargar } = usarCarga(traer);
+  const { datos, cargando, refrescando, error, recargar, refrescar } = usarCarga(traer);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -26,7 +26,7 @@ export default function Horario({ navigation }: Props) {
   const delDia = datos.bloques.filter((b) => b.dia === dia);
 
   return (
-    <Pantalla>
+    <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
       <View style={e.dias}>
         {DIAS.map((d) => {
           const activo = d === dia;

@@ -3,14 +3,16 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import {
   Cargando, Encabezado, Error, Fila, Pastilla, Vacio,
 } from "../ui/componentes.tsx";
+import { Icono } from "../ui/Icono.tsx";
 import { color, duracion, espacio, fechaCorta, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
 import {
-  clasesDe, evaluacionesDe, foroDe, marcarMaterial, materiaDe, miHorario, misAsignaturas, misTareas,
+  clasesDe, companerosDe, evaluacionesDe, foroDe, marcarMaterial, materiaDe,
+  miHorario, misAsignaturas, misTareas,
 } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
-import { alTutor, type PropsPila } from "../lib/rutas.ts";
+import { type PropsPila } from "../lib/rutas.ts";
 
 type Props = PropsPila<"Asignatura">;
 
@@ -24,6 +26,7 @@ const SECCIONES = [
   { id: "notas", texto: "Notas", corto: "Notas" },
   { id: "horario", texto: "Horario", corto: "Horario" },
   { id: "programa", texto: "Programa del curso", corto: "Programa" },
+  { id: "companeros", texto: "Compañeros", corto: "Curso" },
   { id: "archivos", texto: "Archivos", corto: "Archivos" },
 ] as const;
 type Seccion = (typeof SECCIONES)[number]["id"];
@@ -34,13 +37,15 @@ export default function Asignatura({ route, navigation }: Props) {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const traer = useCallback(async () => {
-    const [asignaturas, modulos, clases, tareas, foro, evaluaciones, horario] = await Promise.all([
-      misAsignaturas(), materiaDe(asignaturaId), clasesDe(asignaturaId),
-      misTareas(asignaturaId), foroDe(asignaturaId), evaluacionesDe(asignaturaId), miHorario(),
-    ]);
+    const [asignaturas, modulos, clases, tareas, foro, evaluaciones, horario, companeros] =
+      await Promise.all([
+        misAsignaturas(), materiaDe(asignaturaId), clasesDe(asignaturaId),
+        misTareas(asignaturaId), foroDe(asignaturaId), evaluacionesDe(asignaturaId),
+        miHorario(), companerosDe(asignaturaId),
+      ]);
     const ramo = asignaturas.find((a) => a.id === asignaturaId) ?? null;
     return {
-      ramo, modulos, clases, tareas, foro, evaluaciones,
+      ramo, modulos, clases, tareas, foro, evaluaciones, companeros,
       horario: horario.filter((b) => b.asignatura_id === asignaturaId),
     };
   }, [asignaturaId]);
@@ -53,7 +58,7 @@ export default function Asignatura({ route, navigation }: Props) {
       headerRight: () => (
         <Pressable accessibilityRole="button" accessibilityLabel="Todas las secciones"
           onPress={() => setMenuAbierto(true)} hitSlop={10}>
-          <Text style={{ fontSize: 22, color: color.marca }}>⋮</Text>
+          <Icono nombre="mas" tamano={20} tono={color.marca} />
         </Pressable>
       ),
     });
@@ -105,13 +110,13 @@ export default function Asignatura({ route, navigation }: Props) {
               </View>
               {m.materiales.map((mat) => (
                 <Fila key={mat.id}
-                  izquierda={<Text style={{ fontSize: 18 }}>
-                    {mat.tipo === "video" ? "▶" : mat.tipo === "documento" ? "📄" : "✓"}
-                  </Text>}
+                  izquierda={<Icono
+                    nombre={mat.tipo === "video" ? "video" : mat.tipo === "documento" ? "documento" : "ejercicios"}
+                    tono={mat.completado ? ramo.color : color.textoSuave} />}
                   titulo={mat.titulo}
                   detalle={mat.detalle}
                   derecha={mat.completado
-                    ? <Text style={{ color: ramo.color, fontWeight: "700" }}>✓</Text> : null}
+                    ? <Icono nombre="listo" tamano={17} tono={ramo.color} /> : null}
                   onPress={async () => {
                     await marcarMaterial(mat.id, !mat.completado).catch(() => {});
                     recargar();
@@ -125,26 +130,42 @@ export default function Asignatura({ route, navigation }: Props) {
         {seccion === "clases" ? (
           <>
             {datos.clases.filter((c) => c.estado === "en_vivo").map((c) => (
-              <View key={c.id} style={e.enVivo}>
+              <Pressable key={c.id} accessibilityRole="button" style={e.enVivo}
+                onPress={() => navigation.navigate("ClaseEnVivo", {
+                  titulo: c.titulo,
+                  asignatura: ramo.nombre,
+                  codigo: ramo.codigo,
+                  profesor: ramo.profesor,
+                  desdeSegundos: Math.max(0,
+                    Math.floor((Date.now() - new Date(c.inicia_en).getTime()) / 1000)),
+                })}>
                 <View style={e.puntoVivo} />
                 <View style={{ flex: 1 }}>
                   <Text style={e.vivoEtiqueta}>EN VIVO AHORA</Text>
                   <Text style={e.vivoTitulo}>{c.titulo}</Text>
                 </View>
                 <Pastilla texto="ENTRAR" tono="vivo" />
-              </View>
+              </Pressable>
             ))}
             <Encabezado texto="Clases grabadas" />
             {datos.clases.filter((c) => c.estado === "grabada").length === 0
               ? <Vacio texto="Todavía no hay grabaciones de esta asignatura." />
               : datos.clases.filter((c) => c.estado === "grabada").map((c) => (
                   <Fila key={c.id}
-                    izquierda={<Text style={{ fontSize: 18 }}>▶</Text>}
+                    izquierda={<Icono nombre="video" tono={ramo.color} />}
                     titulo={c.titulo}
                     detalle={`${fechaCorta(c.inicia_en)} · audio`}
                     derecha={<Text style={tipo.detalle}>
                       {c.duracion_seg ? duracion(c.duracion_seg) : ""}
                     </Text>}
+                    onPress={() => navigation.navigate("Grabacion", {
+                      claseId: c.id,
+                      asignaturaId: ramo.id,
+                      titulo: c.titulo,
+                      fecha: c.inicia_en,
+                      duracionSeg: c.duracion_seg,
+                      audioUrl: c.audio_url,
+                    })}
                   />
                 ))}
           </>
@@ -159,7 +180,7 @@ export default function Asignatura({ route, navigation }: Props) {
                 derecha={<Pastilla
                   texto={estado === "entregada" ? "ENTREGADA" : estado === "atrasada" ? "ATRASADA" : "PENDIENTE"}
                   tono={estado === "entregada" ? "ok" : estado === "atrasada" ? "atrasada" : "pendiente"} />}
-                onPress={() => navigation.navigate(...alTutor(ramo.id, `Estoy con «${t.titulo}».`))}
+                onPress={() => navigation.navigate("Tarea", { tareaId: t.id })}
               />
             );
           })
@@ -167,10 +188,17 @@ export default function Asignatura({ route, navigation }: Props) {
 
         {seccion === "foro" ? (
           <>
+            <View style={{ padding: espacio.m }}>
+              <Pressable accessibilityRole="button" style={e.nuevoHilo}
+                onPress={() => navigation.navigate("NuevoHilo", { asignaturaId: ramo.id })}>
+                <Icono nombre="nuevo" tamano={18} tono={color.marca} />
+                <Text style={e.nuevoHiloTexto}>Abrir un hilo nuevo</Text>
+              </Pressable>
+            </View>
             {datos.foro.length === 0 ? <Vacio texto="El foro está vacío. Parte tú." /> :
               datos.foro.map((h) => (
                 <Fila key={h.id}
-                  izquierda={h.fijado ? <Text style={{ color: color.ambar }}>📌</Text> : null}
+                  izquierda={h.fijado ? <Icono nombre="fijado" tamano={16} tono={color.ambar} /> : null}
                   titulo={h.titulo}
                   detalle={`${h.autor_nombre} · ${h.respuestas === 0 ? "Sin respuestas"
                     : `${h.respuestas} ${h.respuestas === 1 ? "respuesta" : "respuestas"}`}`}
@@ -211,6 +239,27 @@ export default function Asignatura({ route, navigation }: Props) {
           </>
         ) : null}
 
+        {seccion === "companeros" ? (
+          <>
+            <Encabezado texto="Equipo docente" />
+            <Fila izquierda={<Avatar nombre={ramo.profesor} destacado tono={ramo.color} />}
+              titulo={ramo.profesor} detalle="Profesor o profesora del curso" />
+            {ramo.ayudante ? (
+              <Fila izquierda={<Avatar nombre={ramo.ayudante} destacado tono={ramo.color} />}
+                titulo={ramo.ayudante} detalle="Ayudantía" />
+            ) : null}
+            <Encabezado texto={`Inscritos · ${datos.companeros.length}`} />
+            {datos.companeros.map((c) => (
+              <Fila key={c.id} izquierda={<Avatar nombre={c.nombre} tono={ramo.color} />}
+                titulo={c.nombre} detalle="Estudiante" />
+            ))}
+            <Text style={e.pie}>
+              Solo se muestran los nombres de quienes comparten esta asignatura
+              contigo. Los correos no salen de la base de datos.
+            </Text>
+          </>
+        ) : null}
+
         {seccion === "archivos" ? (
           (() => {
             const docs = datos.modulos.flatMap((m) =>
@@ -218,8 +267,9 @@ export default function Asignatura({ route, navigation }: Props) {
             return docs.length === 0
               ? <Vacio texto="No hay documentos en esta asignatura." />
               : docs.map((d) => (
-                  <Fila key={d.id} izquierda={<Text style={{ fontSize: 18 }}>📄</Text>}
-                    titulo={d.titulo} detalle={`${d.modulo} · ${d.detalle}`} />
+                  <Fila key={d.id} izquierda={<Icono nombre="documento" tono={ramo.color} />}
+                    titulo={d.titulo} detalle={`${d.modulo} · ${d.detalle}`}
+                    derecha={<Icono nombre="descargar" tamano={17} tono={ramo.color} />} />
                 ));
           })()
         ) : null}
@@ -247,6 +297,16 @@ export default function Asignatura({ route, navigation }: Props) {
           })}
         </View>
       </Modal>
+    </View>
+  );
+}
+
+function Avatar({ nombre, tono, destacado }: { nombre: string; tono: string; destacado?: boolean }) {
+  const partes = nombre.replace(/\./g, "").split(" ").filter(Boolean);
+  const iniciales = `${partes[0]?.[0] ?? ""}${partes[1]?.[0] ?? ""}`.toUpperCase();
+  return (
+    <View style={[e.avatar, destacado && { backgroundColor: tono }]}>
+      <Text style={[e.avatarTexto, destacado && { color: "#fff" }]}>{iniciales}</Text>
     </View>
   );
 }
@@ -351,4 +411,14 @@ const e = StyleSheet.create({
     paddingVertical: 12,
   },
   opcionTexto: { fontSize: 14.5, fontWeight: "600", color: color.texto },
+  avatar: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: color.elemento,
+    alignItems: "center", justifyContent: "center",
+  },
+  avatarTexto: { fontSize: 11.5, fontWeight: "700", color: color.textoSuave },
+  nuevoHilo: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    borderWidth: 1, borderColor: color.borde, borderRadius: radio.boton, paddingVertical: 12,
+  },
+  nuevoHiloTexto: { fontSize: 14, fontWeight: "600", color: color.marca },
 });

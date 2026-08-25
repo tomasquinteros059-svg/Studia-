@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Campo, Cargando, Error, Pantalla, Vacio } from "../ui/componentes.tsx";
 import { color, espacio, radio, tipo } from "../ui/tema.ts";
-import { responderHilo, respuestasDe } from "../lib/consultas.ts";
+import { hiloPorId, responderHilo, respuestasDe } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import type { PropsPila } from "../lib/rutas.ts";
 
@@ -10,7 +10,10 @@ type Props = PropsPila<"Hilo">;
 
 export default function Hilo({ route }: Props) {
   const { hiloId } = route.params;
-  const traer = useCallback(() => respuestasDe(hiloId), [hiloId]);
+  const traer = useCallback(async () => {
+    const [hilo, respuestas] = await Promise.all([hiloPorId(hiloId), respuestasDe(hiloId)]);
+    return { hilo, respuestas };
+  }, [hiloId]);
   const { datos, cargando, error, recargar } = usarCarga(traer, [hiloId]);
   const [borrador, setBorrador] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -38,10 +41,28 @@ export default function Hilo({ route }: Props) {
       <Pantalla>
         {cargando ? <Cargando /> : null}
         {error ? <Error mensaje={error} reintentar={recargar} /> : null}
-        {!cargando && !error && (datos ?? []).length === 0
+        {datos?.hilo ? (
+          <View style={[e.mensaje, e.original]}>
+            <Text style={e.tituloHilo}>{datos.hilo.titulo}</Text>
+            <View style={e.autor}>
+              <View style={[e.avatar, datos.hilo.autor_rol !== "Estudiante" && { backgroundColor: color.marca }]}>
+                <Text style={[e.iniciales, datos.hilo.autor_rol !== "Estudiante" && { color: color.sobreMarca }]}>
+                  {iniciales(datos.hilo.autor_nombre)}
+                </Text>
+              </View>
+              <View>
+                <Text style={e.nombre}>{datos.hilo.autor_nombre}</Text>
+                <Text style={tipo.detalle}>{datos.hilo.autor_rol}</Text>
+              </View>
+            </View>
+            <Text style={e.cuerpo}>{datos.hilo.cuerpo}</Text>
+          </View>
+        ) : null}
+
+        {!cargando && !error && (datos?.respuestas ?? []).length === 0
           ? <Vacio texto="Nadie ha respondido todavía. Parte tú." />
           : null}
-        {(datos ?? []).map((r) => {
+        {(datos?.respuestas ?? []).map((r) => {
           const docente = r.autor_rol !== "Estudiante";
           return (
             <View key={r.id} style={e.mensaje}>
@@ -81,6 +102,8 @@ function iniciales(nombre: string): string {
 }
 
 const e = StyleSheet.create({
+  original: { backgroundColor: color.elemento },
+  tituloHilo: { fontSize: 16, fontWeight: "600", color: color.texto, lineHeight: 21, marginBottom: 9 },
   mensaje: {
     padding: espacio.m,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
