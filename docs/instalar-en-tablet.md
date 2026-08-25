@@ -76,6 +76,44 @@ líneas. Eso necesita el servidor.
 Un ramo aparece bajo 4,0 a propósito, para que se vea la proyección de "qué
 necesitas para aprobar".
 
+## Todo en la misma tablet (ChromeOS con terminal Linux)
+
+Si no tienes otro computador, el servidor puede correr en la propia tablet.
+En la **terminal**:
+
+```bash
+# 1 · Node 22 y git
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs git
+node -v                      # tiene que decir v22.x o más
+
+# 2 · El proyecto
+git clone https://github.com/tomasquinteros059-svg/Sitio.ste
+cd Sitio.ste/app
+npm install                  # tarda unos minutos la primera vez
+
+# 3 · El servidor
+npx expo start
+```
+
+**La dirección que imprima esa terminal es la que va en Expo Go.** No la de
+ningún ejemplo: cada red y cada máquina dan una distinta.
+
+En ChromeOS, las apps de Android no siempre alcanzan al contenedor de Linux por
+la IP de la red. Si `exp://…` no conecta, prueba en Expo Go con:
+
+```
+exp://penguin.linux.test:8081
+```
+
+Y si tampoco, levanta el servidor con un túnel, que no depende de la red local:
+
+```bash
+npx expo start --tunnel
+```
+
+Ese imprime una dirección que funciona desde cualquier parte.
+
 ## Probarla hoy con Expo Go, sin compilar nada
 
 Es la vía más rápida, y sirve para el teléfono y la tablet **al mismo tiempo**.
