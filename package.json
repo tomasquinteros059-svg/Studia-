@@ -1,0 +1,11 @@
+{
+  "name": "studia",
+  "private": true,
+  "description": "StudIA — plataforma de estudio con un tutor que guía en vez de resolver",
+  "scripts": {
+    "prueba": "node --experimental-strip-types --test 'app/src/dominio/*.prueba.ts' 'supabase/functions/_compartido/*.prueba.ts'",
+    "prueba:bd": "./supabase/pruebas/correr.sh",
+    "test": "npm run prueba"
+  },
+  "engines": { "node": ">=22.6" }
+}

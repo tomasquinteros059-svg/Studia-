@@ -1,0 +1,6 @@
+project_id = "studia"
+
+[functions.tutor]
+# El JWT lo verifica la propia función, que además necesita el token del
+# estudiante para que las políticas de acceso se apliquen.
+verify_jwt = true
