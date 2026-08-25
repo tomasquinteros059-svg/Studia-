@@ -254,6 +254,33 @@ Se calculan localmente a propósito: si la app afirma "sueles entregar sobre la
 hora", tiene que poder mostrar cuáles. Un consejo que no se puede justificar con
 un dato concreto no se muestra.
 
+## Audio en vivo: lo que ya está y lo que falta
+
+**Hecho: la función `sala`.** Entrega el token para entrar al audio de una
+clase. La clave y el secreto de LiveKit viven en el servidor; el teléfono
+recibe un JWT acotado a una sala.
+
+Tres decisiones que quedaron en el diseño del token:
+
+- **El nombre de sala se deriva de la clase**, nunca de lo que mande el
+  cliente. Si viniera del cuerpo de la petición, cualquiera podría pedir entrar
+  a la sala de otro curso.
+- **La clase se lee con el token del estudiante**, así que las políticas de
+  acceso deciden: si no está inscrito, no hay token que entregar.
+- **El estudiante entra sin permiso para publicar.** Dar la palabra implica
+  pedir otro token con `canPublish`. Así, abrir el micrófono no depende de la
+  app —que se puede modificar— sino de un permiso que el token no trae.
+
+Sin `LIVEKIT_URL`, `LIVEKIT_API_KEY` y `LIVEKIT_API_SECRET` configuradas, la
+función responde 503 con un mensaje claro en vez de fallar de forma rara.
+
+**Falta: el cliente.** Conectar la pantalla de clase en vivo requiere
+`@livekit/react-native` y su plugin de Expo, que traen código nativo. No los
+instalé todavía a propósito: es una dependencia que no puedo ejecutar ni probar
+desde acá, y agregarla justo antes de la primera compilación del APK arriesga
+romperla. Conviene hacerlo cuando el APK en modo demostración ya esté
+funcionando en la tablet.
+
 ## Elegir el transporte de audio en vivo
 
 Escenario real: **20 inscritos por ramo, asistencia típica ~14**, clases de 90

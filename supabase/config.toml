@@ -7,3 +7,6 @@ verify_jwt = true
 
 [functions.resumen]
 verify_jwt = true
+
+[functions.sala]
+verify_jwt = true
