@@ -25,15 +25,17 @@ import Tarea from "./src/pantallas/Tarea.tsx";
 import Perfil from "./src/pantallas/Perfil.tsx";
 import ClaseEnVivo from "./src/pantallas/ClaseEnVivo.tsx";
 import Grabacion from "./src/pantallas/Grabacion.tsx";
-import ApuntesPantalla from "./src/pantallas/Apuntes.tsx";
+import Apunte from "./src/pantallas/Apunte.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
+import MisApuntes from "./src/pantallas/MisApuntes.tsx";
 import { Icono } from "./src/ui/Icono.tsx";
 
 const Pila = createNativeStackNavigator<RutasPila>();
 const Pestanas = createBottomTabNavigator<RutasPestanas>();
 
 const ICONO_PESTANA = {
-  Inicio: "inicio", Horario: "horario", Tareas: "tareas", Tutor: "tutor",
+  Inicio: "inicio", Horario: "horario", Tareas: "tareas",
+  Apuntes: "documento", Tutor: "tutor",
 } as const;
 
 function Principal() {
@@ -52,6 +54,7 @@ function Principal() {
       <Pestanas.Screen name="Inicio" component={Inicio} />
       <Pestanas.Screen name="Horario" component={Horario} />
       <Pestanas.Screen name="Tareas" component={Tareas} />
+      <Pestanas.Screen name="Apuntes" component={MisApuntes} options={{ title: "Apuntes" }} />
       <Pestanas.Screen name="Tutor" component={Tutor} />
     </Pestanas.Navigator>
   );
@@ -98,7 +101,7 @@ export default function App() {
             <Pila.Screen name="NuevoHilo" component={NuevoHilo} options={{ title: "Nuevo hilo" }} />
             <Pila.Screen name="Tarea" component={Tarea} options={{ title: "Tarea" }} />
             <Pila.Screen name="Perfil" component={Perfil} options={{ title: "Mi perfil" }} />
-            <Pila.Screen name="Apuntes" component={ApuntesPantalla} options={{ title: "Apuntes de clase" }} />
+            <Pila.Screen name="Apunte" component={Apunte} options={{ title: "Apuntes de clase" }} />
             <Pila.Screen name="Consejos" component={Consejos} options={{ title: "Cómo vas estudiando" }} />
             <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />
             <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}

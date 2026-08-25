@@ -110,6 +110,7 @@ export type Apunte = {
   clase_id: string | null;
   titulo: string;
   contenido: string;
+  fijado: boolean;
   actualizado_en: string;
 };
 

@@ -16,7 +16,7 @@ import type { PropsPila } from "../lib/rutas.ts";
 /** Cuánto se espera sin escribir antes de guardar. */
 const ESPERA_GUARDADO = 1500;
 
-export default function Apuntes({ route, navigation }: PropsPila<"Apuntes">) {
+export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   const { apunteId } = route.params;
   const formato = usarFormato();
   const dosColumnas = formato === "dos_columnas";

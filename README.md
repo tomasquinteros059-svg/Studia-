@@ -35,7 +35,7 @@ Los detalles y lo que falta están en [`docs/arquitectura.md`](docs/arquitectura
 ## Verificación
 
 ```bash
-npm run prueba          # 75 pruebas del dominio y de los núcleos del tutor
+npm run prueba          # 87 pruebas del dominio y de los núcleos del tutor
 npm run prueba:bd       # 35 aserciones de acceso contra un Postgres real
 npm run tipos           # tsc en modo estricto
 ```

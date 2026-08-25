@@ -46,10 +46,12 @@ directamente** en un aparato.
 ## Probar el modo tablet
 
 1. Entra con `eduardo@studia.cl` / `clave-demo`
-2. Abre una asignatura → menú **⋮** → **Apuntes** → *Nuevo apunte*
+2. Ve a la pestaña **Apuntes**: es el tablero, con las tarjetas repartidas en
+   varias columnas. Toca **Nuevo apunte** y elige un ramo
 3. **Gira la tablet a horizontal**: aparecen las dos columnas, apuntes a la
    izquierda y el tutor a la derecha
 4. Escribe unas líneas y toca **Terminar clase y resumir**
+5. Vuelve al tablero y prueba **fijar** una tarjeta y **buscar** por una palabra
 
 En vertical, o en un teléfono, la misma pantalla muestra solo los apuntes con
 un botón flotante hacia el tutor.

@@ -314,7 +314,7 @@ export async function cambiarNombre(nombre: string): Promise<void> {
 export async function misApuntes(asignaturaId?: string): Promise<Apunte[]> {
   let consulta = supabase
     .from("apuntes")
-    .select("id, asignatura_id, clase_id, titulo, contenido, actualizado_en")
+    .select("id, asignatura_id, clase_id, titulo, contenido, fijado, actualizado_en")
     .order("actualizado_en", { ascending: false });
   if (asignaturaId) consulta = consulta.eq("asignatura_id", asignaturaId);
 
@@ -326,7 +326,7 @@ export async function misApuntes(asignaturaId?: string): Promise<Apunte[]> {
 export async function apuntePorId(apunteId: string): Promise<Apunte | null> {
   const { data, error } = await supabase
     .from("apuntes")
-    .select("id, asignatura_id, clase_id, titulo, contenido, actualizado_en")
+    .select("id, asignatura_id, clase_id, titulo, contenido, fijado, actualizado_en")
     .eq("id", apunteId)
     .maybeSingle();
   reventar("No pude cargar el apunte", error);
@@ -347,7 +347,7 @@ export async function crearApunte(
       clase_id: claseId ?? null,
       titulo,
     })
-    .select("id, asignatura_id, clase_id, titulo, contenido, actualizado_en")
+    .select("id, asignatura_id, clase_id, titulo, contenido, fijado, actualizado_en")
     .single();
   reventar("No pude crear el apunte", error);
   if (!data) throw new Error("No pude crear el apunte.");
@@ -359,6 +359,11 @@ export async function guardarApunte(
 ): Promise<void> {
   const { error } = await supabase.from("apuntes").update(campos).eq("id", apunteId);
   reventar("No pude guardar el apunte", error);
+}
+
+export async function fijarApunte(apunteId: string, fijado: boolean): Promise<void> {
+  const { error } = await supabase.from("apuntes").update({ fijado }).eq("id", apunteId);
+  reventar("No pude fijar el apunte", error);
 }
 
 export async function borrarApunte(apunteId: string): Promise<void> {

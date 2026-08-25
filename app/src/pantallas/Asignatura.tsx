@@ -252,7 +252,7 @@ export default function Asignatura({ route, navigation }: Props) {
                       `Apuntes · ${new Date().toLocaleDateString("es-CL")}`,
                       datos.clases.find((c) => c.estado === "en_vivo")?.id ?? null,
                     );
-                    navigation.navigate("Apuntes", { apunteId: nuevo.id });
+                    navigation.navigate("Apunte", { apunteId: nuevo.id });
                   } catch (err) {
                     Alert.alert("No pude crear el apunte",
                       err instanceof globalThis.Error ? err.message : "");
@@ -271,7 +271,7 @@ export default function Asignatura({ route, navigation }: Props) {
                     detalle={a.contenido.trim()
                       ? `${a.contenido.trim().slice(0, 60)}…`
                       : "Sin escribir todavía"}
-                    onPress={() => navigation.navigate("Apuntes", { apunteId: a.id })}
+                    onPress={() => navigation.navigate("Apunte", { apunteId: a.id })}
                   />
                 ))}
           </>

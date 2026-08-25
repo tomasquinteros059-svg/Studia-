@@ -7,6 +7,7 @@ export type RutasPestanas = {
   Inicio: undefined;
   Horario: undefined;
   Tareas: undefined;
+  Apuntes: undefined;
   Tutor: { asignaturaId?: string; contexto?: string } | undefined;
 };
 
@@ -20,7 +21,7 @@ export type RutasPila = {
   NuevoHilo: { asignaturaId: string };
   Tarea: { tareaId: string };
   Perfil: undefined;
-  Apuntes: { apunteId: string };
+  Apunte: { apunteId: string };
   Consejos: undefined;
   ClaseEnVivo: {
     titulo: string;

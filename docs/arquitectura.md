@@ -62,7 +62,7 @@ el proyecto remoto.
 ## Verificación
 
 ```bash
-npm run prueba            # 75 pruebas del dominio y de los núcleos del tutor
+npm run prueba            # 87 pruebas del dominio y de los núcleos del tutor
 npm run prueba:bd         # 35 aserciones de acceso contra un Postgres real
 npm run prueba:sintaxis   # las funciones de Deno son TypeScript válido
 npm run tipos             # tsc en modo estricto sobre la app
@@ -158,6 +158,25 @@ Y hay una razón de producto para no tocarlas: la clase en vivo sirve para estar
 la grabada, para no haber estado. Un estudiante que se enfermó o que repasa para
 el examen depende de la segunda.
 
+## El tablero de apuntes
+
+Los apuntes tienen pestaña propia: un muro de tarjetas al estilo Google Keep,
+que es donde el estudiante entra a buscar lo que escribió. Se reparte en una a
+cuatro columnas según el ancho, de modo que en una tablet en horizontal se ven
+cuatro y en un teléfono una sola.
+
+Las tarjetas se reparten **por columnas, no por filas**: así las de distinto
+alto encajan sin dejar huecos, como en un muro de notas de verdad.
+
+- **Fijar** deja un apunte arriba de todo; dentro de cada grupo manda la fecha.
+- **Buscar** ignora acentos y mayúsculas —buscar "calculo" encuentra "Cálculo"—
+  y exige que aparezcan todas las palabras, en cualquier orden.
+- **El color es del ramo**, no del apunte. En Keep el color lo elige quien
+  escribe; acá ya significa algo, y dos convenciones de color peleando hacen que
+  ninguna se lea.
+
+Todo eso vive en `app/src/dominio/tablero.ts`, aparte de la pantalla y probado.
+
 ## Modo tablet: escribir con el tutor al lado
 
 En una pantalla de 900 puntos o más de ancho —una tablet en horizontal— la
@@ -249,7 +268,8 @@ chico o una cátedra semanal, el piloto sale gratis en cualquiera de los tres.
 | Pantalla | Qué hace |
 |---|---|
 | Sesión | Entrar y crear cuenta |
-| Apuntes | Escribir en clase; en tablet horizontal, con el tutor al lado |
+| Apuntes | El tablero: muro de tarjetas, con fijar y buscar |
+| Apunte | Escribir en clase; en tablet horizontal, con el tutor al lado |
 | Consejos | Cómo va estudiando, calculado de sus propios datos |
 | Inicio | Clase en vivo, bloques de hoy, próximas entregas y las asignaturas |
 | Asignatura | Nueve secciones tras los tres puntitos |
