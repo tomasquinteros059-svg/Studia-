@@ -97,6 +97,12 @@ políticas exigen `autor_id = auth.uid()` y `autor_rol = 'Estudiante'`.
 está inscrito en esa asignatura. Las inscripciones siguen siendo privadas: no
 se puede averiguar en qué otros ramos está alguien.
 
+**El micrófono se pide al hablar, no al entrar.** Escuchar una clase no
+necesita permiso; solo hablar. Pedirlo al entrar, sin motivo visible, hace que
+se rechace más — y un permiso rechazado para siempre solo se arregla en los
+Ajustes del teléfono. Por eso el diálogo aparece recién cuando el estudiante
+toca el micrófono. `app/src/dominio/microfono.ts`.
+
 **El correo no se puede leer desde el cliente.** La columna `perfiles.correo`
 no está en el `grant`: el propio usuario obtiene el suyo de la sesión, y el de
 los demás no sale nunca de la base.
@@ -114,13 +120,43 @@ Son deliberadas y están acotadas. Cada una tiene su costo anotado.
 |---|---|
 | Los docentes no tienen cuenta: viven como texto en `asignaturas`, y sus mensajes de foro llevan `autor_id` nulo | Ningún profesor puede entrar a la app todavía. Cuando se necesite, hay que darles perfil y un rol |
 | No hay panel docente | Las asignaturas, tareas, notas y avisos entran por el seed o a mano |
-| La clase en vivo no tiene audio real | La pantalla existe con sus controles, cronómetro y ecualizador, y dice con todas sus letras que el audio no está conectado. Falta decidir el transporte (ver spec, §9) |
+| La clase en vivo no tiene audio real | La pantalla, sus controles y **el permiso de micrófono ya funcionan**; falta el transporte que lleve la voz a la sala (ver spec, §9) |
 | Las grabaciones no tienen archivo | El reproductor está completo —avance, ±15 s, velocidades, capítulos— y suena en cuanto `clases.audio_url` tenga una URL. Con la columna vacía muestra el aviso y deja navegar los capítulos |
 | Las entregas no aceptan archivos | `entregas.archivo_url` existe; falta Supabase Storage y el selector de archivos |
 | No hay notificaciones push | Las notificaciones se leen dentro de la app, no llegan al teléfono |
 | Solo se ven nombres de compañeros, no correos ni en qué otros ramos están | Fue la exposición mínima que permite mostrar el curso. Si más adelante se quiere foto o perfil público, es una decisión aparte |
 
 ---
+
+## Sobre grabar la clase desde el teléfono
+
+Surgió la idea de usar el micrófono del estudiante durante la clase en vivo
+para no tener que guardar grabaciones y ahorrar espacio. No funciona, por tres
+razones que conviene dejar escritas:
+
+**El teléfono no puede grabar la clase.** iOS y Android no dejan que una app
+capture el audio que reproduce el sistema u otra app. El micrófono captura la
+sala donde está el estudiante, no la voz del profesor, que llega como
+reproducción. Lo que se grabaría es su pieza, no la clase.
+
+**Grabar el ambiente de un estudiante es un problema de privacidad**, no una
+función. Capturaría a quien esté cerca, sin que nadie haya consentido.
+
+**El espacio no es el costo.** Una clase de hora y media en Opus mono ronda los
+20 MB, y es **un archivo para todo el curso**, no uno por estudiante. Un
+semestre completo de seis ramos cabe en unos pocos gigabytes. Lo caro del audio
+en vivo es el transporte, que se cobra por participante y por minuto: quitar las
+grabaciones ahorra lo barato y deja intacto lo caro.
+
+**Lo que sí conviene hacer**: casi todos los transportes de audio en vivo
+(LiveKit, Daily, Agora) pueden grabar del lado del servidor. Si se activa esa
+opción, la grabación sale como subproducto de la clase en vivo y no hay que
+construir un segundo sistema. Ese es el ahorro real — no en almacenamiento, sino
+en no mantener dos caminos para el mismo audio.
+
+Y hay una razón de producto para no tocarlas: la clase en vivo sirve para estar;
+la grabada, para no haber estado. Un estudiante que se enfermó o que repasa para
+el examen depende de la segunda.
 
 ## Pantallas
 

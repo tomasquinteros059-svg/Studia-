@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Animated, Easing, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudioModeAsync,
+} from "expo-audio";
 import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, radio } from "../ui/tema.ts";
+import {
+  accionAlTocarMicrofono, AVISO_BLOQUEADO, AVISO_DENEGADO, estadoDesdePermiso,
+  etiquetaMicrofono, type EstadoMicrofono,
+} from "../dominio/microfono.ts";
 import type { PropsPila } from "../lib/rutas.ts";
 
 /** El ecualizador indica quién habla. Es decorativo: no analiza el audio. */
@@ -28,11 +35,59 @@ export default function ClaseEnVivo({ route, navigation }: PropsPila<"ClaseEnViv
   const [segundos, setSegundos] = useState(desdeSegundos ?? 0);
   const [microAbierto, setMicroAbierto] = useState(false);   // se entra en silencio, siempre
   const [manoArriba, setManoArriba] = useState(false);
+  const [permiso, setPermiso] = useState<EstadoMicrofono>("sin_preguntar");
 
   useEffect(() => {
     const reloj = setInterval(() => setSegundos((s) => s + 1), 1000);
     return () => clearInterval(reloj);
   }, []);
+
+  // Escuchar la clase no necesita permiso; hablar sí. Al entrar solo se
+  // consulta el estado, sin abrir ningún diálogo.
+  useEffect(() => {
+    let vigente = true;
+    void setAudioModeAsync({ playsInSilentMode: true, interruptionMode: "duckOthers" });
+    getRecordingPermissionsAsync()
+      .then((p) => { if (vigente) setPermiso(estadoDesdePermiso(p)); })
+      .catch(() => {});
+    return () => { vigente = false; };
+  }, []);
+
+  // Al salir, se devuelve el audio a su estado normal.
+  useEffect(() => () => {
+    void setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+  }, []);
+
+  const alternarMicrofono = useCallback(async () => {
+    if (microAbierto) {
+      setMicroAbierto(false);
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
+      return;
+    }
+
+    const accion = accionAlTocarMicrofono(permiso);
+
+    if (accion === "ir_a_ajustes") {
+      Alert.alert("Micrófono bloqueado", AVISO_BLOQUEADO, [
+        { text: "Ahora no", style: "cancel" },
+        { text: "Abrir ajustes", onPress: () => void Linking.openSettings() },
+      ]);
+      return;
+    }
+
+    if (accion === "pedir") {
+      const respuesta = await requestRecordingPermissionsAsync().catch(() => null);
+      const nuevo = respuesta ? estadoDesdePermiso(respuesta) : "denegado";
+      setPermiso(nuevo);
+      if (nuevo !== "concedido") {
+        Alert.alert("Sin micrófono", nuevo === "bloqueado" ? AVISO_BLOQUEADO : AVISO_DENEGADO);
+        return;
+      }
+    }
+
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true }).catch(() => {});
+    setMicroAbierto(true);
+  }, [microAbierto, permiso]);
 
   const mm = String(Math.floor(segundos / 60)).padStart(2, "0");
   const ss = String(segundos % 60).padStart(2, "0");
@@ -66,8 +121,8 @@ export default function ClaseEnVivo({ route, navigation }: PropsPila<"ClaseEnViv
 
         <View style={e.avisoConexion}>
           <Text style={e.avisoTexto}>
-            El audio en vivo todavía no está conectado. Esta pantalla ya tiene
-            los controles listos para cuando lo esté.
+            El audio en vivo todavía no está conectado. El micrófono y sus
+            permisos ya funcionan; falta el transporte que lleve tu voz a la sala.
           </Text>
         </View>
 
@@ -78,12 +133,12 @@ export default function ClaseEnVivo({ route, navigation }: PropsPila<"ClaseEnViv
 
       <View style={e.controles}>
         <Control
-          etiqueta={microAbierto ? "Micrófono abierto" : "Silenciado"}
+          etiqueta={etiquetaMicrofono(permiso, microAbierto)}
           icono={microAbierto ? "micro" : "microApagado"}
           activo={!microAbierto}
           accesible={microAbierto ? "Silenciar micrófono" : "Activar micrófono"}
           presionado={microAbierto}
-          onPress={() => setMicroAbierto((m) => !m)}
+          onPress={() => void alternarMicrofono()}
         />
         <Control
           etiqueta="Pedir palabra"

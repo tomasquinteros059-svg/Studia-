@@ -7,12 +7,29 @@
     "scheme": "studia",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": { "backgroundColor": "#208AEF" },
-    "ios": { "supportsTablet": false, "bundleIdentifier": "cl.studia.app" },
-    "android": { "package": "cl.studia.app" },
+    "splash": {
+      "backgroundColor": "#208AEF"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "cl.studia.app"
+    },
+    "android": {
+      "package": "cl.studia.app"
+    },
     "extra": {
       "supabaseUrl": "",
       "supabaseAnonKey": ""
-    }
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "StudIA usa el micrófono solo cuando pides la palabra en una clase en vivo.",
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ]
+    ]
   }
 }

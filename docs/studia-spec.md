@@ -336,9 +336,13 @@ programa, compañeros, archivos, notificaciones y tutor, con el sistema visual y
 ## 9. Decisiones abiertas
 
 - **Transporte de audio en vivo**: LiveKit, Daily, Agora o WebRTC propio. Define costo por
-  minuto, límite de participantes y qué tan factible es grabar automáticamente.
-- **De dónde salen las grabaciones**: ¿se graba la clase en vivo automáticamente, o el
-  profesor sube el archivo? Lo primero conecta las dos pantallas y es lo que sugiere el diseño.
+  participante y minuto, límite de asistentes y qué tan factible es grabar automáticamente.
+  Es el costo dominante del audio, muy por encima del almacenamiento.
+- **De dónde salen las grabaciones**: la respuesta preferida es que las produzca el propio
+  transporte del lado del servidor, como subproducto de la clase en vivo. Grabarlas desde el
+  teléfono del estudiante no es una alternativa: el sistema operativo no permite capturar el
+  audio que reproduce otra app, así que el micrófono grabaría su pieza, no la clase
+  (ver `arquitectura.md`).
 - **Transcripción**: si se transcribe el audio, el tutor podría responder sobre lo que se
   dijo en clase, y los capítulos dejarían de ser fijos. Es la función que une el LMS con la IA.
 - **Quién carga la materia**: ¿el profesor, la institución vía integración, o el propio estudiante?
