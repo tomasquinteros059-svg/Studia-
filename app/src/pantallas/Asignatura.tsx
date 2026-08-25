@@ -4,12 +4,13 @@ import {
   Cargando, Encabezado, Error, Fila, Pastilla, Vacio,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
-import { color, duracion, espacio, fechaCorta, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
+import { color, duracion, espacio, fechaCorta, hora, nombreDia, radio, tenue, tipo } from "../ui/tema.ts";
 import {
   clasesDe, companerosDe, crearApunte, evaluacionesDe, foroDe, marcarMaterial,
   materiaDe, miHorario, misApuntes, misAsignaturas, misTareas,
 } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
+import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
 import { type PropsPila } from "../lib/rutas.ts";
@@ -32,10 +33,19 @@ const SECCIONES = [
 ] as const;
 type Seccion = (typeof SECCIONES)[number]["id"];
 
+const ICONO_SECCION = {
+  materia: "documento", clases: "video", tareas: "tareas", foro: "tutor",
+  apuntes: "documento", notas: "nota", horario: "horario",
+  programa: "documento", companeros: "persona", archivos: "descargar",
+} as const satisfies Record<Seccion, Parameters<typeof Icono>[0]["nombre"]>;
+
 export default function Asignatura({ route, navigation }: Props) {
   const { asignaturaId } = route.params;
   const [seccion, setSeccion] = useState<Seccion>((route.params.seccion as Seccion) ?? "materia");
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // Con ancho de sobra, las nueve secciones caben a la vista y esconderlas
+  // tras un menú sería peor: el menú existe porque en un teléfono no caben.
+  const { barraDeSecciones } = usarDisposicion();
 
   const traer = useCallback(async () => {
     const [asignaturas, modulos, clases, tareas, foro, evaluaciones, horario, companeros] =
@@ -57,14 +67,21 @@ export default function Asignatura({ route, navigation }: Props) {
   useEffect(() => {
     navigation.setOptions({
       title: datos?.ramo?.nombre ?? "Asignatura",
-      headerRight: () => (
-        <Pressable accessibilityRole="button" accessibilityLabel="Todas las secciones"
-          onPress={() => setMenuAbierto(true)} hitSlop={10}>
-          <Icono nombre="mas" tamano={20} tono={color.marca} />
-        </Pressable>
-      ),
+      headerRight: barraDeSecciones
+        ? undefined
+        : () => (
+            <Pressable accessibilityRole="button" accessibilityLabel="Todas las secciones"
+              onPress={() => setMenuAbierto(true)} hitSlop={10}>
+              <Icono nombre="mas" tamano={20} tono={color.marca} />
+            </Pressable>
+          ),
     });
-  }, [navigation, datos?.ramo?.nombre]);
+  }, [navigation, datos?.ramo?.nombre, barraDeSecciones]);
+
+  // Si la pantalla se angosta con el menú abierto, se cierra solo.
+  useEffect(() => {
+    if (barraDeSecciones) setMenuAbierto(false);
+  }, [barraDeSecciones]);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -83,6 +100,7 @@ export default function Asignatura({ route, navigation }: Props) {
         <Text style={e.profesor}>{ramo.profesor}</Text>
       </View>
 
+      {barraDeSecciones ? null : (
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
         style={e.fila} contentContainerStyle={{ gap: 6, paddingHorizontal: espacio.m, paddingVertical: 11 }}>
         {visibles.map((id) => {
@@ -98,8 +116,35 @@ export default function Asignatura({ route, navigation }: Props) {
           );
         })}
       </ScrollView>
+      )}
 
-      <ScrollView contentContainerStyle={{ paddingBottom: espacio.xl }}>
+      <View style={barraDeSecciones ? e.conBarra : undefined}>
+      {barraDeSecciones ? (
+        <View style={e.barraLateral}>
+          {SECCIONES.map((sec) => {
+            const activa = sec.id === seccion;
+            return (
+              <Pressable key={sec.id} accessibilityRole="tab"
+                accessibilityState={{ selected: activa }}
+                onPress={() => setSeccion(sec.id)}
+                style={({ pressed }) => [
+                  e.itemBarra,
+                  activa && { backgroundColor: tenue(ramo.color) },
+                  pressed && !activa && { backgroundColor: color.elemento },
+                ]}>
+                <Icono nombre={ICONO_SECCION[sec.id]} tamano={17}
+                  tono={activa ? ramo.color : color.textoSuave} />
+                <Text style={[e.itemBarraTexto, activa && { color: ramo.color, fontWeight: "700" }]}>
+                  {sec.texto}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <ScrollView style={barraDeSecciones ? { flex: 1 } : undefined}
+        contentContainerStyle={{ paddingBottom: espacio.xl }}>
         {seccion === "materia" ? (
           datos.modulos.length === 0 ? <Vacio texto="Todavía no hay material publicado." /> :
           datos.modulos.map((m) => (
@@ -312,6 +357,7 @@ export default function Asignatura({ route, navigation }: Props) {
           })()
         ) : null}
       </ScrollView>
+      </View>
 
       <Modal visible={menuAbierto} transparent animationType="slide"
         onRequestClose={() => setMenuAbierto(false)}>
@@ -408,6 +454,16 @@ const e = StyleSheet.create({
   nombre: { color: "#fff", fontSize: 20, fontWeight: "600", marginTop: 2 },
   profesor: { color: "#fff", fontSize: 12.5, opacity: 0.88, marginTop: 2 },
   fila: { flexGrow: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde },
+  conBarra: { flex: 1, flexDirection: "row" },
+  barraLateral: {
+    width: 232, paddingVertical: espacio.s, paddingHorizontal: espacio.s, gap: 2,
+    borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: color.borde,
+  },
+  itemBarra: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingVertical: 11, paddingHorizontal: 12, borderRadius: radio.boton,
+  },
+  itemBarraTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave },
   chip: { borderRadius: radio.pastilla, paddingHorizontal: 13, paddingVertical: 7, backgroundColor: color.elemento },
   chipTexto: { fontSize: 12.5, color: color.textoSuave },
   modulo: {

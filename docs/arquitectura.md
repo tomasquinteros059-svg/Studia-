@@ -209,16 +209,38 @@ alto encajan sin dejar huecos, como en un muro de notas de verdad.
 
 Todo eso vive en `app/src/dominio/tablero.ts`, aparte de la pantalla y probado.
 
-## Modo tablet: escribir con el tutor al lado
+## Una sola app para teléfono y tablet
 
-En una pantalla de 900 puntos o más de ancho —una tablet en horizontal— la
-pantalla de apuntes se parte en dos columnas: los apuntes a la izquierda, el
-tutor a la derecha. En vertical o en teléfono es una sola columna con un botón
-flotante hacia el tutor.
+No hay dos aplicaciones ni se pregunta al arrancar de qué aparato se trata.
+**Todo se decide por el ancho disponible**, en `app/src/dominio/disposicion.ts`,
+y por tres razones:
 
-El corte va por **ancho disponible, no por tipo de aparato**: una tablet en
-vertical se comporta como teléfono, que es lo correcto.
-`app/src/lib/pantalla.ts`.
+- Una **tablet en vertical** tiene el mismo espacio útil que un teléfono grande
+  y debe verse igual. Preguntar por el aparato daría la respuesta equivocada.
+- **Girar la tablet** cambia la disposición sin reiniciar nada. Una pregunta al
+  arrancar tendría una respuesta que deja de ser cierta a los diez segundos.
+- Dos aplicaciones serían dos compilaciones que mantener sincronizadas, y el
+  usuario podría instalar la que no le corresponde.
+
+Tres cortes, con lo que cambia en cada uno:
+
+| Ancho | Ejemplo | Qué cambia |
+|---|---|---|
+| menos de 620 | teléfono vertical | una columna en todo |
+| 620 a 899 | tablet vertical, teléfono de lado | tarjetas de asignatura en dos columnas |
+| 900 o más | tablet horizontal | dos paneles, y las secciones a la vista |
+
+Además, en pantalla ancha la columna de texto **se limita a 760 puntos y se
+centra**: un párrafo que cruza una tablet entera es incómodo de leer.
+
+### Qué gana la tablet en horizontal
+
+- **Apuntes y tutor lado a lado**, para preguntar sin salir de la clase.
+- **Las nueve secciones de una asignatura a la vista**, en una barra lateral.
+  El menú de los tres puntitos desaparece: existe porque en un teléfono no
+  caben, no como preferencia de diseño.
+- **Tarjetas de asignatura en dos o tres columnas**, y el tablero de apuntes
+  hasta en cuatro.
 
 Los apuntes **se guardan solos** un segundo y medio después de dejar de
 escribir. Nadie debería perder apuntes de clase por olvidar tocar un botón.

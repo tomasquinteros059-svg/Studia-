@@ -11,6 +11,12 @@ jest.mock("../lib/consultas.ts", () => ({
   marcarMaterial: jest.fn(), crearApunte: jest.fn(),
 }));
 
+const anchoFalso = { valor: { width: 750, height: 1334, scale: 2, fontScale: 1 } };
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  __esModule: true,
+  default: () => anchoFalso.valor,
+}));
+
 import * as consultas from "../lib/consultas.ts";
 import Asignatura from "./Asignatura.tsx";
 
@@ -44,7 +50,10 @@ async function abrirConCabecera() {
   return t;
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  anchoFalso.valor = { width: 750, height: 1334, scale: 2, fontScale: 1 };
+});
 
 describe("Asignatura", () => {
   test("abre en Materia y muestra el módulo con su avance", async () => {
@@ -155,5 +164,49 @@ describe("Asignatura", () => {
     expect(t.getByText("Nuevo apunte")).toBeTruthy();
     fireEvent.press(t.getByText("Clase del valor medio"));
     expect(t.navigation.navigate).toHaveBeenCalledWith("Apunte", { apunteId: APUNTE.id });
+  });
+});
+
+/** En una tablet en horizontal las nueve secciones caben a la vista. */
+describe("Asignatura en pantalla amplia", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    anchoFalso.valor = { width: 1194, height: 834, scale: 2, fontScale: 1 };
+  });
+
+  const abrirAncha = async () => {
+    conDatos();
+    const t = await renderConNavegador(Asignatura, { asignaturaId: RAMO.id });
+    await waitFor(() => expect(t.getAllByText("Cálculo I").length).toBeGreaterThan(0));
+    return t;
+  };
+
+  test("las nueve secciones se ven sin abrir ningún menú", async () => {
+    const t = await abrirAncha();
+    for (const s of ["Materia", "Clases", "Tareas", "Foro", "Mis apuntes", "Notas",
+                     "Horario", "Programa del curso", "Compañeros", "Archivos"]) {
+      expect(t.getAllByText(s).length).toBeGreaterThan(0);
+    }
+  });
+
+  test("el botón de los tres puntitos desaparece: ya no hace falta", async () => {
+    const t = await abrirAncha();
+    expect(t.queryByLabelText("Todas las secciones")).toBeNull();
+  });
+
+  test("se cambia de sección desde la barra lateral", async () => {
+    const t = await abrirAncha();
+    fireEvent.press(t.getByText("Compañeros"));
+    await waitFor(() => expect(t.getByText("Equipo docente")).toBeTruthy());
+    expect(t.getByText("Josefa Pérez")).toBeTruthy();
+  });
+
+  test("en teléfono sí aparece el menú, porque las secciones no caben", async () => {
+    anchoFalso.valor = { width: 390, height: 844, scale: 2, fontScale: 1 };
+    conDatos();
+    const t = await renderConNavegador(Asignatura, { asignaturaId: RAMO.id });
+    await waitFor(() => expect(t.getAllByText("Cálculo I").length).toBeGreaterThan(0));
+    expect(t.getByLabelText("Todas las secciones")).toBeTruthy();
+    expect(t.queryByText("Programa del curso")).toBeNull();
   });
 });

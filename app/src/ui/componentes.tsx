@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
 } from "react-native";
+import { usarDisposicion } from "../lib/pantalla.ts";
 import { color, espacio, radio, tenue, tipo } from "./tema.ts";
 
 export function Titulo({ children }: { children: ReactNode }) {
@@ -124,16 +125,25 @@ export function Error({ mensaje, reintentar }: { mensaje: string; reintentar?: (
 }
 
 export function Pantalla({
-  children, alRefrescar, refrescando,
+  children, alRefrescar, refrescando, sinLimite,
 }: {
   children: ReactNode;
   alRefrescar?: () => void;
   refrescando?: boolean;
+  /** Para pantallas que administran su propio ancho, como el tablero. */
+  sinLimite?: boolean;
 }) {
+  const { anchoContenido } = usarDisposicion();
+
   return (
     <ScrollView
       style={e.pantalla}
-      contentContainerStyle={{ paddingBottom: espacio.xl }}
+      contentContainerStyle={[
+        { paddingBottom: espacio.xl },
+        // En una tablet, un texto que cruza toda la pantalla es incómodo de
+        // leer: la columna se limita y se centra. En un teléfono no cambia nada.
+        !sinLimite && { width: "100%", maxWidth: anchoContenido, alignSelf: "center" },
+      ]}
       refreshControl={
         alRefrescar
           ? <RefreshControl refreshing={refrescando ?? false} onRefresh={alRefrescar} tintColor={color.marca} />

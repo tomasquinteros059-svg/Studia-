@@ -10,7 +10,7 @@ import { color, espacio, radio, tipo } from "../ui/tema.ts";
 import { apuntePorId, guardarApunte, misAsignaturas, resumenDe } from "../lib/consultas.ts";
 import { pedirResumen, type ResultadoResumen } from "../lib/resumen.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
-import { usarFormato } from "../lib/pantalla.ts";
+import { usarDisposicion } from "../lib/pantalla.ts";
 import type { PropsPila } from "../lib/rutas.ts";
 
 /** Cuánto se espera sin escribir antes de guardar. */
@@ -18,8 +18,7 @@ const ESPERA_GUARDADO = 1500;
 
 export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   const { apunteId } = route.params;
-  const formato = usarFormato();
-  const dosColumnas = formato === "dos_columnas";
+  const { dosPaneles: dosColumnas } = usarDisposicion();
 
   const traer = useCallback(async () => {
     const [apunte, asignaturas, resumen] = await Promise.all([

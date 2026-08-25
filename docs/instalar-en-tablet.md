@@ -76,11 +76,24 @@ líneas. Eso necesita el servidor.
 Un ramo aparece bajo 4,0 a propósito, para que se vea la proyección de "qué
 necesitas para aprobar".
 
-## Si prefieres no compilar todavía
+## Probarla hoy con Expo Go, sin compilar nada
+
+Es la vía más rápida, y sirve para el teléfono y la tablet **al mismo tiempo**.
 
 ```bash
-cd app && npx expo start
+cd Sitio.ste/app
+npm install
+npx expo start
 ```
 
-Instala **Expo Go** en la tablet y escanea el código. Funciona todo salvo el
-audio de las clases, que necesita código nativo y por eso requiere el APK.
+En la terminal aparece un **código QR** y una dirección `exp://192.168.x.x:8081`.
+Con Expo Go instalado, escanea el QR desde cada aparato — el teléfono y la
+tablet pueden estar conectados a la vez, sobre la misma app y el mismo servidor.
+Solo tienen que estar en la misma red wifi que el computador.
+
+Es **una sola aplicación**: se acomoda sola al ancho de cada pantalla. En la
+tablet, gírala a horizontal para ver los apuntes con el tutor al lado y las
+nueve secciones en la barra lateral.
+
+Funciona todo salvo el audio en vivo de las clases, que necesita código nativo
+y por eso requiere el APK.

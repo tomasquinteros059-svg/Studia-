@@ -8,9 +8,8 @@ import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, fechaCorta, radio, tenue, tipo } from "../ui/tema.ts";
 import { crearApunte, fijarApunte, misApuntes, misAsignaturas } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
-import {
-  columnasDelTablero, filtrarApuntes, ordenarTablero, vistaPrevia,
-} from "../dominio/tablero.ts";
+import { filtrarApuntes, ordenarTablero, vistaPrevia } from "../dominio/tablero.ts";
+import { columnasDelTablero } from "../dominio/tablero.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 import type { Apunte, Asignatura } from "../lib/tipos.ts";
 

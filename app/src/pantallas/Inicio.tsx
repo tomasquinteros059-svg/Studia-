@@ -7,6 +7,7 @@ import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
 import { claseEnVivo, miHorario, misAsignaturas, misNotificaciones, misTareas, todasLasEvaluaciones } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
+import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
@@ -14,6 +15,8 @@ import type { PropsPestana } from "../lib/rutas.ts";
 type Props = PropsPestana<"Inicio">;
 
 export default function Inicio({ navigation }: Props) {
+  const { columnas } = usarDisposicion();
+
   const traer = useCallback(async () => {
     const [asignaturas, tareas, horario, vivo, notificaciones, evaluaciones] = await Promise.all([
       misAsignaturas(), misTareas(), miHorario(), claseEnVivo(),
@@ -129,13 +132,14 @@ export default function Inicio({ navigation }: Props) {
         <Pressable onPress={() => navigation.navigate("Notas")}>
           <Text style={e.enlace}>Ver notas</Text>
         </Pressable>} />
-      <View style={{ paddingHorizontal: espacio.m, gap: 10 }}>
+      <View style={[e.rejilla, { paddingHorizontal: espacio.m }]}>
         {asignaturas.map((a) => {
           const { nota } = notaDelRamo(evaluaciones.get(a.id) ?? []);
           const pendientes = tareas.filter(
             (t) => t.asignatura_id === a.id && estadoDeTarea(t) !== "entregada").length;
           return (
-            <Pressable key={a.id} accessibilityRole="button" style={e.tarjeta}
+            <Pressable key={a.id} accessibilityRole="button"
+              style={[e.tarjeta, { width: anchoTarjeta(columnas) }]}
               onPress={() => navigation.navigate("Asignatura", { asignaturaId: a.id })}>
               <View style={[e.franja, { backgroundColor: a.color }]}>
                 <Text style={e.codigo}>{a.codigo}</Text>
@@ -162,6 +166,14 @@ export default function Inicio({ navigation }: Props) {
   );
 }
 
+/** El porcentaje de fila que ocupa cada tarjeta, dejando aire entre ellas. */
+function anchoTarjeta(columnas: number): `${number}%` {
+  if (columnas <= 1) return "100%";
+  // 2% de separación repartido entre los huecos de la fila.
+  const hueco = 2 * (columnas - 1);
+  return `${(100 - hueco) / columnas}%`;
+}
+
 const e = StyleSheet.create({
   saludo: { flexDirection: "row", alignItems: "flex-start", padding: espacio.m, paddingTop: espacio.l },
   hola: { fontSize: 22, fontWeight: "600", color: color.texto },
@@ -186,6 +198,7 @@ const e = StyleSheet.create({
   enlace: { color: color.marca, fontWeight: "600", fontSize: 12.5 },
   vacio: { ...tipo.detalle, paddingHorizontal: espacio.m, paddingVertical: espacio.m },
   pistaConsejos: { ...tipo.detalle, paddingHorizontal: espacio.m, lineHeight: 19 },
+  rejilla: { flexDirection: "row", flexWrap: "wrap", gap: "2%", rowGap: 10 },
   tarjeta: {
     borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta, overflow: "hidden",
   },

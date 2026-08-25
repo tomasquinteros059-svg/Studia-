@@ -1,20 +1,35 @@
 import { useWindowDimensions } from "react-native";
+import {
+  admiteDosPaneles, anchoDeContenido, clasificarAncho, columnasDeTarjetas,
+  muestraBarraDeSecciones, type Ancho,
+} from "../dominio/disposicion.ts";
+
+export type Disposicion = {
+  ancho: number;
+  tamano: Ancho;
+  /** Contenido y tutor lado a lado. */
+  dosPaneles: boolean;
+  /** Tarjetas de asignatura por fila. */
+  columnas: number;
+  /** Ancho máximo de una columna de texto, para que se pueda leer. */
+  anchoContenido: number;
+  /** Las secciones caben a la vista y el menú de los tres puntitos sobra. */
+  barraDeSecciones: boolean;
+};
 
 /**
- * Una tablet en horizontal tiene espacio para dos columnas; un teléfono no.
- * El corte va por ancho disponible, no por tipo de aparato: una tablet en
- * vertical se comporta como teléfono, que es lo correcto.
+ * Todo se decide por el ancho disponible, no por el tipo de aparato: una
+ * tablet en vertical se comporta como teléfono, y girar la tablet cambia la
+ * disposición sin reiniciar nada.
  */
-export const ANCHO_DOS_COLUMNAS = 900;
-
-export type Formato = "una_columna" | "dos_columnas";
-
-export function usarFormato(): Formato {
+export function usarDisposicion(): Disposicion {
   const { width } = useWindowDimensions();
-  return width >= ANCHO_DOS_COLUMNAS ? "dos_columnas" : "una_columna";
-}
-
-export function usarEsTablet(): boolean {
-  const { width, height } = useWindowDimensions();
-  return Math.min(width, height) >= 600;
+  return {
+    ancho: width,
+    tamano: clasificarAncho(width),
+    dosPaneles: admiteDosPaneles(width),
+    columnas: columnasDeTarjetas(width),
+    anchoContenido: anchoDeContenido(width),
+    barraDeSecciones: muestraBarraDeSecciones(width),
+  };
 }
