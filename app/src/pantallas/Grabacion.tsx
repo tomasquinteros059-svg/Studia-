@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import {
+  AVISO_SIN_AUDIO, hayAudioNativo, usarEstadoDelReproductor, usarReproductor,
+} from "../lib/audio.ts";
 import { Encabezado, Fila, Pantalla, Vacio } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { color, duracion, espacio, fechaCorta, radio, tipo } from "../ui/tema.ts";
@@ -16,11 +18,11 @@ export default function Grabacion({ route, navigation }: PropsPila<"Grabacion">)
   const traer = useCallback(() => capitulosDe(claseId), [claseId]);
   const { datos: capitulos } = usarCarga(traer, [claseId]);
 
-  const reproductor = useAudioPlayer(audioUrl ?? null);
-  const estado = useAudioPlayerStatus(reproductor);
+  const reproductor = usarReproductor(audioUrl ?? null);
+  const estado = usarEstadoDelReproductor(reproductor);
   const [velocidad, setVelocidad] = useState<number>(1);
 
-  const hayAudio = Boolean(audioUrl);
+  const hayAudio = Boolean(audioUrl) && hayAudioNativo;
   // Mientras el audio no ha cargado, la duración la sabemos por la base.
   const total = estado.duration > 0 ? estado.duration : duracionSeg ?? 0;
   const avance = total > 0 ? Math.min(1, estado.currentTime / total) : 0;
@@ -43,8 +45,9 @@ export default function Grabacion({ route, navigation }: PropsPila<"Grabacion">)
       {!hayAudio ? (
         <View style={e.aviso}>
           <Text style={e.avisoTexto}>
-            Esta clase todavía no tiene el audio subido. Puedes revisar los
-            capítulos para saber qué se trató.
+            {hayAudioNativo
+              ? "Esta clase todavía no tiene el audio subido. Puedes revisar los capítulos para saber qué se trató."
+              : AVISO_SIN_AUDIO}
           </Text>
         </View>
       ) : null}

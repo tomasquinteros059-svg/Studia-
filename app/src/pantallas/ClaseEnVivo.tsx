@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudioModeAsync,
-} from "expo-audio";
+  fijarModoDeAudio, permisoDeMicrofono, pedirMicrofono,
+} from "../lib/audio.ts";
 import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, radio } from "../ui/tema.ts";
 import {
@@ -46,8 +46,8 @@ export default function ClaseEnVivo({ route, navigation }: PropsPila<"ClaseEnViv
   // consulta el estado, sin abrir ningún diálogo.
   useEffect(() => {
     let vigente = true;
-    void setAudioModeAsync({ playsInSilentMode: true, interruptionMode: "duckOthers" });
-    getRecordingPermissionsAsync()
+    void fijarModoDeAudio({ playsInSilentMode: true, interruptionMode: "duckOthers" });
+    permisoDeMicrofono()
       .then((p) => { if (vigente) setPermiso(estadoDesdePermiso(p)); })
       .catch(() => {});
     return () => { vigente = false; };
@@ -55,13 +55,13 @@ export default function ClaseEnVivo({ route, navigation }: PropsPila<"ClaseEnViv
 
   // Al salir, se devuelve el audio a su estado normal.
   useEffect(() => () => {
-    void setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+    void fijarModoDeAudio({ allowsRecording: false, playsInSilentMode: true });
   }, []);
 
   const alternarMicrofono = useCallback(async () => {
     if (microAbierto) {
       setMicroAbierto(false);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
+      await fijarModoDeAudio({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
       return;
     }
 
@@ -76,7 +76,7 @@ export default function ClaseEnVivo({ route, navigation }: PropsPila<"ClaseEnViv
     }
 
     if (accion === "pedir") {
-      const respuesta = await requestRecordingPermissionsAsync().catch(() => null);
+      const respuesta = await pedirMicrofono().catch(() => null);
       const nuevo = respuesta ? estadoDesdePermiso(respuesta) : "denegado";
       setPermiso(nuevo);
       if (nuevo !== "concedido") {
@@ -85,7 +85,7 @@ export default function ClaseEnVivo({ route, navigation }: PropsPila<"ClaseEnViv
       }
     }
 
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true }).catch(() => {});
+    await fijarModoDeAudio({ allowsRecording: true, playsInSilentMode: true }).catch(() => {});
     setMicroAbierto(true);
   }, [microAbierto, permiso]);
 

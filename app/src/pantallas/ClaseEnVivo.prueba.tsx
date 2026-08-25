@@ -2,13 +2,13 @@ import { act, fireEvent } from "@testing-library/react-native";
 import { Alert, Linking } from "react-native";
 import { renderPantalla } from "../../pruebas/dobles.tsx";
 import {
-  getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudioModeAsync,
-} from "expo-audio";
+  fijarModoDeAudio, pedirMicrofono, permisoDeMicrofono,
+} from "../lib/audio.ts";
 import ClaseEnVivo from "./ClaseEnVivo.tsx";
 
-const permisos = getRecordingPermissionsAsync as jest.Mock;
-const pedirPermiso = requestRecordingPermissionsAsync as jest.Mock;
-const modoAudio = setAudioModeAsync as jest.Mock;
+const permisos = permisoDeMicrofono as jest.Mock;
+const pedirPermiso = pedirMicrofono as jest.Mock;
+const modoAudio = fijarModoDeAudio as jest.Mock;
 
 const PARAMS = {
   titulo: "Teorema del valor medio", asignatura: "Cálculo I",
