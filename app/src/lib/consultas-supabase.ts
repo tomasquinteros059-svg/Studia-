@@ -5,7 +5,8 @@
 import { supabase } from "./supabase.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
-  Hilo, MensajeTutor, Modulo, Notificacion, ResumenGuardado, Respuesta, TareaConEstado,
+  Hilo, Lectura, MensajeTutor, Modulo, Notificacion, ResumenGuardado, Respuesta,
+  TareaConEstado,
 } from "./tipos.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
@@ -34,7 +35,9 @@ export async function miHorario(): Promise<BloqueHorario[]> {
 export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
   const { data, error } = await supabase
     .from("modulos")
-    .select("id, titulo, orden, materiales(id, tipo, titulo, detalle, orden)")
+    // El texto no se trae acá: son varios miles de palabras por documento y
+    // la lista solo necesita saber si hay algo que leer.
+    .select("id, titulo, orden, materiales(id, tipo, titulo, detalle, orden, texto)")
     .eq("asignatura_id", asignaturaId)
     .order("orden");
   reventar("No pude cargar la materia", error);
@@ -48,8 +51,33 @@ export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
     orden: m.orden,
     materiales: [...(m.materiales ?? [])]
       .sort((a, b) => a.orden - b.orden)
-      .map((mat) => ({ ...mat, completado: completados.has(mat.id) })),
+      .map(({ texto, ...mat }) => ({
+        ...mat,
+        completado: completados.has(mat.id),
+        leible: typeof texto === "string" && texto.trim().length > 0,
+      })),
   }));
+}
+
+/** El texto completo de un material, para el lector. */
+export async function lecturaPorId(materialId: string): Promise<Lectura | null> {
+  const { data, error } = await supabase
+    .from("materiales")
+    .select("id, titulo, texto, modulos(asignatura_id, asignaturas(nombre))")
+    .eq("id", materialId)
+    .maybeSingle();
+  reventar("No pude cargar la lectura", error);
+  if (!data?.texto) return null;
+
+  const modulo = Array.isArray(data.modulos) ? data.modulos[0] : data.modulos;
+  const asignatura = Array.isArray(modulo?.asignaturas) ? modulo.asignaturas[0] : modulo?.asignaturas;
+  return {
+    id: data.id,
+    titulo: data.titulo,
+    texto: data.texto,
+    asignatura_id: modulo?.asignatura_id ?? "",
+    asignatura_nombre: asignatura?.nombre ?? "",
+  };
 }
 
 export async function marcarMaterial(materialId: string, completado: boolean): Promise<void> {

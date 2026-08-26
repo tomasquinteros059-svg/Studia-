@@ -31,6 +31,7 @@ select pg_temp.afirmar('ve sus 13 notas publicadas',  (select count(*) from nota
 select pg_temp.afirmar('ve los 13 hilos del foro',    (select count(*) from hilos)::int, 13);
 select pg_temp.afirmar('ve 3 notificaciones sin leer',(select count(*) from notificaciones where not leida)::int, 3);
 select pg_temp.afirmar('ve sus 2 entregas',           (select count(*) from entregas)::int, 2);
+select pg_temp.afirmar('ve los 10 textos para leer',  (select count(*) from materiales where texto is not null)::int, 10);
 
 -- ======================= como el otro estudiante ======================
 set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
@@ -38,6 +39,9 @@ set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
 select pg_temp.afirmar('no ve asignaturas ajenas',    (select count(*) from asignaturas)::int, 0);
 select pg_temp.afirmar('no ve tareas ajenas',         (select count(*) from tareas)::int, 0);
 select pg_temp.afirmar('no ve notas ajenas',          (select count(*) from notas)::int, 0);
+-- El texto de lectura viaja en la misma fila que el material: si la fila no
+-- se ve, el texto tampoco. Vale la pena dejarlo afirmado.
+select pg_temp.afirmar('no ve textos de ramos ajenos',(select count(*) from materiales where texto is not null)::int, 0);
 select pg_temp.afirmar('no ve el foro ajeno',         (select count(*) from hilos)::int, 0);
 select pg_temp.afirmar('no ve notificaciones ajenas', (select count(*) from notificaciones)::int, 0);
 select pg_temp.afirmar('ve solo su propio perfil',    (select count(*) from perfiles)::int, 1);

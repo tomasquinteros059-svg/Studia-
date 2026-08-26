@@ -155,21 +155,39 @@ export default function Asignatura({ route, navigation }: Props) {
                   {m.materiales.filter((x) => x.completado).length}/{m.materiales.length}
                 </Text>
               </View>
-              {m.materiales.map((mat) => (
-                <Fila key={mat.id}
-                  izquierda={<Icono
-                    nombre={mat.tipo === "video" ? "video" : mat.tipo === "documento" ? "documento" : "ejercicios"}
-                    tono={mat.completado ? ramo.color : color.textoSuave} />}
-                  titulo={mat.titulo}
-                  detalle={mat.detalle}
-                  derecha={mat.completado
-                    ? <Icono nombre="listo" tamano={17} tono={ramo.color} /> : null}
-                  onPress={async () => {
-                    await marcarMaterial(mat.id, !mat.completado).catch(() => {});
-                    recargar();
-                  }}
-                />
-              ))}
+              {m.materiales.map((mat) => {
+                const marcar = async () => {
+                  await marcarMaterial(mat.id, !mat.completado).catch(() => {});
+                  recargar();
+                };
+                return (
+                  <Fila key={mat.id}
+                    izquierda={<Icono
+                      nombre={mat.tipo === "video" ? "video" : mat.tipo === "documento" ? "documento" : "ejercicios"}
+                      tono={mat.completado ? ramo.color : color.textoSuave} />}
+                    titulo={mat.titulo}
+                    detalle={mat.detalle}
+                    derecha={
+                      // Si hay algo que leer, tocar la fila abre el lector y la
+                      // marca queda como su propio botón: si no, sería imposible
+                      // abrir un material sin darlo por visto.
+                      mat.leible ? (
+                        <Pressable accessibilityRole="button" hitSlop={10}
+                          accessibilityLabel={mat.completado ? `Desmarcar ${mat.titulo}` : `Marcar ${mat.titulo} como visto`}
+                          onPress={() => void marcar()}>
+                          <Icono nombre={mat.completado ? "listo" : "escuchar"} tamano={18}
+                            tono={mat.completado ? ramo.color : color.marca} />
+                        </Pressable>
+                      ) : mat.completado ? (
+                        <Icono nombre="listo" tamano={17} tono={ramo.color} />
+                      ) : null
+                    }
+                    onPress={mat.leible
+                      ? () => navigation.navigate("Lectura", { materialId: mat.id })
+                      : () => void marcar()}
+                  />
+                );
+              })}
             </View>
           ))
         ) : null}

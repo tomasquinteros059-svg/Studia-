@@ -120,41 +120,31 @@ insert into public.modulos (asignatura_id, titulo, orden) values
 
 insert into public.materiales (modulo_id, tipo, titulo, detalle, orden) values
   (pg_temp.modu('MAT1610',1), 'video',      'Idea intuitiva de límite',            'Video · 14 min',   1),
-  (pg_temp.modu('MAT1610',1), 'documento',  'Apunte: límites laterales',           'PDF · 8 páginas',  2),
   (pg_temp.modu('MAT1610',1), 'ejercicios', 'Ejercicios 1.1 — resueltos',          '12 ítems',         3),
   (pg_temp.modu('MAT1610',2), 'video',      'Definición y regla de la cadena',     'Video · 19 min',   1),
-  (pg_temp.modu('MAT1610',2), 'documento',  'Formulario de derivadas',             'PDF · 2 páginas',  2),
   (pg_temp.modu('MAT1610',2), 'ejercicios', 'Guía 3 — derivación',                 '15 ítems',         3),
   (pg_temp.modu('MAT1610',3), 'video',      'Optimización: máximos y mínimos',     'Video · 22 min',   1),
-  (pg_temp.modu('MAT1610',3), 'documento',  'Casos de estudio',                    'PDF · 11 páginas', 2),
   (pg_temp.modu('MAT1610',3), 'ejercicios', 'Guía 4 — optimización',               '9 ítems',          3),
   (pg_temp.modu('MAT1203',1), 'video',      'Eliminación de Gauss',                'Video · 17 min',   1),
-  (pg_temp.modu('MAT1203',1), 'documento',  'Apunte: matriz escalonada',           'PDF · 6 páginas',  2),
   (pg_temp.modu('MAT1203',2), 'video',      'Base y dimensión',                    'Video · 21 min',   1),
   (pg_temp.modu('MAT1203',2), 'ejercicios', 'Guía 2 — independencia lineal',       '10 ítems',         2),
   (pg_temp.modu('MAT1203',3), 'video',      'Matriz de una transformación',        'Video · 16 min',   1),
-  (pg_temp.modu('MAT1203',3), 'documento',  'Apunte: núcleo e imagen',             'PDF · 9 páginas',  2),
   (pg_temp.modu('FIS1503',1), 'video',      'Movimiento en dos dimensiones',       'Video · 18 min',   1),
   (pg_temp.modu('FIS1503',1), 'ejercicios', 'Guía 1 — tiro parabólico',            '8 ítems',          2),
   (pg_temp.modu('FIS1503',2), 'video',      'Leyes de Newton y diagramas',         'Video · 24 min',   1),
-  (pg_temp.modu('FIS1503',2), 'documento',  'Apunte: roce estático y cinético',    'PDF · 7 páginas',  2),
   (pg_temp.modu('FIS1503',2), 'ejercicios', 'Guía 2 — planos inclinados',          '11 ítems',         3),
   (pg_temp.modu('FIS1503',3), 'video',      'Conservación de la energía',          'Video · 20 min',   1),
   (pg_temp.modu('ICS2123',1), 'video',      'Formulación de modelos',              'Video · 23 min',   1),
-  (pg_temp.modu('ICS2123',1), 'documento',  'Apunte: forma estándar',              'PDF · 5 páginas',  2),
   (pg_temp.modu('ICS2123',1), 'ejercicios', 'Casos de modelamiento',               '6 ítems',          3),
   (pg_temp.modu('ICS2123',2), 'video',      'Simplex paso a paso',                 'Video · 28 min',   1),
-  (pg_temp.modu('ICS2123',2), 'documento',  'Tabla simplex comentada',             'PDF · 4 páginas',  2),
   (pg_temp.modu('ICS2123',3), 'video',      'Interpretación económica del dual',   'Video · 19 min',   1),
   (pg_temp.modu('EAE1110',1), 'video',      'Equilibrio de mercado',               'Video · 15 min',   1),
-  (pg_temp.modu('EAE1110',1), 'documento',  'Apunte: desplazamientos vs. movimientos', 'PDF · 6 páginas', 2),
   (pg_temp.modu('EAE1110',2), 'video',      'Elasticidad precio de la demanda',    'Video · 18 min',   1),
   (pg_temp.modu('EAE1110',2), 'ejercicios', 'Guía 2 — cálculo de elasticidades',   '10 ítems',         2),
   (pg_temp.modu('EAE1110',3), 'video',      'Curvas de indiferencia',              'Video · 20 min',   1),
   (pg_temp.modu('IIC1103',1), 'video',      'Variables, tipos y control de flujo', 'Video · 16 min',   1),
   (pg_temp.modu('IIC1103',1), 'ejercicios', 'Ejercicios 1 — condicionales',        '14 ítems',         2),
   (pg_temp.modu('IIC1103',2), 'video',      'Listas y diccionarios',               'Video · 22 min',   1),
-  (pg_temp.modu('IIC1103',2), 'documento',  'Apunte: complejidad básica',          'PDF · 5 páginas',  2),
   (pg_temp.modu('IIC1103',2), 'ejercicios', 'Ejercicios 2 — listas',               '12 ítems',         3),
   (pg_temp.modu('IIC1103',3), 'video',      'Pensar recursivamente',               'Video · 19 min',   1);
 
@@ -384,3 +374,139 @@ values
   ('e0000000-0000-4000-8000-000000000001', 'tarea', 'Guía 2 quedó atrasada',
    'Planos inclinados · venció ayer', pg_temp.asig('FIS1503'),
    'tarea', pg_temp.tarea('Guía 2 · Planos inclinados'), true, now() - interval '1 day');
+
+-- ------------------------------------------------- textos para el lector
+-- Los materiales de tipo documento traen el texto adentro: se pueden leer y
+-- escuchar sin salir de la app. Por eso el "detalle" dice cuánto dura la
+-- lectura y no cuántas páginas tiene un PDF que ya no hay que descargar.
+--
+-- Van en su propio insert, y no en el de más arriba, porque el texto es
+-- largo: mezclarlo con las filas de una línea haría ilegibles las dos cosas.
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('MAT1610',1), 'documento', 'Apunte: límites laterales', 'Lectura · 4 min', 2, $t$
+Un límite lateral describe hacia dónde se acerca una función cuando nos aproximamos a un punto por un solo lado. Se escribe con un signo más o menos arriba del punto: por la derecha, tomando valores mayores que a; por la izquierda, tomando valores menores que a.
+
+La regla que ordena todo el capítulo es esta: el límite existe si y solo si los dos límites laterales existen y son iguales. Si uno de los dos no existe, o si existen pero dan distinto, el límite no existe. No hay término medio y no hay que discutirlo caso a caso.
+
+Conviene tener presente por qué esto importa. Una función puede estar perfectamente definida en un punto y aun así no tener límite ahí. El ejemplo clásico es la función escalón: vale 0 a la izquierda del cero y vale 1 a la derecha. En cero la función tiene un valor, pero los laterales dan 0 y 1, así que el límite no existe.
+
+El valor absoluto dividido por x es el otro ejemplo que aparece siempre en la prueba. Para x positivo la expresión vale 1; para x negativo vale menos 1. Los laterales existen los dos, son finitos los dos, y son distintos. Por lo tanto el límite en cero no existe, aunque a simple vista la fórmula parezca inofensiva.
+
+Con funciones definidas por tramos el procedimiento es mecánico. Se identifica el punto donde cambia la definición, se calcula el límite usando la fórmula del tramo izquierdo, se calcula usando la del tramo derecho, y recién ahí se comparan. El error más frecuente no es de cálculo: es evaluar la fórmula equivocada en cada lado.
+
+Un último detalle que cuesta en el control. Cuando el enunciado pide que la función sea continua en el punto, no basta con que los laterales coincidan: además tienen que coincidir con el valor de la función ahí. Son tres cosas que verificar, no dos.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('MAT1610',2), 'documento', 'Formulario de derivadas', 'Lectura · 3 min', 2, $t$
+La derivada mide la razón a la que cambia una función. Geométricamente es la pendiente de la recta tangente en un punto; físicamente, la velocidad instantánea si la función describe una posición. Las dos lecturas son la misma cuenta.
+
+Reglas básicas. La derivada de una constante es cero. La derivada de x elevado a n es n por x elevado a n menos 1. La derivada de una suma es la suma de las derivadas. Una constante que multiplica sale intacta de la derivada.
+
+Producto. La derivada de f por g es la derivada de f por g, más f por la derivada de g. El orden de los dos términos no importa; lo que importa es que son dos términos y no uno. Derivar cada factor por separado y multiplicar los resultados es el error más común del curso.
+
+Cociente. La derivada de f dividido g es la derivada de f por g, menos f por la derivada de g, todo dividido por g al cuadrado. Acá el orden sí importa por el signo menos, y el denominador va al cuadrado, no elevado a uno.
+
+Regla de la cadena. Si una función está compuesta con otra, se deriva la de afuera dejando el interior sin tocar, y después se multiplica por la derivada del interior. En la práctica conviene decir en voz alta cuál es la de afuera y cuál la de adentro antes de escribir nada.
+
+Las que hay que saber de memoria. La derivada del seno es el coseno. La del coseno es menos seno. La de la exponencial es ella misma. La del logaritmo natural es uno partido por x. La de la tangente es secante al cuadrado.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('MAT1610',3), 'documento', 'Casos de estudio', 'Lectura · 3 min', 2, $t$
+Optimizar es encontrar el mayor o el menor valor que puede tomar una cantidad cuando otra puede moverse. El curso lo trata con derivadas, pero la mitad del trabajo ocurre antes de derivar: hay que escribir la función correcta.
+
+El procedimiento tiene cinco pasos y ninguno se puede saltar. Primero, nombrar las variables y hacer un dibujo. Segundo, escribir qué se quiere maximizar o minimizar. Tercero, usar la condición del problema para dejar todo en función de una sola variable. Cuarto, encontrar el dominio real de esa variable. Quinto, derivar, igualar a cero y comparar los candidatos.
+
+El cuarto paso es el que más puntos cuesta. Un lado de un rectángulo no puede ser negativo, y una cantidad producida no puede superar la capacidad de la planta. Si el punto crítico cae fuera de ese intervalo, se descarta, y el máximo está en un extremo del dominio.
+
+Caso típico de cercos. Con una cantidad fija de material, el rectángulo de mayor área es el cuadrado. Si uno de los lados no lleva cerco porque da a un muro, la respuesta cambia y el rectángulo óptimo tiene el largo igual al doble del ancho. Vale la pena rehacer este caso completo antes de la prueba en vez de memorizar la respuesta.
+
+Caso típico de costos. Cuando el costo tiene una parte fija y una que crece con la cantidad, el mínimo aparece donde el costo marginal iguala al costo medio. Es el mismo resultado que después reaparece en Microeconomía, con otro nombre.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('MAT1203',1), 'documento', 'Apunte: matriz escalonada', 'Lectura · 4 min', 2, $t$
+Una matriz está en forma escalonada cuando cada fila empieza más a la derecha que la anterior y las filas de puros ceros quedan abajo. El primer elemento no nulo de una fila se llama pivote, y todo lo que hay debajo de un pivote es cero.
+
+Se llega ahí con operaciones elementales de fila, que son tres: intercambiar dos filas, multiplicar una fila por un número distinto de cero, y sumar a una fila un múltiplo de otra. Ninguna de las tres cambia el conjunto de soluciones del sistema, y esa es la razón por la que el método funciona.
+
+La forma escalonada reducida agrega dos exigencias: cada pivote vale uno, y arriba de cada pivote también hay ceros. Cuesta un poco más de trabajo, pero deja la solución escrita sin necesidad de sustituir hacia atrás.
+
+Cómo leer el resultado. Si aparece una fila con todos ceros a la izquierda y un número distinto de cero a la derecha, el sistema no tiene solución: esa fila dice que cero es igual a algo que no es cero. Si no aparece esa fila y cada incógnita tiene su pivote, la solución es única. Si no aparece esa fila y sobran incógnitas sin pivote, hay infinitas soluciones.
+
+Las incógnitas sin pivote se llaman variables libres, y su cantidad es el número de incógnitas menos el rango de la matriz. Cada variable libre es un parámetro en la respuesta final. Escribir la solución general sin nombrar los parámetros es un error de forma que igual descuenta.
+
+Un consejo práctico para el control. Conviene trabajar con la matriz ampliada desde el principio y anotar al costado qué operación se hizo en cada paso. Si el resultado no cuadra, revisar la anotación toma un minuto; rehacer todo, quince.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('MAT1203',3), 'documento', 'Apunte: núcleo e imagen', 'Lectura · 2 min', 2, $t$
+El núcleo de una transformación lineal es el conjunto de vectores que van a parar al cero. La imagen es el conjunto de vectores que efectivamente se alcanzan. Los dos son subespacios, y esa es la primera cosa que suelen pedir demostrar.
+
+El teorema que conecta todo dice que la dimensión del núcleo más la dimensión de la imagen es igual a la dimensión del espacio de partida. Con eso, calcular una de las dos dimensiones da la otra gratis.
+
+En términos de matrices, el núcleo es el conjunto de soluciones del sistema homogéneo, y su dimensión es la cantidad de variables libres. La imagen está generada por las columnas de la matriz, y su dimensión es el rango. Escalonar la matriz responde las dos preguntas de una sola pasada.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('FIS1503',2), 'documento', 'Apunte: roce estático y cinético', 'Lectura · 4 min', 2, $t$
+El roce es la fuerza que aparece entre dos superficies en contacto y se opone al movimiento relativo entre ellas. Siempre actúa a lo largo de la superficie, nunca perpendicular a ella, y su dirección se determina preguntándose hacia dónde se movería el cuerpo si el roce no existiera.
+
+Hay dos regímenes distintos y confundirlos es el error central del capítulo. El roce estático actúa mientras el cuerpo no se mueve, y no tiene un valor fijo: vale exactamente lo necesario para impedir el movimiento, hasta un máximo. El roce cinético actúa cuando el cuerpo ya está deslizando, y ahí sí tiene un valor definido.
+
+El máximo del roce estático es el coeficiente estático por la fuerza normal. Mientras la fuerza aplicada sea menor que ese máximo, el cuerpo no se mueve y el roce iguala a la fuerza aplicada. Cuando la fuerza aplicada supera ese máximo, el cuerpo se suelta y el roce pasa a ser el cinético, que es el coeficiente cinético por la normal.
+
+El coeficiente cinético es menor que el estático en casi todos los materiales. Por eso cuesta más empezar a empujar un mueble que seguir empujándolo, y por eso el cuerpo acelera de golpe justo después de soltarse.
+
+Sobre la normal hay que tener cuidado. En un plano horizontal sin fuerzas verticales extras, la normal es el peso. En un plano inclinado, la normal es el peso por el coseno del ángulo, no el peso. Y si alguien empuja hacia abajo o tira hacia arriba, la normal cambia y el roce cambia con ella.
+
+En un plano inclinado el cuerpo empieza a deslizar cuando la tangente del ángulo iguala al coeficiente estático. Es un resultado útil porque la masa se cancela: el ángulo al que un objeto se suelta no depende de cuánto pesa, cosa que en el laboratorio sorprende a todo el mundo.
+
+Al hacer el diagrama de cuerpo libre conviene poner los ejes paralelo y perpendicular al plano, no horizontal y vertical. Descomponer el peso una vez es mucho más corto que descomponer la normal y el roce por separado.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('ICS2123',1), 'documento', 'Apunte: forma estándar', 'Lectura · 2 min', 2, $t$
+Un problema de programación lineal está en forma estándar cuando busca maximizar, todas las restricciones son igualdades y todas las variables son no negativas. El simplex necesita esa forma para partir, así que llevarla ahí es el primer paso de cualquier ejercicio.
+
+Las conversiones son tres. Un problema de minimización se transforma multiplicando la función objetivo por menos uno. Una restricción de menor o igual se convierte en igualdad sumando una variable de holgura no negativa. Una de mayor o igual se convierte restando una variable de exceso y agregando una variable artificial.
+
+Una variable sin restricción de signo se reemplaza por la diferencia de dos variables no negativas. Es un truco barato y siempre funciona, pero agrega una columna al problema, así que conviene revisar si el enunciado de verdad permite valores negativos antes de usarlo.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('ICS2123',2), 'documento', 'Tabla simplex comentada', 'Lectura · 2 min', 2, $t$
+Cada tabla del simplex representa una solución básica factible: un vértice de la región. El método salta de vértice en vértice mejorando el objetivo, y se detiene cuando ningún salto mejora.
+
+Para elegir la columna que entra se mira la fila del objetivo y se toma el coeficiente más negativo. Para elegir la fila que sale se calcula el cociente entre el término libre y el coeficiente de la columna que entra, solo en las filas donde ese coeficiente es positivo, y se toma el cociente más chico. Esa es la prueba de la razón mínima y evita salir de la región factible.
+
+Se detiene con la respuesta cuando ningún coeficiente del objetivo es negativo. Si la columna que entra no tiene ningún coeficiente positivo, el problema es no acotado y no hay óptimo. Si al final queda una variable artificial con valor distinto de cero, el problema original no tenía solución factible.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('EAE1110',1), 'documento', 'Apunte: desplazamientos vs. movimientos', 'Lectura · 3 min', 2, $t$
+Distinguir un desplazamiento de la curva de un movimiento a lo largo de ella es lo que separa una respuesta correcta de una equivocada en casi todas las preguntas de este capítulo.
+
+Un movimiento a lo largo de la curva de demanda ocurre cuando cambia el precio del propio bien. La curva se queda quieta y el punto se mueve sobre ella. Es la respuesta que la curva ya tenía prevista.
+
+Un desplazamiento de toda la curva ocurre cuando cambia cualquier otra cosa: el ingreso de las personas, el precio de un bien sustituto o complementario, las expectativas, la cantidad de compradores o los gustos. La curva entera se corre a la derecha o a la izquierda.
+
+La prueba práctica es preguntarse si lo que cambió fue el precio del bien del que estamos hablando. Si la respuesta es sí, hay movimiento sobre la curva. Si es no, hay desplazamiento. No hay más casos.
+
+Lo mismo vale para la oferta, con otras causas: costos de los insumos, tecnología, impuestos y subsidios, y número de vendedores. Un impuesto por unidad desplaza la oferta hacia arriba exactamente en el monto del impuesto, y ese es el punto de partida para calcular quién termina pagándolo.
+$t$);
+
+insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto) values
+  (pg_temp.modu('IIC1103',2), 'documento', 'Apunte: complejidad básica', 'Lectura · 3 min', 2, $t$
+La complejidad de un algoritmo describe cómo crece el trabajo que hace cuando crece el tamaño de la entrada. No mide segundos: mide operaciones en función de n, y por eso la conclusión no cambia si el computador es más rápido.
+
+La notación O grande da una cota superior y se queda con el término que domina, ignorando constantes. Un algoritmo que hace tres n más veinte operaciones es O de n, porque para n grande el tres y el veinte no cambian la forma de la curva.
+
+Los órdenes que aparecen en el curso, de menor a mayor: constante, logarítmico, lineal, n logaritmo de n, cuadrático y exponencial. La diferencia entre ellos no es de matiz. Con un millón de elementos, un algoritmo lineal termina y uno cuadrático no alcanza a terminar en la clase.
+
+Cómo contar sin equivocarse. Un ciclo que recorre la entrada una vez es lineal. Dos ciclos anidados que recorren la entrada completa cada uno son cuadráticos. Un ciclo que en cada paso parte el problema por la mitad es logarítmico. Dos ciclos seguidos, no anidados, siguen siendo lineales: se suman, no se multiplican.
+
+Sobre las estructuras que ya usaron. Buscar en una lista es lineal, porque hay que mirar elemento por elemento. Buscar en un diccionario es constante en promedio, porque la tabla de hash va directo a la posición. Cuando un ejercicio pide bajar de cuadrático a lineal, la respuesta casi siempre es cambiar una lista por un diccionario.
+$t$);

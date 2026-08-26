@@ -5,9 +5,11 @@
 // archivo: si allá se agrega una consulta, acá falta y no compila.
 
 import type * as Real from "./consultas-supabase.ts";
+import { TEXTOS_DEMO } from "./textos-demo.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
-  Hilo, MensajeTutor, Modulo, Notificacion, Respuesta, ResumenGuardado, TareaConEstado,
+  Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Respuesta,
+  ResumenGuardado, TareaConEstado,
 } from "./tipos.ts";
 
 const ahora = Date.now();
@@ -100,33 +102,38 @@ const CLASES: Clase[] = [
 ];
 
 /* ---------------------------------------------------------------- materia */
-const MODULOS: Record<string, Modulo[]> = {
+// Sin `leible`: eso se deduce de TEXTOS_DEMO, así no puede quedar un material
+// marcado como legible sin texto detrás.
+type MaterialSemilla = Omit<Material, "leible">;
+type ModuloSemilla = Omit<Modulo, "materiales"> & { materiales: MaterialSemilla[] };
+
+const MODULOS: Record<string, ModuloSemilla[]> = {
   cal: [
     { id: "m1", titulo: "1 · Límites y continuidad", orden: 1, materiales: [
       { id: "mm1", tipo: "video", titulo: "Idea intuitiva de límite", detalle: "Video · 14 min", orden: 1, completado: true },
-      { id: "mm2", tipo: "documento", titulo: "Apunte: límites laterales", detalle: "PDF · 8 páginas", orden: 2, completado: true },
+      { id: "mm2", tipo: "documento", titulo: "Apunte: límites laterales", detalle: "Lectura · 4 min", orden: 2, completado: true },
       { id: "mm3", tipo: "ejercicios", titulo: "Ejercicios 1.1 resueltos", detalle: "12 ítems", orden: 3, completado: true },
     ]},
     { id: "m2", titulo: "2 · La derivada", orden: 2, materiales: [
       { id: "mm4", tipo: "video", titulo: "Regla de la cadena", detalle: "Video · 19 min", orden: 1, completado: true },
-      { id: "mm5", tipo: "documento", titulo: "Formulario de derivadas", detalle: "PDF · 2 páginas", orden: 2, completado: true },
+      { id: "mm5", tipo: "documento", titulo: "Formulario de derivadas", detalle: "Lectura · 3 min", orden: 2, completado: true },
       { id: "mm6", tipo: "ejercicios", titulo: "Guía 3 · derivación", detalle: "15 ítems", orden: 3, completado: false },
     ]},
     { id: "m3", titulo: "3 · Aplicaciones", orden: 3, materiales: [
       { id: "mm7", tipo: "video", titulo: "Optimización", detalle: "Video · 22 min", orden: 1, completado: false },
-      { id: "mm8", tipo: "documento", titulo: "Casos de estudio", detalle: "PDF · 11 páginas", orden: 2, completado: false },
+      { id: "mm8", tipo: "documento", titulo: "Casos de estudio", detalle: "Lectura · 3 min", orden: 2, completado: false },
     ]},
   ],
   alg: [
     { id: "m4", titulo: "1 · Sistemas de ecuaciones", orden: 1, materiales: [
       { id: "mm9", tipo: "video", titulo: "Eliminación de Gauss", detalle: "Video · 17 min", orden: 1, completado: true },
-      { id: "mm10", tipo: "documento", titulo: "Apunte: matriz escalonada", detalle: "PDF · 6 páginas", orden: 2, completado: false },
+      { id: "mm10", tipo: "documento", titulo: "Apunte: matriz escalonada", detalle: "Lectura · 4 min", orden: 2, completado: false },
     ]},
   ],
   fis: [
     { id: "m5", titulo: "2 · Dinámica", orden: 1, materiales: [
       { id: "mm11", tipo: "video", titulo: "Leyes de Newton", detalle: "Video · 24 min", orden: 1, completado: true },
-      { id: "mm12", tipo: "documento", titulo: "Apunte: roce", detalle: "PDF · 7 páginas", orden: 2, completado: false },
+      { id: "mm12", tipo: "documento", titulo: "Apunte: roce estático y cinético", detalle: "Lectura · 4 min", orden: 2, completado: false },
     ]},
   ],
   io: [
@@ -142,7 +149,7 @@ const MODULOS: Record<string, Modulo[]> = {
   pro: [
     { id: "m8", titulo: "2 · Estructuras de datos", orden: 1, materiales: [
       { id: "mm15", tipo: "video", titulo: "Listas y diccionarios", detalle: "Video · 22 min", orden: 1, completado: true },
-      { id: "mm16", tipo: "documento", titulo: "Apunte: complejidad", detalle: "PDF · 5 páginas", orden: 2, completado: true },
+      { id: "mm16", tipo: "documento", titulo: "Apunte: complejidad básica", detalle: "Lectura · 3 min", orden: 2, completado: true },
     ]},
   ],
 };
@@ -300,8 +307,33 @@ export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
   await respirar();
   return (MODULOS[asignaturaId] ?? []).map((m) => ({
     ...m,
-    materiales: m.materiales.map((x) => ({ ...x, completado: completados.has(x.id) })),
+    materiales: m.materiales.map((x) => ({
+      ...x,
+      completado: completados.has(x.id),
+      leible: TEXTOS_DEMO[x.id] !== undefined,
+    })),
   }));
+}
+
+export async function lecturaPorId(materialId: string): Promise<Lectura | null> {
+  await respirar();
+  const texto = TEXTOS_DEMO[materialId];
+  if (!texto) return null;
+
+  for (const [asignaturaId, modulos] of Object.entries(MODULOS)) {
+    for (const m of modulos) {
+      const mat = m.materiales.find((x) => x.id === materialId);
+      if (!mat) continue;
+      return {
+        id: mat.id,
+        titulo: mat.titulo,
+        texto,
+        asignatura_id: asignaturaId,
+        asignatura_nombre: ASIGNATURAS.find((a) => a.id === asignaturaId)?.nombre ?? "",
+      };
+    }
+  }
+  return null;
 }
 
 export async function marcarMaterial(materialId: string, completado: boolean): Promise<void> {
@@ -485,7 +517,7 @@ export function guardarResumenDemo(apunteId: string, resumen: ResumenGuardado): 
 // compilar hasta que exista también acá.
 const _cobertura: Omit<typeof Real, "default"> = {
   misAsignaturas, miHorario, materiaDe, marcarMaterial, clasesDe, claseEnVivo,
-  capitulosDe, misTareas, tareaPorId, entregarTarea, evaluacionesDe,
+  lecturaPorId, capitulosDe, misTareas, tareaPorId, entregarTarea, evaluacionesDe,
   todasLasEvaluaciones, foroDe, respuestasDe, responderHilo, crearHilo,
   hiloPorId, companerosDe, miPerfil, cambiarNombre, misNotificaciones,
   marcarLeida, marcarTodasLeidas, mensajesDe, misApuntes, apuntePorId,

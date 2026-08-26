@@ -29,6 +29,18 @@ export type Material = {
   detalle: string;
   orden: number;
   completado: boolean;
+  /** Trae texto adentro: se puede abrir en el lector y escuchar. */
+  leible: boolean;
+};
+
+/** Un material abierto en el lector. El texto solo se pide al abrirlo. */
+export type Lectura = {
+  id: string;
+  titulo: string;
+  asignatura_id: string;
+  /** Para volver al ramo y para el contexto del tutor. */
+  asignatura_nombre: string;
+  texto: string;
 };
 
 export type Modulo = {

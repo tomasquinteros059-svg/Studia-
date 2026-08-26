@@ -32,6 +32,12 @@ export const ICONOS = {
   nota: "star-outline",
   persona: "person-outline",
   reloj: "time-outline",
+  escuchar: "headset-outline",
+  fraseAtras: "play-skip-back",
+  fraseAdelante: "play-skip-forward",
+  letra: "text-outline",
+  cerrar: "close",
+  lapiz: "create-outline",
 } as const;
 
 export function Icono({

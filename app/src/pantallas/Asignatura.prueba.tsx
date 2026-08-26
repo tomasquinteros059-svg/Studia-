@@ -82,10 +82,25 @@ describe("Asignatura", () => {
     }
   });
 
-  test("tocar un material marca el avance", async () => {
+  test("tocar un material sin texto marca el avance", async () => {
+    const t = await abrir();
+    fireEvent.press(t.getByText("Idea de límite"));
+    await waitFor(() => expect(mock.marcarMaterial).toHaveBeenCalledWith("mat-1", false));
+  });
+
+  test("tocar un material con texto abre el lector", async () => {
     const t = await abrir();
     fireEvent.press(t.getByText("Apunte de límites"));
+    expect(t.navigation.navigate).toHaveBeenCalledWith("Lectura", { materialId: "mat-2" });
+    // Abrir para leer no es lo mismo que darlo por visto.
+    expect(mock.marcarMaterial).not.toHaveBeenCalled();
+  });
+
+  test("en un material con texto la marca es su propio botón", async () => {
+    const t = await abrir();
+    fireEvent.press(t.getByLabelText("Marcar Apunte de límites como visto"));
     await waitFor(() => expect(mock.marcarMaterial).toHaveBeenCalledWith("mat-2", true));
+    expect(t.navigation.navigate).not.toHaveBeenCalled();
   });
 
   test("Clases muestra la que está en vivo y las grabadas", async () => {

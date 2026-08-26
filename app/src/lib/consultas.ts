@@ -10,6 +10,7 @@ const fuente = MODO_DEMO ? demo : supabase;
 export const misAsignaturas = fuente.misAsignaturas;
 export const miHorario = fuente.miHorario;
 export const materiaDe = fuente.materiaDe;
+export const lecturaPorId = fuente.lecturaPorId;
 export const marcarMaterial = fuente.marcarMaterial;
 export const clasesDe = fuente.clasesDe;
 export const claseEnVivo = fuente.claseEnVivo;

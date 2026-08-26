@@ -22,6 +22,7 @@ export type RutasPila = {
   Tarea: { tareaId: string };
   Perfil: undefined;
   Apunte: { apunteId: string };
+  Lectura: { materialId: string };
   Consejos: undefined;
   ClaseEnVivo: {
     titulo: string;

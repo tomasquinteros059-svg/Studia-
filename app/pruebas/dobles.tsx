@@ -56,8 +56,8 @@ export const CLASE_GRABADA = {
 export const MODULO = {
   id: "m-1", titulo: "1 · Límites", orden: 1,
   materiales: [
-    { id: "mat-1", tipo: "video" as const, titulo: "Idea de límite", detalle: "Video · 14 min", orden: 1, completado: true },
-    { id: "mat-2", tipo: "documento" as const, titulo: "Apunte de límites", detalle: "PDF · 8 págs", orden: 2, completado: false },
+    { id: "mat-1", tipo: "video" as const, titulo: "Idea de límite", detalle: "Video · 14 min", orden: 1, completado: true, leible: false },
+    { id: "mat-2", tipo: "documento" as const, titulo: "Apunte de límites", detalle: "Lectura · 4 min", orden: 2, completado: false, leible: true },
   ],
 };
 
@@ -82,6 +82,12 @@ export const APUNTE = {
   id: "a-1", asignatura_id: RAMO.id, clase_id: null, titulo: "Clase del valor medio",
   contenido: "El teorema dice que existe un c en (a,b) tal que la derivada es la pendiente media.",
   fijado: false, actualizado_en: enDias(-1),
+};
+
+export const LECTURA = {
+  id: "mat-2", titulo: "Apunte de límites", asignatura_id: RAMO.id,
+  asignatura_nombre: RAMO.nombre,
+  texto: "Un límite lateral se acerca por un lado. La regla es simple.\n\nEl escalón no tiene límite en cero.",
 };
 
 /** Navegación de mentira: registra a dónde se quiso ir. */

@@ -27,6 +27,7 @@ import Perfil from "./src/pantallas/Perfil.tsx";
 import ClaseEnVivo from "./src/pantallas/ClaseEnVivo.tsx";
 import Grabacion from "./src/pantallas/Grabacion.tsx";
 import Apunte from "./src/pantallas/Apunte.tsx";
+import Lectura from "./src/pantallas/Lectura.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
 import MisApuntes from "./src/pantallas/MisApuntes.tsx";
 import { Icono } from "./src/ui/Icono.tsx";
@@ -111,6 +112,7 @@ export default function App() {
             <Pila.Screen name="Tarea" component={Tarea} options={{ title: "Tarea" }} />
             <Pila.Screen name="Perfil" component={Perfil} options={{ title: "Mi perfil" }} />
             <Pila.Screen name="Apunte" component={Apunte} options={{ title: "Apuntes de clase" }} />
+            <Pila.Screen name="Lectura" component={Lectura} options={{ title: "Lectura" }} />
             <Pila.Screen name="Consejos" component={Consejos} options={{ title: "Cómo vas estudiando" }} />
             <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />
             <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}

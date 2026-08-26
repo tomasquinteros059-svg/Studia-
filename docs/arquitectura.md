@@ -268,6 +268,45 @@ La tabla `transcripciones` ya existe y la función `resumen` la usa **cuando hay
 filas**. El día que el transporte alimente esa tabla, el resumen mejora solo,
 sin tocar la app.
 
+## El lector inmersivo
+
+El material de tipo documento ya no es un PDF que hay que bajar: trae el texto
+adentro, en la columna `materiales.texto`. Eso permite abrirlo dentro de la app
+y escucharlo mientras se toman apuntes, que es como se estudia en la casa.
+
+**Se lee frase por frase, no de una.** El texto se corta con
+`dominio/lectura.ts` y se le entrega al sintetizador una frase a la vez,
+esperando a que termine para mandar la siguiente. Cuesta más que mandar el
+texto entero, pero es lo único que permite las tres cosas que hacen falta:
+resaltar exactamente lo que suena, retroceder una sola frase, y cambiar la
+velocidad sin volver al principio. De paso esquiva el límite de largo del
+motor de Android, que trunca las frases largas sin avisar.
+
+Cortar en frases castellano no es partir por los puntos. Un punto entre
+dígitos es un decimal (`3.1416`), un punto detrás de un tratamiento nunca
+cierra (`el Dr. Salas`), y una abreviatura como `etc.` cierra o no según lo
+que venga después: minúscula sigue, mayúscula corta. Todo eso está probado.
+
+**El toque va en el párrafo, no en la frase.** Un `Text` con `onPress` deja de
+fluir en línea y el párrafo termina partido en una frase por renglón. Para
+saltar a una frase puntual están los mandos de la barra.
+
+**Los ajustes viven en el aparato.** Tamaño, interlineado, fondo, velocidad y
+dónde quedó se guardan en `AsyncStorage`, no en la base: dependen de la
+pantalla que tiene en la mano, no de su cuenta, y así el lector abre sin
+esperar a la red. Lo guardado se normaliza al leerlo: unas preferencias de una
+versión anterior no pueden impedir que el lector abra.
+
+**La voz es opcional.** `lib/voz.ts` carga `expo-speech` con la misma puerta
+que `lib/audio.ts` usa para `expo-audio`: si el cliente no lo trae, el texto se
+lee igual y se dice por qué no suena. Si el aparato no tiene voces en español,
+se avisa antes de que el estudiante crea que la app está rota: el motor leería
+castellano con fonética inglesa.
+
+Lo que se anota mientras se escucha va a los apuntes del ramo, al mismo apunte
+cada vez que se vuelve a esa lectura. El botón "Anotar esta frase" la copia
+entrecomillada.
+
 ## Consejos de estudio: dos clases distintas
 
 **Sobre la materia** los da Claude, dentro del resumen de la clase.
@@ -351,6 +390,7 @@ chico o una cátedra semanal, el piloto sale gratis en cualquiera de los tres.
 | Sesión | Entrar y crear cuenta |
 | Apuntes | El tablero: muro de tarjetas, con fijar y buscar |
 | Apunte | Escribir en clase; en tablet horizontal, con el tutor al lado |
+| Lectura | El lector inmersivo: escuchar el material y anotar al lado |
 | Consejos | Cómo va estudiando, calculado de sus propios datos |
 | Inicio | Clase en vivo, bloques de hoy, próximas entregas y las asignaturas |
 | Asignatura | Nueve secciones tras los tres puntitos |
@@ -376,7 +416,7 @@ Horario, Programa, Compañeros y Archivos**.
 | `app/src/dominio/` | Lógica pura y probada: notas, tareas |
 | `app/src/lib/` | Cliente de Supabase, consultas, cliente del tutor, rutas |
 | `app/src/ui/` | Tokens de diseño y componentes compartidos |
-| `app/src/pantallas/` | Una pantalla por archivo — catorce |
+| `app/src/pantallas/` | Una pantalla por archivo — quince |
 | `supabase/migrations/` | Esquema y políticas de acceso |
 | `supabase/seed.sql` | Las seis asignaturas con datos realistas |
 | `supabase/functions/tutor/` | La función que habla con Claude |
