@@ -33,3 +33,9 @@ do $$ begin
     create role anon;
   end if;
 end $$;
+
+-- Supabase concede esto al iniciar el proyecto. Sin ello, una política puede
+-- llamar a auth.uid() —el motor evalúa esas expresiones aparte— pero un
+-- trigger no, y la diferencia solo aparece cuando se escribe uno.
+grant usage on schema auth to anon, authenticated;
+grant execute on function auth.uid() to anon, authenticated;

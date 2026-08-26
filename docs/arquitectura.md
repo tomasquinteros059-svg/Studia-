@@ -268,6 +268,50 @@ La tabla `transcripciones` ya existe y la función `resumen` la usa **cuando hay
 filas**. El día que el transporte alimente esa tabla, el resumen mejora solo,
 sin tocar la app.
 
+## Docentes: quién puede escribir qué
+
+Hasta hace poco el profesor era una cadena de texto en `asignaturas.profesor`
+—un nombre para mostrar, sin cuenta y sin permisos— y todo el contenido venía
+del seed. La app funcionaba, pero nadie podía cargar nada.
+
+La regla nueva es el espejo exacto de la del estudiante. `inscripciones` dice
+qué ve un alumno; `dictados` dice qué ve **y escribe** un docente. Las dos se
+consultan con una función `SECURITY DEFINER` —`esta_inscrito` y `dicta`— por
+la misma razón: no volver a pasar por las políticas y no entrar en recursión.
+
+Las políticas de docente se **suman** a las de estudiante en vez de
+reemplazarlas: Postgres une las políticas permisivas con OR, así que agregar
+las nuevas no le quitó nada a nadie. Las 37 aserciones de estudiante que ya
+existían siguen pasando sin tocarse.
+
+**Profesor y ayudante no son lo mismo.** El ayudante corrige entregas, carga
+material y responde el foro. Publicar notas es del profesor: hay una segunda
+función, `dicta_como_profesor`, y las políticas de `evaluaciones` y `notas`
+usan esa.
+
+**Corregir es poner un puntaje, no reescribir la entrega.** La política sola
+dejaría a un docente cambiar el archivo entregado o la fecha, y el alumno se
+quedaría sin cómo demostrar qué entregó y cuándo. Como RLS no puede comparar
+contra la fila anterior, eso lo cierra un trigger.
+
+**La línea que el docente no cruza.** Los apuntes, las transcripciones, los
+resúmenes y la conversación con el tutor son material de estudio privado del
+alumno, y no hay ninguna política que se los abra. No es un descuido: un
+alumno que sabe que su profesor le lee los apuntes deja de escribir lo que no
+entiende, y eso es justo lo que hace útil al tutor.
+
+**Nadie se asciende solo.** El rol sale de los metadatos con que se creó la
+cuenta y un trigger rechaza cualquier `update` que lo cambie. El cliente sí
+puede leer su propio rol —lo necesita para saber qué pantalla abrir— pero
+`perfiles` sigue cerrado por columnas y el correo no se lee desde el cliente.
+
+### Una trampa de las pruebas que vale la pena recordar
+
+Un `update` que no alcanza ninguna fila **no lanza error**: termina tranquilo
+habiendo cambiado cero. Una prueba escrita como "esperaba una excepción"
+pasaría igual si el permiso estuviera abierto de par en par. Las pruebas de
+escritura cuentan filas con `get diagnostics` y además releen el valor.
+
 ## El lector inmersivo
 
 El material de tipo documento ya no es un PDF que hay que bajar: trae el texto

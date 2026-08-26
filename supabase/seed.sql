@@ -35,6 +35,38 @@ insert into auth.users (
   '{"nombre":"Eduardo Q."}'::jsonb
 ) on conflict (id) do nothing;
 
+-- -------------------------------------------------------------- docentes
+-- Cuenta de profesora: ana@studia.cl / clave-demo
+-- El rol sale de los metadatos: lo pone el trigger `crear_perfil`.
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data
+) values (
+  'd0000000-0000-4000-8000-000000000001',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated', 'ana@studia.cl',
+  crypt('clave-demo', gen_salt('bf')),
+  now(), now(), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"nombre":"Ana Ríos","rol":"profesor"}'::jsonb
+) on conflict (id) do nothing;
+
+-- Cuenta de ayudante: ignacio@studia.cl / clave-demo
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data
+) values (
+  'd0000000-0000-4000-8000-000000000002',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated', 'ignacio@studia.cl',
+  crypt('clave-demo', gen_salt('bf')),
+  now(), now(), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"nombre":"Ignacio Soto","rol":"profesor"}'::jsonb
+) on conflict (id) do nothing;
+
 -- ----------------------------------------------------------- asignaturas
 insert into public.asignaturas
   (codigo, nombre, profesor, ayudante, color, creditos, descripcion, requisitos, bibliografia, intro_tutor)
@@ -147,6 +179,12 @@ insert into public.materiales (modulo_id, tipo, titulo, detalle, orden) values
   (pg_temp.modu('IIC1103',2), 'video',      'Listas y diccionarios',               'Video · 22 min',   1),
   (pg_temp.modu('IIC1103',2), 'ejercicios', 'Ejercicios 2 — listas',               '12 ítems',         3),
   (pg_temp.modu('IIC1103',3), 'video',      'Pensar recursivamente',               'Video · 19 min',   1);
+
+-- Ana dicta Cálculo I y Álgebra; Ignacio ayuda en Cálculo I.
+insert into public.dictados (docente_id, asignatura_id, papel) values
+  ('d0000000-0000-4000-8000-000000000001', pg_temp.asig('MAT1610'), 'profesor'),
+  ('d0000000-0000-4000-8000-000000000001', pg_temp.asig('MAT1203'), 'profesor'),
+  ('d0000000-0000-4000-8000-000000000002', pg_temp.asig('MAT1610'), 'ayudante');
 
 -- Lo que Eduardo ya completó.
 insert into public.progreso_material (estudiante_id, material_id)

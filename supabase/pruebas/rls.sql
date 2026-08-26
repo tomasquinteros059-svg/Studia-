@@ -18,6 +18,12 @@ begin
   raise notice 'ok · %  (%)', p_caso, p_real;
 end $$;
 
+-- Para poder hablar de un ramo que el usuario en turno NO ve. Se crea acá,
+-- mientras todavía somos superusuario, y es SECURITY DEFINER a propósito.
+create or replace function pg_temp.id_de(p_codigo text) returns uuid
+  language sql stable security definer set search_path = public
+  as $$ select id from public.asignaturas where codigo = p_codigo $$;
+
 -- ============================ como Eduardo ============================
 set role authenticated;
 set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
@@ -217,3 +223,164 @@ exception when insufficient_privilege then
 end $$;
 
 select '— también pasaron las pruebas de apuntes —' as resultado;
+
+-- ========================== como la profesora ==========================
+-- Ana dicta Cálculo I (MAT1610) y Álgebra (MAT1203). No dicta Física.
+set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
+
+select pg_temp.afirmar('ve solo los 2 ramos que dicta',
+  (select count(*) from asignaturas)::int, 2);
+select pg_temp.afirmar('ve el horario de esos 2 ramos',
+  (select count(*) from bloques_horario)::int, 5);
+select pg_temp.afirmar('ve a los inscritos de sus ramos',
+  (select count(*) from inscripciones)::int, 3);
+select pg_temp.afirmar('la lista del curso sale por alumnos_de',
+  (select count(*) from public.alumnos_de(pg_temp.id_de('MAT1610')))::int, 2);
+select pg_temp.afirmar('no saca la lista de un ramo que no dicta',
+  (select count(*) from public.alumnos_de(pg_temp.id_de('FIS1503')))::int, 0);
+
+-- Ve las notas de sus evaluaciones aunque no estén publicadas: es al revés
+-- que el estudiante.
+select pg_temp.afirmar('ve las notas sin publicar de sus ramos',
+  (select count(*) from notas where publicada_en is null)::int, 1);
+
+-- Escribir en lo suyo.
+do $$
+declare v_modulo uuid;
+begin
+  insert into public.modulos (asignatura_id, titulo, orden)
+  values ((select id from public.asignaturas where codigo = 'MAT1610'), '9 · Módulo de prueba', 9)
+  returning id into v_modulo;
+
+  insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto)
+  values (v_modulo, 'documento', 'Lectura de prueba', 'Lectura · 1 min', 1, 'Un texto cualquiera.');
+
+  insert into public.tareas (asignatura_id, titulo, enunciado, puntos, vence_en)
+  values ((select id from public.asignaturas where codigo = 'MAT1610'),
+          'Tarea de prueba', 'Resuelve.', 10, now() + interval '7 days');
+
+  raise notice 'ok · el docente carga módulo, material y tarea en su ramo';
+end $$;
+
+-- Y no en lo ajeno.
+do $$
+begin
+  insert into public.tareas (asignatura_id, titulo, enunciado, puntos, vence_en)
+  values (pg_temp.id_de('FIS1503'),
+          'Tarea intrusa', 'No debería entrar.', 10, now() + interval '7 days');
+  raise exception 'FALLA · pude publicar una tarea en un ramo que no dicto';
+exception when insufficient_privilege then
+  raise notice 'ok · no puede publicar tareas en un ramo ajeno';
+end $$;
+
+-- Los apuntes del alumno son del alumno.
+select pg_temp.afirmar('no ve los apuntes de sus alumnos',
+  (select count(*) from apuntes)::int, 0);
+select pg_temp.afirmar('no ve lo que sus alumnos le preguntan al tutor',
+  (select count(*) from mensajes)::int, 0);
+select pg_temp.afirmar('no ve los resúmenes de sus alumnos',
+  (select count(*) from resumenes)::int, 0);
+
+-- Corregir es poner puntaje, no reescribir la entrega.
+--
+-- Estas dos se cuentan por filas y no por excepción: si el docente no viera
+-- la entrega, el update tocaría cero filas y terminaría sin quejarse. Contar
+-- es lo único que distingue "no pudo" de "no había nada que tocar".
+do $$
+declare v_tocadas int;
+begin
+  update public.entregas set puntos_obtenidos = 18
+   where id = (select id from public.entregas limit 1);
+  get diagnostics v_tocadas = row_count;
+  if v_tocadas <> 1 then
+    raise exception 'FALLA · el docente corrigió % entregas y debía ser 1', v_tocadas;
+  end if;
+  raise notice 'ok · el docente pone el puntaje de una entrega';
+end $$;
+
+do $$
+declare v_tocadas int;
+begin
+  update public.entregas set entregado_en = now()
+   where id = (select id from public.entregas limit 1);
+  get diagnostics v_tocadas = row_count;
+  raise exception 'FALLA · pude cambiar la fecha de % entregas', v_tocadas;
+exception when raise_exception then
+  if sqlerrm like 'FALLA%' then raise; end if;
+  raise notice 'ok · corregir no permite mover la fecha de entrega';
+end $$;
+
+-- Nadie se asciende solo.
+do $$
+declare v_rol text;
+begin
+  begin
+    update public.perfiles set rol = 'estudiante' where id = auth.uid();
+    raise exception 'FALLA · pude cambiarme el rol';
+  exception when raise_exception then
+    if sqlerrm like 'FALLA%' then raise; end if;
+  end;
+  select rol into v_rol from public.perfiles where id = auth.uid();
+  if v_rol <> 'profesor' then
+    raise exception 'FALLA · el rol quedó en %', v_rol;
+  end if;
+  raise notice 'ok · el rol no se cambia desde el cliente';
+end $$;
+
+-- ========================== como el ayudante ===========================
+-- Ignacio ayuda en Cálculo I: corrige y responde, pero no pone notas.
+set pruebas.uid = 'd0000000-0000-4000-8000-000000000002';
+
+select pg_temp.afirmar('el ayudante ve el ramo en que ayuda',
+  (select count(*) from asignaturas)::int, 1);
+
+do $$
+begin
+  insert into public.notas (evaluacion_id, estudiante_id, nota)
+  values ((select id from public.evaluaciones limit 1),
+          'e0000000-0000-4000-8000-000000000001', 7.0);
+  raise exception 'FALLA · el ayudante pudo poner una nota';
+exception when insufficient_privilege then
+  raise notice 'ok · el ayudante no pone notas';
+end $$;
+
+do $$
+begin
+  insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto)
+  values ((select id from public.modulos limit 1), 'documento', 'Guía del ayudante', 'Lectura · 1 min', 8, 'Texto.');
+  raise notice 'ok · el ayudante sí puede cargar material';
+end $$;
+
+-- ================== el estudiante sigue sin poder escribir ==================
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+do $$
+begin
+  insert into public.tareas (asignatura_id, titulo, enunciado, puntos, vence_en)
+  values ((select id from public.asignaturas limit 1), 'Tarea falsa', 'No.', 10, now());
+  raise exception 'FALLA · un estudiante pudo publicar una tarea';
+exception when insufficient_privilege then
+  raise notice 'ok · el estudiante no publica tareas';
+end $$;
+
+-- Ojo con esta forma: un update que no alcanza ninguna fila NO lanza error,
+-- termina tranquilo habiendo cambiado cero. Si esto se escribiera esperando
+-- una excepción, la prueba pasaría incluso si el estudiante sí pudiera.
+do $$
+declare v_tocadas int; v_antes numeric; v_despues numeric;
+begin
+  select nota into v_antes from public.notas where estudiante_id = auth.uid() limit 1;
+  update public.notas set nota = 7.0 where estudiante_id = auth.uid();
+  get diagnostics v_tocadas = row_count;
+  select nota into v_despues from public.notas where estudiante_id = auth.uid() limit 1;
+
+  if v_tocadas <> 0 then
+    raise exception 'FALLA · un estudiante cambió % notas', v_tocadas;
+  end if;
+  if v_despues is distinct from v_antes then
+    raise exception 'FALLA · la nota cambió de % a %', v_antes, v_despues;
+  end if;
+  raise notice 'ok · el estudiante no se cambia las notas (0 filas)';
+end $$;
+
+select '— también pasaron las pruebas de docentes —' as resultado;
