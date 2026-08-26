@@ -268,6 +268,43 @@ La tabla `transcripciones` ya existe y la función `resumen` la usa **cuando hay
 filas**. El día que el transporte alimente esa tabla, el resumen mejora solo,
 sin tocar la app.
 
+## Tres capas de escritura
+
+Quien manda sobre cada dato es distinto, y el diseño lo sigue:
+
+| Quién | Sobre qué | Por qué esa frontera |
+|---|---|---|
+| El colegio | Ramos, horario, dictados, inscripciones | Son hechos que deben ser iguales para todos. Si cada profesor pudiera mover una sala, dos cursos quedarían citados en el mismo lugar. |
+| El docente | Módulos, material, lecturas, tareas, evaluaciones, notas, clases, foro de **su** ramo | Es contenido, y cambia durante el semestre. |
+| El alumno | Entregas, apuntes, avance, preguntas al tutor | Nadie escribe por él. |
+
+**El camino normal del colegio no es una pantalla: es una planilla.** Nadie va
+a tipear un semestre en un formulario, y lo que el colegio ya tiene está en
+Excel. Por eso la carga entra por `datos/` y `npm run importar`: seis CSV, una
+carpeta de lecturas, y un comando que revisa todo antes de escribir una sola
+fila. Las políticas de administración existen igual, para corregir una fila
+suelta desde la app el día que haga falta.
+
+El importador revisa lo que una planilla no puede ver sola: que los códigos y
+correos referenciados existan, que un `documento` tenga algo que abrir, y
+**los choques de horario** —misma sala a la misma hora, o un profesor citado
+en dos partes a la vez—, que es el error que más caro sale porque se descubre
+el primer día de clases. Informa todos los problemas juntos, con archivo y
+línea: hacer corregir de a uno le hace perder la tarde a alguien.
+
+Y es idempotente. Un colegio corrige la planilla y vuelve a importar; eso
+actualiza lo que cambió sin duplicar nada y sin pisar lo que los alumnos ya
+escribieron. El horario es lo único que se rehace entero, para que un bloque
+borrado de la planilla desaparezca de verdad.
+
+### Un candado que también encerraba al colegio
+
+El trigger que impide cambiarse el rol se escribió pensando en el cliente,
+pero corría para todos. La primera importación de un semestre —que justamente
+asigna roles— se caía sola. Los dos triggers de este tipo ahora miran
+`current_user` y solo vigilan a `authenticated`. Apareció al aplicar el SQL
+generado de punta a punta, no leyéndolo.
+
 ## Docentes: quién puede escribir qué
 
 Hasta hace poco el profesor era una cadena de texto en `asignaturas.profesor`
@@ -473,6 +510,8 @@ Horario, Programa, Compañeros y Archivos**.
 | `app/src/pantallas/` | Una pantalla por archivo — quince |
 | `supabase/migrations/` | Esquema y políticas de acceso |
 | `supabase/seed.sql` | Las seis asignaturas con datos realistas |
+| `datos/` | Las planillas del colegio y las lecturas (ver `datos/LÉEME.md`) |
+| `herramientas/` | El importador de planillas y su validación |
 | `supabase/functions/tutor/` | La función que habla con Claude |
 | `supabase/pruebas/` | Andamio y pruebas de acceso |
 | `prototipo/` | El prototipo HTML, que sigue siendo la referencia de diseño |

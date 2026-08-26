@@ -1,0 +1,4 @@
+codigo,nombre,profesor,ayudante,color,creditos,descripcion,requisitos,bibliografia,intro_tutor
+MAT1610,Cálculo I,Ana Ríos,Ignacio Soto,#208AEF,10,"Cálculo diferencial en una variable: límites, continuidad, derivada y sus aplicaciones.",Álgebra de enseñanza media,Stewart — Cálculo de una variable | Spivak — Calculus,¿En qué problema de cálculo estás? Cuéntame qué te piden y qué datos tienes.
+MAT1203,Álgebra Lineal,Ana Ríos,,#7C5CD6,10,"Sistemas de ecuaciones, espacios vectoriales y transformaciones lineales.",Álgebra de enseñanza media,Grossman — Álgebra lineal,¿Qué sistema estás resolviendo? Muéstrame la matriz como la escribiste.
+FIS1503,Física I,Carla Núñez,,#C9701C,10,"Cinemática y dinámica: movimiento, fuerzas y energía.",Cálculo I en paralelo,Serway — Física para ciencias e ingeniería,Partamos por el diagrama de cuerpo libre. ¿Qué fuerzas ves actuando?

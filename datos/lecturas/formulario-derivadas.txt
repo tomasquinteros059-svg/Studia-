@@ -1,0 +1,11 @@
+La derivada mide la razón a la que cambia una función. Geométricamente es la pendiente de la recta tangente en un punto; físicamente, la velocidad instantánea si la función describe una posición. Las dos lecturas son la misma cuenta.
+
+Reglas básicas. La derivada de una constante es cero. La derivada de x elevado a n es n por x elevado a n menos 1. La derivada de una suma es la suma de las derivadas. Una constante que multiplica sale intacta de la derivada.
+
+Producto. La derivada de f(x) por g(x) es la derivada de f por g, más f por la derivada de g. El orden de los dos términos no importa; lo que importa es que son dos términos y no uno. Derivar cada factor por separado y multiplicar los resultados es el error más común del curso.
+
+Cociente. La derivada de f dividido g es la derivada de f por g, menos f por la derivada de g, todo dividido por g al cuadrado. Acá el orden sí importa por el signo menos, y el denominador va al cuadrado, no elevado a uno.
+
+Regla de la cadena. Si una función está compuesta con otra, se deriva la de afuera dejando el interior sin tocar, y después se multiplica por la derivada del interior. En la práctica conviene decir en voz alta cuál es la de afuera y cuál la de adentro antes de escribir nada.
+
+Las que hay que saber de memoria. La derivada del seno es el coseno. La del coseno es menos seno. La de la exponencial es ella misma. La del logaritmo natural es uno partido por x. La de la tangente es secante al cuadrado.

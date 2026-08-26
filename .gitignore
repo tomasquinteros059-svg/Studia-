@@ -10,3 +10,6 @@ coverage/
 # Los genera `expo prebuild`; no se versionan.
 android/
 ios/
+
+# Lo genera `npm run importar`.
+datos/importado.sql

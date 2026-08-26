@@ -48,12 +48,16 @@ begin
 end;
 $$;
 
+-- Ojo con el alcance: esto vigila al CLIENTE, no al colegio. La importación
+-- de una planilla corre con la clave de servicio y justamente lo que hace es
+-- asignar roles; si el trigger no distinguiera quién está escribiendo, la
+-- primera carga de un semestre se caería sola.
 create or replace function public.rol_no_se_cambia_solo()
 returns trigger
 language plpgsql
 as $$
 begin
-  if new.rol is distinct from old.rol then
+  if current_user = 'authenticated' and new.rol is distinct from old.rol then
     raise exception 'El rol no se cambia desde el cliente.';
   end if;
   return new;
@@ -264,6 +268,10 @@ returns trigger
 language plpgsql
 as $$
 begin
+  -- Solo aplica al cliente: el servidor corrige y migra sin este candado.
+  if current_user <> 'authenticated' then
+    return new;
+  end if;
   if new.estudiante_id = auth.uid() then
     return new;
   end if;
