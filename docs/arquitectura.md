@@ -287,6 +287,16 @@ dígitos es un decimal (`3.1416`), un punto detrás de un tratamiento nunca
 cierra (`el Dr. Salas`), y una abreviatura como `etc.` cierra o no según lo
 que venga después: minúscula sigue, mayúscula corta. Todo eso está probado.
 
+**Lo que se ve no es lo que se oye.** Los motores de voz leen los signos en
+voz alta: un paréntesis se convierte en la palabra "paréntesis" y arruina la
+frase. Borrarlos y ya tampoco sirve, porque un paréntesis *significa* algo —un
+inciso— y ese significado se conserva mejor como una pausa. `paraVoz()` hace
+esa traducción antes de mandar la frase al sintetizador: los incisos se vuelven
+comas, las comillas desaparecen, `f(x)` se dice "f de x" y `a/b` se dice "a
+sobre b", que es como se lee en el pizarrón. En pantalla el texto queda intacto.
+Una línea que era pura decoración —una raya, un separador— no tiene nada que
+decir y se salta sin dejar un silencio raro en medio.
+
 **El toque va en el párrafo, no en la frase.** Un `Text` con `onPress` deja de
 fluir en línea y el párrafo termina partido en una frase por renglón. Para
 saltar a una frase puntual están los mandos de la barra.

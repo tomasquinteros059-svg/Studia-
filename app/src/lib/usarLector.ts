@@ -7,8 +7,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  PREFERENCIAS_POR_DEFECTO, anterior, partirEnFrases, retomar, siguiente,
-  velocidadDe, type Frase, type Preferencias,
+  PREFERENCIAS_POR_DEFECTO, anterior, paraVoz, partirEnFrases, retomar,
+  siguiente, velocidadDe, type Frase, type Preferencias,
 } from "../dominio/lectura.ts";
 import { AVISO_SIN_ESPANOL, IDIOMA, callar, hablar, hayVoz, hayVozEnEspanol } from "./voz.ts";
 import {
@@ -86,8 +86,19 @@ export function usarLector(idTexto: string, texto: string): Lector {
     const frase = frases[indice];
     if (!frase) { setSonando(false); return; }
 
+    // Lo que se oye no es lo que se ve: los signos se convierten en pausas.
+    // Una línea que era pura decoración —una raya, un separador— no tiene
+    // nada que decir y se salta sin dejar un silencio raro en el medio.
+    const dicho = paraVoz(frase.texto);
+    if (!dicho) {
+      const salto = siguiente(indice, frases.length);
+      if (salto === null) { setSonando(false); setTermino(true); }
+      else setIndice(salto);
+      return;
+    }
+
     const mio = ++turno.current;
-    hablar(frase.texto, {
+    hablar(dicho, {
       velocidad,
       idioma: IDIOMA,
       alTerminar: () => {

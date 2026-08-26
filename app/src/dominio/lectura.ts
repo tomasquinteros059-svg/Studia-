@@ -291,3 +291,70 @@ export function normalizarPreferencias(crudo: unknown): Preferencias {
 export function citar(frase: string): string {
   return `«${frase.replace(/\s+/g, " ").trim()}»`;
 }
+
+// ── Lo que se ve y lo que se oye ────────────────────────────────────────
+
+/**
+ * El texto que se le entrega al sintetizador, que no es el mismo que se
+ * muestra en pantalla.
+ *
+ * Los motores de voz leen los signos en voz alta: un paréntesis se convierte
+ * en la palabra "paréntesis" y arruina la frase. La solución no es borrarlos
+ * y ya: un paréntesis *significa* algo —un inciso— y ese significado se
+ * conserva mejor como una pausa. Así el signo se oye como entorno de la
+ * frase, no como una palabra más.
+ *
+ * En pantalla el texto queda intacto: esto es solo para el oído.
+ */
+export function paraVoz(texto: string): string {
+  let t = texto;
+
+  // Una viñeta al principio de la línea no se dice.
+  t = t.replace(/^\s*[-–—•·*]\s+/, "");
+
+  // Las barras de valor absoluto se sacan antes que nada: así |x|/x llega a
+  // la regla de la división como x/x y se dice "x sobre x".
+  t = t.replace(/\|/g, "");
+
+  // Notación de función. Una letra sola pegada a un paréntesis corto es f(x),
+  // y en una sala de clases eso se dice "f de x", no "f equis".
+  t = t.replace(/\b(\p{L})\(([^()\s]{1,12})\)/gu, "$1 de $2");
+
+  // Una división escrita con barra se dice "sobre", que es como se lee en el
+  // pizarrón. Con espacios alrededor la barra es otra cosa y no se toca.
+  t = t.replace(/(\p{L}|\p{N})\/(\p{L}|\p{N})/gu, "$1 sobre $2");
+
+  // Paréntesis, corchetes y llaves. Si adentro hay más de una palabra es un
+  // inciso y se vuelve una pausa; si es un término suelto —(a,b)— los signos
+  // sobran y el término se dice pegado a lo que venía.
+  t = t.replace(/[([{]([^)\]}]*)[)\]}]/g, (_entero, dentro: string) => {
+    const limpio = dentro.trim();
+    if (!limpio) return " ";
+    return /\s/.test(limpio) ? `, ${limpio}, ` : ` ${limpio} `;
+  });
+
+  // Los que quedaron sueltos porque el par estaba incompleto.
+  t = t.replace(/[()[\]{}]/g, " ");
+
+  // Las comillas no se dicen: quien escucha no distingue una cita por el
+  // signo, la distingue por la entonación.
+  t = t.replace(/[«»""''"']/g, "");
+
+  // Puntos suspensivos y raya de inciso: pausa, no palabra.
+  t = t.replace(/…|\.\.\./g, ",");
+  t = t.replace(/\s[–—]\s/g, ", ");
+  t = t.replace(/\s·\s/g, ", ");
+
+  // Signos que el motor nombra y que no aportan nada dicho en voz alta.
+  t = t.replace(/[*_#\\/<>^~]/g, " ");
+
+  // Limpieza: comas pegadas, comas colgando y espacios de más.
+  t = t.replace(/\s+([,;:.!?])/g, "$1");
+  t = t.replace(/,(\s*,)+/g, ",");
+  t = t.replace(/,\s*([.;:!?])/g, "$1");
+  t = t.replace(/\s+/g, " ").trim();
+  t = t.replace(/^[,;:]\s*/, "");
+
+  // Si no quedó nada que se pueda pronunciar, no hay nada que decir.
+  return /[\p{L}\p{N}]/u.test(t) ? t : "";
+}

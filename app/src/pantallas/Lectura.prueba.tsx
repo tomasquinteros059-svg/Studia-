@@ -200,6 +200,30 @@ describe("lector inmersivo", () => {
     expect(t.getByText(/Un límite lateral/)).toBeTruthy();
   });
 
+  test("a la voz le llega el texto sin signos, y a la pantalla con ellos", async () => {
+    mock.lecturaPorId.mockResolvedValue({
+      ...LECTURA,
+      texto: "El teorema (que ya vimos) exige continuidad.",
+    } as never);
+    const t = await abrir();
+    await tocar(t, "Escuchar");
+
+    expect(dicha(0).texto).toBe("El teorema, que ya vimos, exige continuidad.");
+    expect(t.getByText(/El teorema \(que ya vimos\) exige continuidad\./)).toBeTruthy();
+  });
+
+  test("una línea sin nada que decir se salta sin dejar silencio", async () => {
+    mock.lecturaPorId.mockResolvedValue({
+      ...LECTURA,
+      texto: "Primera idea.\n\n———\n\nSegunda idea.",
+    } as never);
+    const t = await abrir();
+    await tocar(t, "Escuchar");
+    await terminarFrase();
+
+    expect(voz.dichas.map((d) => d.texto)).toEqual(["Primera idea.", "Segunda idea."]);
+  });
+
   test("se calla al salir de la pantalla", async () => {
     const t = await abrir();
     expect(t.navigation.addListener).toHaveBeenCalledWith("blur", expect.any(Function));

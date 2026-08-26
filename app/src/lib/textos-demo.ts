@@ -6,24 +6,24 @@
 
 export const TEXTOS_DEMO: Record<string, string> = {
   // Apunte: límites laterales
-  mm2: `Un límite lateral describe hacia dónde se acerca una función cuando nos aproximamos a un punto por un solo lado. Se escribe con un signo más o menos arriba del punto: por la derecha, tomando valores mayores que a; por la izquierda, tomando valores menores que a.
+  mm2: `Un límite lateral describe hacia dónde se acerca una función cuando nos aproximamos a un punto por un solo lado. Se escribe con un signo más o menos arriba del punto: por la derecha (tomando valores mayores que a) y por la izquierda (tomando valores menores que a).
 
 La regla que ordena todo el capítulo es esta: el límite existe si y solo si los dos límites laterales existen y son iguales. Si uno de los dos no existe, o si existen pero dan distinto, el límite no existe. No hay término medio y no hay que discutirlo caso a caso.
 
 Conviene tener presente por qué esto importa. Una función puede estar perfectamente definida en un punto y aun así no tener límite ahí. El ejemplo clásico es la función escalón: vale 0 a la izquierda del cero y vale 1 a la derecha. En cero la función tiene un valor, pero los laterales dan 0 y 1, así que el límite no existe.
 
-El valor absoluto dividido por x es el otro ejemplo que aparece siempre en la prueba. Para x positivo la expresión vale 1; para x negativo vale menos 1. Los laterales existen los dos, son finitos los dos, y son distintos. Por lo tanto el límite en cero no existe, aunque a simple vista la fórmula parezca inofensiva.
+El valor absoluto de x dividido por x, o sea f(x) igual a |x|/x, es el otro ejemplo que aparece siempre en la prueba. Para x positivo la expresión vale 1; para x negativo vale menos 1. Los laterales existen los dos, son finitos los dos, y son distintos. Por lo tanto el límite en cero no existe, aunque a simple vista la fórmula parezca inofensiva.
 
 Con funciones definidas por tramos el procedimiento es mecánico. Se identifica el punto donde cambia la definición, se calcula el límite usando la fórmula del tramo izquierdo, se calcula usando la del tramo derecho, y recién ahí se comparan. El error más frecuente no es de cálculo: es evaluar la fórmula equivocada en cada lado.
 
-Un último detalle que cuesta en el control. Cuando el enunciado pide que la función sea continua en el punto, no basta con que los laterales coincidan: además tienen que coincidir con el valor de la función ahí. Son tres cosas que verificar, no dos.`,
+Un último detalle que cuesta en el control. Cuando el enunciado pide que la función sea continua en el punto a, no basta con que los laterales coincidan: además tienen que coincidir con f(a), el valor de la función ahí. Son tres cosas que verificar, no dos.`,
 
   // Formulario de derivadas
   mm5: `La derivada mide la razón a la que cambia una función. Geométricamente es la pendiente de la recta tangente en un punto; físicamente, la velocidad instantánea si la función describe una posición. Las dos lecturas son la misma cuenta.
 
 Reglas básicas. La derivada de una constante es cero. La derivada de x elevado a n es n por x elevado a n menos 1. La derivada de una suma es la suma de las derivadas. Una constante que multiplica sale intacta de la derivada.
 
-Producto. La derivada de f por g es la derivada de f por g, más f por la derivada de g. El orden de los dos términos no importa; lo que importa es que son dos términos y no uno. Derivar cada factor por separado y multiplicar los resultados es el error más común del curso.
+Producto. La derivada de f(x) por g(x) es la derivada de f por g, más f por la derivada de g. El orden de los dos términos no importa; lo que importa es que son dos términos y no uno. Derivar cada factor por separado y multiplicar los resultados es el error más común del curso.
 
 Cociente. La derivada de f dividido g es la derivada de f por g, menos f por la derivada de g, todo dividido por g al cuadrado. Acá el orden sí importa por el signo menos, y el denominador va al cuadrado, no elevado a uno.
 
@@ -53,7 +53,7 @@ Cómo leer el resultado. Si aparece una fila con todos ceros a la izquierda y un
 
 Las incógnitas sin pivote se llaman variables libres, y su cantidad es el número de incógnitas menos el rango de la matriz. Cada variable libre es un parámetro en la respuesta final. Escribir la solución general sin nombrar los parámetros es un error de forma que igual descuenta.
 
-Un consejo práctico para el control. Conviene trabajar con la matriz ampliada desde el principio y anotar al costado qué operación se hizo en cada paso. Si el resultado no cuadra, revisar la anotación toma un minuto; rehacer todo, quince.`,
+Un consejo práctico para el control. Conviene trabajar con la matriz ampliada (la del sistema con la columna de términos libres pegada al lado) desde el principio y anotar al costado qué operación se hizo en cada paso. Si el resultado no cuadra, revisar la anotación toma un minuto; rehacer todo, quince.`,
 
   // Apunte: roce estático y cinético
   mm12: `El roce es la fuerza que aparece entre dos superficies en contacto y se opone al movimiento relativo entre ellas. Siempre actúa a lo largo de la superficie, nunca perpendicular a ella, y su dirección se determina preguntándose hacia dónde se movería el cuerpo si el roce no existiera.
