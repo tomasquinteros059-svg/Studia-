@@ -6,3 +6,7 @@ dist/
 .env.local
 coverage/
 .capturas/
+
+# Los genera `expo prebuild`; no se versionan.
+android/
+ios/

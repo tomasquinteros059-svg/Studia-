@@ -1,0 +1,71 @@
+# Construye un APK instalable sin depender de los servidores de Expo.
+#
+# El contenedor donde se desarrolla no puede salir a expo.dev, así que no hay
+# EAS ni Expo Go. Acá el APK se arma con el SDK de Android que ya trae el
+# runner: `expo prebuild` genera el proyecto nativo y Gradle lo compila. No
+# hace falta cuenta de Expo, ni token, ni ningún secreto.
+#
+# Cómo usarlo: pestaña Actions → "APK para probar" → Run workflow. Al terminar,
+# el APK queda colgado del run, en Artifacts.
+
+name: APK para probar
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # React Native pide JDK 17.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar dependencias
+        run: npm ci --prefix app
+
+      # Que un APK roto no llegue nunca a la tablet.
+      - name: Pruebas
+        run: |
+          npm run prueba
+          npm run prueba:ui
+          npm run tipos
+
+      - name: Generar el proyecto Android
+        working-directory: app
+        run: npx expo prebuild --platform android --no-install
+        env:
+          EXPO_NO_TELEMETRY: "1"
+
+      # `assembleRelease` empaqueta el JavaScript adentro del APK. Un build de
+      # depuración no sirve: esperaría un servidor de desarrollo en la red y
+      # fallaría al abrirlo, que es exactamente lo que hay que evitar.
+      - name: Compilar el APK
+        working-directory: app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Dónde quedó
+        run: find app/android -name "*.apk" -printf "%p  %s bytes\n"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studia-apk
+          path: app/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
