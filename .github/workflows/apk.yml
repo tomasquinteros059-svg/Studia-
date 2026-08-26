@@ -15,6 +15,10 @@ on:
   push:
     tags: ["v*"]
 
+# Para poder publicar la versión con el APK colgado.
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -60,12 +64,35 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: Dónde quedó
-        run: find app/android -name "*.apk" -printf "%p  %s bytes\n"
+      - name: Ponerle nombre
+        id: apk
+        run: |
+          origen=$(find app/android -name "*.apk" | head -1)
+          test -n "$origen" || { echo "No se generó ningún APK"; exit 1; }
+          mkdir -p entrega
+          cp "$origen" entrega/StudIA.apk
+          ls -lh entrega/StudIA.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: studia-apk
-          path: app/android/app/build/outputs/apk/release/*.apk
+          path: entrega/StudIA.apk
           if-no-files-found: error
           retention-days: 30
+
+      # El artefacto de arriba se baja como .zip, y descomprimir en una tablet
+      # es una molestia. La versión deja el .apk como descarga directa: se
+      # toca el enlace y Android lo instala. La etiqueta es siempre la misma,
+      # así que el enlace no cambia de una compilación a otra.
+      - name: Publicarlo como descarga directa
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete ultimo-apk --yes --cleanup-tag 2>/dev/null || true
+          gh release create ultimo-apk entrega/StudIA.apk \
+            --title "StudIA · último APK" \
+            --notes "Compilado desde \`${{ github.ref_name }}\` (${{ github.sha }}).
+
+          Se instala en cualquier Android: tócalo y acepta instalar desde esta fuente.
+          Trae datos de ejemplo, así que funciona sin servidor." \
+            --target "${{ github.sha }}"
