@@ -6,6 +6,7 @@
 // desde el escritorio del profesor".
 
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
+import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 
 const ahora = Date.now();
 const enDias = (d: number) => new Date(ahora + d * 86_400_000).toISOString();
@@ -76,8 +77,35 @@ export const NOTAS: Record<string, NotaDeCurso[]> = {
   })),
 };
 
+/**
+ * Cuánto del material marcó como visto cada alumno, y cuándo fue la última
+ * vez. Es el dato que contesta "quién ha estudiado" sin abrir un solo apunte:
+ * el docente ve actividad, no contenido.
+ */
+export const AVANCE: Record<string, AvanceDeAlumno[]> = {
+  cal: (CURSO.cal ?? []).map((a, i) => {
+    // Un curso real es desparejo: la mayoría al día, unos pocos perdidos.
+    const hechos = [9, 8, 9, 7, 2, 8, 9, 5, 1, 7, 8, 4, 9, 9, 3, 8, 6, 9, 7, 0][i] ?? 0;
+    const diasSinEntrar = [0, 1, 0, 2, 12, 1, 0, 5, 21, 2, 1, 9, 0, 0, 14, 1, 4, 0, 3, 30][i] ?? 0;
+    return {
+      estudiante_id: a.id,
+      estudiante: a.nombre,
+      hechos,
+      totales: 9,
+      ultimo_acceso: hechos === 0
+        ? null
+        : new Date(ahora - diasSinEntrar * 86_400_000).toISOString(),
+    };
+  }),
+};
+
 const dormir = () => new Promise((r) => setTimeout(r, 90));
 const copiar = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+
+export async function avanceDe(asignaturaId: string): Promise<AvanceDeAlumno[]> {
+  await dormir();
+  return copiar(AVANCE[asignaturaId] ?? []);
+}
 
 export async function cursoDe(asignaturaId: string) {
   await dormir();

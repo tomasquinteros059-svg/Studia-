@@ -45,6 +45,7 @@ export type RutasPila = {
 /** Lo que ve quien dicta un ramo. Es otra aplicación sobre los mismos datos. */
 export type RutasPestanasDocente = {
   Cursos: undefined;
+  Asistente: undefined;
   Horario: undefined;
   Perfil: undefined;
 };

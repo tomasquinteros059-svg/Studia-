@@ -268,6 +268,40 @@ La tabla `transcripciones` ya existe y la función `resumen` la usa **cuando hay
 filas**. El día que el transporte alimente esa tabla, el resumen mejora solo,
 sin tocar la app.
 
+## Dos asistentes, con reglas opuestas
+
+El alumno tiene el **tutor**: nunca le da la respuesta, porque el objetivo es
+que la encuentre. El docente y la administración tienen el **asistente**: le
+responde derecho, porque su problema no es aprender, es no perder media hora
+cruzando planillas para saber a quién escribirle.
+
+Son dos funciones distintas —`tutor/` y `asistente/`— y no comparten prompt.
+Meterlas en una sola con un `if` sería la forma más rápida de que la regla del
+tutor se filtre o se pierda.
+
+El asistente **puede buscar en internet** (`web_search`), y por eso el prompt
+carga una regla de separación: lo que sale de una búsqueda se dice con su
+fuente y aparte de lo que salió del curso. Un dato del curso es verificable;
+uno de internet, no necesariamente.
+
+**De dónde salen sus datos.** El asistente lee el curso con el **token de
+quien pregunta**, igual que el tutor. Un ramo ajeno no aparece aunque se pida
+por su identificador, y los apuntes, resúmenes y conversaciones con el tutor
+no vuelven nunca — no porque el prompt lo prohíba, sino porque las políticas
+de la base no los entregan. Un prompt se da vuelta con insistencia; una
+política, no.
+
+**"Quién ha estudiado" se responde sin abrir un apunte.** El dato es
+`progreso_material`: cuánto del material marcó como visto cada alumno y cuándo
+fue la última vez. Eso contesta la pregunta operativa —a quién le escribo—
+sin tocar contenido privado. El prompt además obliga a separar el hecho de la
+interpretación: "no entregó" está registrado, "no ha estudiado" es una lectura
+del avance, y la conclusión la saca el docente.
+
+Sin backend el asistente responde igual, calculando de los datos del aparato
+(`dominio/asistente-demo.ts`). Cuando no entiende una pregunta lo dice y
+enumera lo que sí sabe responder, en vez de inventar.
+
 ## Con quién se entra
 
 Con Supabase conectado, quién eres lo decide el inicio de sesión y el rol que

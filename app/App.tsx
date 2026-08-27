@@ -36,6 +36,7 @@ import Perfiles from "./src/pantallas/Perfiles.tsx";
 import InicioDocente from "./src/pantallas/docente/InicioDocente.tsx";
 import RamoDocente from "./src/pantallas/docente/RamoDocente.tsx";
 import PerfilDocente from "./src/pantallas/docente/PerfilDocente.tsx";
+import Asistente from "./src/pantallas/docente/Asistente.tsx";
 import InicioAdmin from "./src/pantallas/admin/InicioAdmin.tsx";
 import { usarPerfilDemo } from "./src/lib/perfiles-demo.ts";
 import { Icono } from "./src/ui/Icono.tsx";
@@ -72,7 +73,9 @@ function Principal() {
   );
 }
 
-const ICONO_DOCENTE = { Cursos: "documento", Horario: "horario", Perfil: "persona" } as const;
+const ICONO_DOCENTE = {
+  Cursos: "documento", Asistente: "tutor", Horario: "horario", Perfil: "persona",
+} as const;
 
 /** Las pestañas de quien dicta. Otra aplicación sobre los mismos datos. */
 function PrincipalDocente() {
@@ -89,6 +92,7 @@ function PrincipalDocente() {
       })}
     >
       <PestanasDocente.Screen name="Cursos" component={InicioDocente} />
+      <PestanasDocente.Screen name="Asistente" component={Asistente} />
       <PestanasDocente.Screen name="Horario" component={Horario} />
       <PestanasDocente.Screen name="Perfil" component={PerfilDocente} />
     </PestanasDocente.Navigator>
@@ -184,7 +188,9 @@ export default function App() {
   );
 }
 
-const ICONO_ADMIN = { Cursos: "horario", Horario: "documento", Perfil: "persona" } as const;
+const ICONO_ADMIN = {
+  Cursos: "horario", Asistente: "tutor", Horario: "documento", Perfil: "persona",
+} as const;
 
 /** Las pestañas del colegio. */
 function PrincipalAdmin() {
@@ -201,6 +207,7 @@ function PrincipalAdmin() {
       })}
     >
       <PestanasDocente.Screen name="Cursos" component={InicioAdmin} options={{ title: "Colegio" }} />
+      <PestanasDocente.Screen name="Asistente" component={Asistente} />
       <PestanasDocente.Screen name="Perfil" component={PerfilDocente} />
     </PestanasDocente.Navigator>
   );
