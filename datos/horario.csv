@@ -1,9 +1,0 @@
-codigo,dia,hora_inicio,hora_fin,sala,tipo
-MAT1610,Lunes,08:30,10:00,A-201,Cátedra
-MAT1610,Martes,08:30,10:00,A-201,Cátedra
-MAT1610,Jueves,11:30,13:00,Lab B-3,Ayudantía
-MAT1203,Martes,10:15,11:45,B-104,Cátedra
-MAT1203,Viernes,08:30,10:00,B-104,Cátedra
-FIS1503,Lunes,11:30,13:00,C-002,Cátedra
-FIS1503,Miércoles,11:30,13:00,C-002,Cátedra
-FIS1503,Viernes,14:00,16:00,Lab Física,Laboratorio

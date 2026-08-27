@@ -1,19 +1,17 @@
 {
-  "name": "studia",
+  "name": "acta",
   "private": true,
-  "description": "StudIA — plataforma de estudio con un tutor que guía en vez de resolver",
+  "description": "Acta — reuniones profesionales con un equipo que escucha, redacta y entiende de lo tuyo",
   "scripts": {
     "prueba": "node --experimental-strip-types --test 'app/src/dominio/*.prueba.ts' 'app/src/lib/*.prueba.ts' 'supabase/functions/_compartido/*.prueba.ts' 'herramientas/*.prueba.ts'",
-    "importar": "node --experimental-strip-types herramientas/importar.ts",
     "generar": "node --experimental-strip-types herramientas/generar-rubros.ts",
     "prueba:bd": "./supabase/pruebas/correr.sh",
     "prueba:sintaxis": "node supabase/pruebas/sintaxis.mjs",
     "tipos": "npm --prefix app run tipos",
     "test": "npm run prueba",
     "prueba:ui": "npm --prefix app run prueba:ui",
-    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run tipos && npm run prueba:paquete && npm run prueba:bd && npm run prueba:importar",
-    "prueba:paquete": "npm --prefix app run paquete",
-    "prueba:importar": "./supabase/pruebas/importar.sh"
+    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run tipos && npm run prueba:paquete && npm run prueba:bd",
+    "prueba:paquete": "npm --prefix app run paquete"
   },
   "engines": {
     "node": ">=22.6"

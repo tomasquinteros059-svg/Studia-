@@ -3,13 +3,8 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } fro
 import { Boton, Campo, Titulo } from "../ui/componentes.tsx";
 import { color, espacio, radio, tipo } from "../ui/tema.ts";
 import { supabase } from "../lib/supabase.ts";
-import { caminoDe, comoSePresenta } from "../dominio/acceso.ts";
 
 export default function Sesion() {
-  // El correo primero, y recién después la clave. No es un capricho de
-  // pantalla: el dominio decide por dónde entra la persona —con los ramos de
-  // su institución o armando el suyo— y conviene decírselo antes de que se
-  // haga una idea equivocada.
   const [modo, setModo] = useState<"bienvenida" | "correo" | "entrar" | "crear">("bienvenida");
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
@@ -47,11 +42,11 @@ export default function Sesion() {
         <View style={e.logo}>
           <Text style={e.logoTexto}>S</Text>
         </View>
-        <Text style={e.marca}>StudIA</Text>
-        <Text style={e.lema}>Aprende pensando, no copiando.</Text>
+        <Text style={e.marca}>Acta</Text>
+        <Text style={e.lema}>Sal de la reunión sabiendo qué te toca.</Text>
         <Text style={e.sub}>
-          Tus clases, tu materia y tus tareas en un solo lugar.{"\n"}
-          Y un tutor que te guía para que descubras la respuesta.
+          Un equipo que escucha, redacta y entiende de lo tuyo.{"\n"}
+          Al terminar tienes el acta, los acuerdos y las tareas.
         </Text>
         <View style={{ width: "100%", marginTop: espacio.s }}>
           <Boton texto="Comenzar" onPress={() => setModo("correo")} />
@@ -60,7 +55,7 @@ export default function Sesion() {
     );
   }
 
-  const camino = caminoDe(correo);
+  const correoServible = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(correo.trim());
 
   if (modo === "correo") {
     return (
@@ -70,21 +65,19 @@ export default function Sesion() {
       >
         <Titulo>¿Cuál es tu correo?</Titulo>
         <Text style={e.sub}>
-          Si estudias en una institución con convenio, usa el correo que te dio
-          ella: tus ramos aparecen solos. Si no, cualquier correo sirve.
+          Tus reuniones son tuyas: nadie más las ve hasta que tú compartas una.
         </Text>
 
         <Campo placeholder="tucorreo@ejemplo.cl" value={correo} onChangeText={setCorreo}
           autoCapitalize="none" keyboardType="email-address" autoComplete="email"
           autoFocus accessibilityLabel="Correo" onSubmitEditing={() => {
-            if (camino.tipo !== "invalido") setModo("entrar");
+            if (correoServible) setModo("entrar");
           }} returnKeyType="next" />
 
-        {/* Se dice qué va a pasar antes de pedir la clave, no después. */}
-        {correo.trim().length > 0 ? (
-          <View style={[e.aviso, camino.tipo === "invalido" ? e.avisoMalo : null]}>
-            <Text style={[e.avisoTexto, camino.tipo === "invalido" ? e.avisoTextoMalo : null]}>
-              {comoSePresenta(camino)}
+        {correo.trim().length > 0 && !correoServible ? (
+          <View style={[e.aviso, e.avisoMalo]}>
+            <Text style={[e.avisoTexto, e.avisoTextoMalo]}>
+              Ese correo no se ve completo. Revísalo.
             </Text>
           </View>
         ) : null}
@@ -92,7 +85,7 @@ export default function Sesion() {
         <Boton
           texto="Continuar"
           onPress={() => setModo("entrar")}
-          deshabilitado={camino.tipo === "invalido"}
+          deshabilitado={!correoServible}
         />
 
         <Pressable onPress={() => { setModo("bienvenida"); setError(null); }}>
@@ -111,8 +104,8 @@ export default function Sesion() {
       <Titulo>{creando ? "Crear cuenta" : "Hola de nuevo"}</Titulo>
       <Text style={e.sub}>
         {creando
-          ? "Empieza con un tutor que te guía, no que te da la respuesta."
-          : "Inicia sesión para seguir aprendiendo."}
+          ? "Un equipo de tres por cada reunión: uno escucha, uno redacta y uno entiende de lo tuyo."
+          : "Inicia sesión para ver tus reuniones."}
       </Text>
 
       {creando ? (
