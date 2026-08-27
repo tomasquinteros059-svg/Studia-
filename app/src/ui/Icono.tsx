@@ -1,4 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
+// Se importa el juego directo y no desde el índice del paquete: el índice
+// exporta las veinte familias de íconos, y Metro empaqueta las veinte con
+// sus fuentes. Solo se dibuja Ionicons, así que las otras diecinueve eran
+// casi dos megas de fuentes que el aparato descargaba para nada.
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { color } from "./tema.ts";
 
 export type NombreIcono = React.ComponentProps<typeof Ionicons>["name"];

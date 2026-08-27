@@ -73,6 +73,20 @@ jobs:
           mkdir -p ../../entrega
           cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA.apk
 
+      # Con R8: encoge el código Java, que es el segundo bulto del paquete
+      # después de las bibliotecas nativas. Va aparte y no reemplaza al de
+      # arriba porque R8 rompe código que usa reflexión, y desde el entorno de
+      # desarrollo no hay forma de abrir el APK resultante para comprobarlo.
+      # Si este falla al arrancar, el de arriba sigue estando.
+      - name: Compilar el APK liviano
+        working-directory: app/android
+        run: |
+          ./gradlew clean assembleRelease --no-daemon \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Pandroid.enableMinifyInReleaseBuilds=true \
+            -Pandroid.enableShrinkResourcesInReleaseBuilds=true
+          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA-liviano.apk
+
       - name: Compilar el APK universal
         working-directory: app/android
         run: |
@@ -98,12 +112,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete ultimo-apk --yes --cleanup-tag 2>/dev/null || true
-          gh release create ultimo-apk entrega/StudIA.apk entrega/StudIA-universal.apk \
+          gh release create ultimo-apk entrega/StudIA.apk entrega/StudIA-liviano.apk entrega/StudIA-universal.apk \
             --title "StudIA · último APK" \
             --notes "Compilado desde \`${{ github.ref_name }}\` (${{ github.sha }}).
 
           **StudIA.apk** es el que sirve: trae solo arm64, que es lo que usa cualquier
           tablet o teléfono de los últimos años.
+
+          **StudIA-liviano.apk** es el mismo, encogido con R8. Pesa bastante menos, pero
+          no está probado: si no arranca, usa el de arriba.
 
           **StudIA-universal.apk** trae las cuatro arquitecturas y pesa el triple. Solo
           hace falta si el otro dice que no se puede instalar, cosa que pasa en aparatos
