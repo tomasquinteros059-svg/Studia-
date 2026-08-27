@@ -543,4 +543,129 @@ set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
 select pg_temp.afirmar('la profesora tampoco ve el ramo propio de otro',
   (select count(*) from asignaturas where codigo = 'PROPIO-1')::int, 0);
 
-select '— también pasaron las pruebas de docentes —' as resultado;
+-- ========================= las reuniones ==========================
+-- Acá la regla es más estricta que en el resto: una reunión es de quien la
+-- grabó. Nadie más la ve hasta que él invite, y ni siquiera un invitado con
+-- permiso de edición puede repartir el acceso.
+reset role;
+insert into auth.users (id, email, raw_user_meta_data)
+values ('f0000000-0000-4000-8000-000000000001', 'admin.edificio@correo.cl',
+        '{"nombre":"Marta Vega"}'::jsonb),
+       ('f0000000-0000-4000-8000-000000000002', 'comite@correo.cl',
+        '{"nombre":"Luis Pinto"}'::jsonb),
+       ('f0000000-0000-4000-8000-000000000003', 'ajeno@correo.cl',
+        '{"nombre":"Nadie Que Ver"}'::jsonb)
+on conflict do nothing;
+
+set role authenticated;
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000001';
+
+do $$
+declare v_reunion uuid;
+begin
+  insert into public.reuniones (dueno_id, titulo, rubro, tabla)
+  values (auth.uid(), 'Asamblea extraordinaria', 'edificios',
+          array['Ascensores', 'Gastos comunes'])
+  returning id into v_reunion;
+
+  insert into public.tareas_reunion (reunion_id, que, responsable, plazo)
+  values (v_reunion, 'Pedir tres cotizaciones', 'Marta', current_date + 7);
+
+  raise notice 'ok · graba su reunión y le anota una tarea';
+end $$;
+
+select pg_temp.afirmar('ve su reunión',
+  (select count(*) from reuniones)::int, 1);
+
+do $$
+begin
+  insert into public.reuniones (dueno_id, titulo, rubro)
+  values ('f0000000-0000-4000-8000-000000000002', 'Reunión que no es mía', 'gerencia');
+  raise exception 'FALLA · grabó una reunión a nombre de otra persona';
+exception when insufficient_privilege then
+  raise notice 'ok · no graba reuniones a nombre de otro';
+end $$;
+
+-- Un tercero, sin invitación, no ve absolutamente nada.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000003';
+select pg_temp.afirmar('quien no fue invitado no ve la reunión',
+  (select count(*) from reuniones where titulo = 'Asamblea extraordinaria')::int, 0);
+select pg_temp.afirmar('ni sus tareas',
+  (select count(*) from tareas_reunion)::int, 0);
+
+-- Y el colegio tampoco: no hay jefatura que vea las reuniones de nadie.
+set pruebas.uid = 'a0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('la administración del colegio tampoco ve reuniones ajenas',
+  (select count(*) from reuniones)::int, 0);
+
+-- El dueño invita a alguien, solo de lectura.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000001';
+insert into public.invitados_reunion (reunion_id, persona_id, puede_editar)
+select id, 'f0000000-0000-4000-8000-000000000002', false
+  from public.reuniones where titulo = 'Asamblea extraordinaria';
+
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('el invitado ahora sí la ve',
+  (select count(*) from reuniones where titulo = 'Asamblea extraordinaria')::int, 1);
+
+do $$
+declare v_tocadas int;
+begin
+  update public.tareas_reunion set lista = true where lista = false;
+  get diagnostics v_tocadas = row_count;
+  if v_tocadas > 0 then
+    raise exception 'FALLA · un invitado de solo lectura marcó una tarea';
+  end if;
+  raise notice 'ok · el invitado de solo lectura no marca tareas';
+end $$;
+
+do $$
+begin
+  insert into public.invitados_reunion (reunion_id, persona_id)
+  select id, 'f0000000-0000-4000-8000-000000000003'
+    from public.reuniones where titulo = 'Asamblea extraordinaria';
+  raise exception 'FALLA · un invitado repartió el acceso a la reunión';
+exception when insufficient_privilege then
+  raise notice 'ok · invitar es solo del dueño';
+end $$;
+
+-- Ahora con permiso de edición: marcar tareas sí, invitar sigue siendo no.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000001';
+update public.invitados_reunion set puede_editar = true
+ where persona_id = 'f0000000-0000-4000-8000-000000000002';
+
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000002';
+do $$
+declare v_tocadas int;
+begin
+  update public.tareas_reunion set lista = true where lista = false;
+  get diagnostics v_tocadas = row_count;
+  if v_tocadas = 0 then
+    raise exception 'FALLA · con permiso de edición igual no pudo marcar la tarea';
+  end if;
+  raise notice 'ok · con permiso de edición marca la tarea  (%)', v_tocadas;
+end $$;
+
+select pg_temp.afirmar('marcarla dejó la hora sola, sin que la mande la app',
+  (select count(*) from tareas_reunion where lista and lista_en is not null)::int, 1);
+
+-- Desmarcarla borra la hora: si no, quedaría diciendo que se hizo.
+update public.tareas_reunion set lista = false where lista;
+select pg_temp.afirmar('desmarcarla le quita la hora',
+  (select count(*) from tareas_reunion where lista_en is not null)::int, 0);
+
+-- El registro de uso es del servidor y de nadie más.
+do $$
+begin
+  perform 1 from public.usos_equipo;
+  raise exception 'FALLA · el cliente leyó el registro de uso del equipo';
+exception when insufficient_privilege then
+  raise notice 'ok · el registro de uso del equipo no se lee desde el cliente';
+end $$;
+
+-- Irse de una reunión ajena sí se puede: eso no es repartir acceso.
+delete from public.invitados_reunion where persona_id = auth.uid();
+select pg_temp.afirmar('el invitado puede irse solo',
+  (select count(*) from reuniones where titulo = 'Asamblea extraordinaria')::int, 0);
+
+select '— también pasaron las pruebas de reuniones —' as resultado;

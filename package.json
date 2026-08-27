@@ -5,6 +5,7 @@
   "scripts": {
     "prueba": "node --experimental-strip-types --test 'app/src/dominio/*.prueba.ts' 'app/src/lib/*.prueba.ts' 'supabase/functions/_compartido/*.prueba.ts' 'herramientas/*.prueba.ts'",
     "importar": "node --experimental-strip-types herramientas/importar.ts",
+    "generar": "node --experimental-strip-types herramientas/generar-rubros.ts",
     "prueba:bd": "./supabase/pruebas/correr.sh",
     "prueba:sintaxis": "node supabase/pruebas/sintaxis.mjs",
     "tipos": "npm --prefix app run tipos",
