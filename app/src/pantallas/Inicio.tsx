@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  Cargando, Encabezado, Error, Fila, Pantalla, Pastilla, Punto,
+  Boton, Cargando, Encabezado, Error, Fila, Pantalla, Pastilla, Punto,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
@@ -177,11 +177,16 @@ export default function Inicio({ navigation }: Props) {
           <Text style={e.enlace}>Nuevo ramo</Text>
         </Pressable>} />
       {mios.length === 0 ? (
-        <Text style={e.pistaConsejos}>
-          {hayColegio
-            ? "Acá puedes armar tus propios ramos, con lo que quieras estudiar aparte."
-            : "Empieza por acá: crea un ramo, pega o escribe el texto que quieras estudiar y escúchalo con el lector."}
-        </Text>
+        <View style={e.invitacion}>
+          <Text style={e.invitacionTexto}>
+            {hayColegio
+              ? "Acá puedes armar tus propios ramos, con lo que quieras estudiar aparte."
+              : "Todavía no tienes nada. Crea un ramo, pega o escribe el texto que quieras estudiar y escúchalo con el lector mientras tomas apuntes."}
+          </Text>
+          {hayColegio ? null : (
+            <Boton texto="Crear mi primer ramo" onPress={() => setCreando(true)} />
+          )}
+        </View>
       ) : (
         mios.map((a) => (
           <Fila key={a.id}
@@ -238,6 +243,8 @@ const e = StyleSheet.create({
   enlace: { color: color.marca, fontWeight: "600", fontSize: 12.5 },
   vacio: { ...tipo.detalle, paddingHorizontal: espacio.m, paddingVertical: espacio.m },
   pistaConsejos: { ...tipo.detalle, paddingHorizontal: espacio.m, lineHeight: 19 },
+  invitacion: { paddingHorizontal: espacio.m, gap: espacio.m },
+  invitacionTexto: { ...tipo.detalle, lineHeight: 20 },
   rejilla: { flexDirection: "row", flexWrap: "wrap", gap: "2%", rowGap: 10 },
   tarjeta: {
     borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta, overflow: "hidden",

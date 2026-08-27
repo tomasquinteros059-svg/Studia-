@@ -134,8 +134,9 @@ describe("Inicio · lo que la persona arma por su cuenta", () => {
     expect(t.queryByText("Hoy")).toBeNull();
     expect(t.queryByText("Próximas entregas")).toBeNull();
     expect(t.queryByText("Mis asignaturas")).toBeNull();
-    // En vez de secciones vacías, le dice por dónde empezar.
-    expect(t.getByText(/Empieza por acá/)).toBeTruthy();
+    // En vez de secciones vacías, le dice por dónde empezar y le da el botón.
+    expect(t.getByText(/Todavía no tienes nada/)).toBeTruthy();
+    expect(t.getByRole("button", { name: "Crear mi primer ramo" })).toBeTruthy();
   });
 
   test("crear un ramo lo guarda y vuelve a cargar la lista", async () => {
