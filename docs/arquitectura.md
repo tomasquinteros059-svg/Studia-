@@ -302,6 +302,39 @@ Sin backend el asistente responde igual, calculando de los datos del aparato
 (`dominio/asistente-demo.ts`). Cuando no entiende una pregunta lo dice y
 enumera lo que sí sabe responder, en vez de inventar.
 
+## Dos públicos, una sola aplicación
+
+StudIA sirve a quien estudia en una institución y a quien se baja la app para
+estudiar por su cuenta. La diferencia la decide **el dominio del correo**, y
+por eso vive en `dominio/acceso.ts` y no en la pantalla: es una regla de
+negocio. El día que se conecten las APIs de cada universidad, lo que cambia es
+de dónde salen los ramos, no esta decisión.
+
+La pantalla de acceso pide **el correo antes que la clave**, a propósito: el
+dominio decide por dónde entra la persona, y conviene decírselo antes de que
+se haga una idea equivocada. A quien viene de una institución **sin convenio**
+no se le promete que sus ramos aparecerán: se le explica que entra por su
+cuenta mientras tanto. Prometer ramos que no llegan es peor que no
+reconocerlo.
+
+Una trampa que vale la pena recordar: reconocer el dominio con `endsWith` a
+secas daría acceso institucional a `nouc.cl`, que cualquiera puede comprar. La
+comparación exige el dominio exacto **o** un punto delante.
+
+### El espacio propio
+
+Quien llega solo no necesita un segundo sistema: necesita una columna.
+`asignaturas.creador_id` dice quién es dueño de un ramo — null significa que
+lo cargó la institución. Si tiene dueño, esa persona manda ahí adentro: crea
+sus módulos, sube sus lecturas, se pone su horario y sus plazos. El lector,
+los apuntes y el tutor funcionan igual sin enterarse de la diferencia.
+
+Dos límites deliberados. La política de creación exige que el ramo quede **a
+nombre propio**, porque si no cualquiera podría crear un ramo del colegio y
+colgarle material. Y un espacio propio **no lleva evaluaciones ni notas**:
+ponerse uno mismo un 6,5 no significa nada, y sería una puerta más que vigilar
+a cambio de nada.
+
 ## Con quién se entra
 
 Todo lo que la app necesita saber de quien la usa sale de `lib/quien-soy.ts`:

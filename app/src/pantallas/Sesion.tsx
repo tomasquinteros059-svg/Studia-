@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Boton, Campo, Titulo } from "../ui/componentes.tsx";
-import { color, espacio, tipo } from "../ui/tema.ts";
+import { color, espacio, radio, tipo } from "../ui/tema.ts";
 import { supabase } from "../lib/supabase.ts";
+import { caminoDe, comoSePresenta } from "../dominio/acceso.ts";
 
 export default function Sesion() {
-  const [modo, setModo] = useState<"bienvenida" | "entrar" | "crear">("bienvenida");
+  // El correo primero, y recién después la clave. No es un capricho de
+  // pantalla: el dominio decide por dónde entra la persona —con los ramos de
+  // su institución o armando el suyo— y conviene decírselo antes de que se
+  // haga una idea equivocada.
+  const [modo, setModo] = useState<"bienvenida" | "correo" | "entrar" | "crear">("bienvenida");
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
   const [nombre, setNombre] = useState("");
@@ -49,9 +54,51 @@ export default function Sesion() {
           Y un tutor que te guía para que descubras la respuesta.
         </Text>
         <View style={{ width: "100%", marginTop: espacio.s }}>
-          <Boton texto="Comenzar" onPress={() => setModo("entrar")} />
+          <Boton texto="Comenzar" onPress={() => setModo("correo")} />
         </View>
       </View>
+    );
+  }
+
+  const camino = caminoDe(correo);
+
+  if (modo === "correo") {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={[e.pantalla, e.centrado]}
+      >
+        <Titulo>¿Cuál es tu correo?</Titulo>
+        <Text style={e.sub}>
+          Si estudias en una institución con convenio, usa el correo que te dio
+          ella: tus ramos aparecen solos. Si no, cualquier correo sirve.
+        </Text>
+
+        <Campo placeholder="tucorreo@ejemplo.cl" value={correo} onChangeText={setCorreo}
+          autoCapitalize="none" keyboardType="email-address" autoComplete="email"
+          autoFocus accessibilityLabel="Correo" onSubmitEditing={() => {
+            if (camino.tipo !== "invalido") setModo("entrar");
+          }} returnKeyType="next" />
+
+        {/* Se dice qué va a pasar antes de pedir la clave, no después. */}
+        {correo.trim().length > 0 ? (
+          <View style={[e.aviso, camino.tipo === "invalido" ? e.avisoMalo : null]}>
+            <Text style={[e.avisoTexto, camino.tipo === "invalido" ? e.avisoTextoMalo : null]}>
+              {comoSePresenta(camino)}
+            </Text>
+          </View>
+        ) : null}
+
+        <Boton
+          texto="Continuar"
+          onPress={() => setModo("entrar")}
+          deshabilitado={camino.tipo === "invalido"}
+        />
+
+        <Pressable onPress={() => { setModo("bienvenida"); setError(null); }}>
+          <Text style={e.enlace}>Volver</Text>
+        </Pressable>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -73,9 +120,12 @@ export default function Sesion() {
           autoCapitalize="words" accessibilityLabel="Tu nombre" />
       ) : null}
 
-      <Campo placeholder="Correo" value={correo} onChangeText={setCorreo}
-        autoCapitalize="none" keyboardType="email-address" autoComplete="email"
-        accessibilityLabel="Correo" />
+      <Pressable onPress={() => { setModo("correo"); setError(null); }}
+        accessibilityRole="button" accessibilityLabel={`Cambiar el correo, ahora ${correo}`}
+        style={e.correoElegido}>
+        <Text style={e.correoTexto} numberOfLines={1}>{correo}</Text>
+        <Text style={e.correoCambiar}>Cambiar</Text>
+      </Pressable>
       <Campo placeholder="Contraseña (mín. 6)" value={clave} onChangeText={setClave}
         secureTextEntry accessibilityLabel="Contraseña" />
 
@@ -118,5 +168,18 @@ const e = StyleSheet.create({
   lema: { fontSize: 18, fontWeight: "600", color: color.textoSuave, textAlign: "center" },
   sub: { ...tipo.cuerpo, color: color.textoSuave, textAlign: "center", lineHeight: 21 },
   error: { color: color.vivo, fontSize: 13.5, textAlign: "center" },
+
+  aviso: { backgroundColor: color.elemento, borderRadius: radio.tarjeta, padding: espacio.m },
+  avisoMalo: { backgroundColor: `${color.vivo}14` },
+  avisoTexto: { ...tipo.cuerpo, color: color.texto, lineHeight: 20 },
+  avisoTextoMalo: { color: color.vivo },
+
+  correoElegido: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    gap: espacio.s, borderWidth: 1, borderColor: color.borde,
+    borderRadius: radio.campo, paddingHorizontal: espacio.m, paddingVertical: 13,
+  },
+  correoTexto: { flex: 1, ...tipo.cuerpo, color: color.texto },
+  correoCambiar: { fontSize: 13, fontWeight: "600", color: color.marca },
   enlace: { color: color.marca, fontWeight: "600", fontSize: 13.5, textAlign: "center" },
 });

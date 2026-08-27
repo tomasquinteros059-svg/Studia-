@@ -425,4 +425,82 @@ exception when insufficient_privilege then
   raise notice 'ok · el registro de uso del asistente no se borra desde el cliente';
 end $$;
 
+-- ========================= el espacio propio ==========================
+-- Alguien que se bajó la app para estudiar por su cuenta, sin institución.
+reset role;
+insert into auth.users (id, email, raw_user_meta_data)
+values ('c0000000-0000-4000-8000-000000000001', 'porsucuenta@gmail.com',
+        '{"nombre":"Paula Solo"}'::jsonb)
+on conflict do nothing;
+
+set role authenticated;
+set pruebas.uid = 'c0000000-0000-4000-8000-000000000001';
+
+select pg_temp.afirmar('llega sin ver ningún ramo',
+  (select count(*) from asignaturas)::int, 0);
+
+-- Se arma su espacio: crea el ramo, se inscribe, y le cuelga una lectura.
+do $$
+declare v_ramo uuid; v_modulo uuid;
+begin
+  insert into public.asignaturas (codigo, nombre, color, creditos, intro_tutor, creador_id)
+  values ('PROPIO-1', 'Estadística por mi cuenta', '#208AEF', 1,
+          '¿Qué parte estás estudiando?', auth.uid())
+  returning id into v_ramo;
+
+  insert into public.inscripciones (estudiante_id, asignatura_id)
+  values (auth.uid(), v_ramo);
+
+  insert into public.modulos (asignatura_id, titulo, orden)
+  values (v_ramo, '1 · Lo que estoy viendo', 1) returning id into v_modulo;
+
+  insert into public.materiales (modulo_id, tipo, titulo, detalle, orden, texto)
+  values (v_modulo, 'documento', 'Mis apuntes de probabilidad', 'Lectura · 2 min', 1,
+          'La probabilidad de un suceso es la proporción de veces que ocurre.');
+
+  raise notice 'ok · arma su propio ramo, se inscribe y le carga una lectura';
+end $$;
+
+select pg_temp.afirmar('ahora ve su ramo, y solo el suyo',
+  (select count(*) from asignaturas)::int, 1);
+select pg_temp.afirmar('y su lectura se puede abrir',
+  (select count(*) from materiales where texto is not null)::int, 1);
+
+-- Lo que no puede hacer.
+do $$
+begin
+  insert into public.asignaturas (codigo, nombre, color, creditos, intro_tutor)
+  values ('COLEGIO-X', 'Ramo del colegio', '#208AEF', 10, '¿?');
+  raise exception 'FALLA · creó un ramo sin dueño, como si fuera el colegio';
+exception when insufficient_privilege then
+  raise notice 'ok · no puede crear un ramo a nombre del colegio';
+end $$;
+
+do $$
+begin
+  insert into public.inscripciones (estudiante_id, asignatura_id)
+  values (auth.uid(), pg_temp.id_de('MAT1610'));
+  raise exception 'FALLA · se inscribió solo en un ramo del colegio';
+exception when insufficient_privilege then
+  raise notice 'ok · no se mete solo a un curso del colegio';
+end $$;
+
+do $$
+begin
+  insert into public.evaluaciones (asignatura_id, titulo, peso, orden)
+  values ((select id from public.asignaturas limit 1), 'Mi propio control', 100, 1);
+  raise exception 'FALLA · pudo crear evaluaciones en su espacio propio';
+exception when insufficient_privilege then
+  raise notice 'ok · un espacio propio no lleva evaluaciones ni notas';
+end $$;
+
+-- Y el resto sigue sin verlo a él.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('el alumno del colegio no ve el ramo propio de otro',
+  (select count(*) from asignaturas where codigo = 'PROPIO-1')::int, 0);
+
+set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('la profesora tampoco ve el ramo propio de otro',
+  (select count(*) from asignaturas where codigo = 'PROPIO-1')::int, 0);
+
 select '— también pasaron las pruebas de docentes —' as resultado;
