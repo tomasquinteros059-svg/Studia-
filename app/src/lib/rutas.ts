@@ -41,6 +41,27 @@ export type RutasPila = {
   };
 };
 
+/* ------------------------------------------------------------- docente */
+/** Lo que ve quien dicta un ramo. Es otra aplicación sobre los mismos datos. */
+export type RutasPestanasDocente = {
+  Cursos: undefined;
+  Horario: undefined;
+  Perfil: undefined;
+};
+
+export type RutasPilaDocente = {
+  PrincipalDocente: NavigatorScreenParams<RutasPestanasDocente> | undefined;
+  RamoDocente: { asignaturaId: string };
+};
+
+export type PropsPestanaDocente<T extends keyof RutasPestanasDocente> = CompositeScreenProps<
+  BottomTabScreenProps<RutasPestanasDocente, T>,
+  NativeStackScreenProps<RutasPilaDocente>
+>;
+
+export type PropsPilaDocente<T extends keyof RutasPilaDocente> =
+  NativeStackScreenProps<RutasPilaDocente, T>;
+
 /** Una pestaña también puede navegar a la pila que la contiene. */
 export type PropsPestana<T extends keyof RutasPestanas> = CompositeScreenProps<
   BottomTabScreenProps<RutasPestanas, T>,

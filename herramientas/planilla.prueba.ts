@@ -1,34 +1,34 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { choques, comoHora, leerCsv, leerDia, leerHora, revisar, type Planillas } from "./planilla.ts";
+import { comoHora, leerCsv, leerDia, leerHora, revisar, type Planillas } from "./planilla.ts";
 
 // ── El CSV ──────────────────────────────────────────────────────────────
 
 test("lee una planilla simple", () => {
   const filas = leerCsv("codigo,nombre\nMAT1610,Cálculo I\n");
   assert.equal(filas.length, 1);
-  assert.equal(filas[0]!.codigo, "MAT1610");
-  assert.equal(filas[0]!.nombre, "Cálculo I");
+  assert.equal(filas[0]!.celdas.codigo, "MAT1610");
+  assert.equal(filas[0]!.celdas.nombre, "Cálculo I");
 });
 
 test("las líneas se numeran como en la planilla, contando la cabecera", () => {
   const filas = leerCsv("a\n1\n2\n");
-  assert.deepEqual(filas.map((f) => f._linea), [2, 3]);
+  assert.deepEqual(filas.map((f) => f.linea), [2, 3]);
 });
 
 test("una coma dentro de comillas no parte la celda", () => {
   const filas = leerCsv('codigo,nombre\nMAT1610,"Cálculo I, primera parte"\n');
-  assert.equal(filas[0]!.nombre, "Cálculo I, primera parte");
+  assert.equal(filas[0]!.celdas.nombre, "Cálculo I, primera parte");
 });
 
 test("las comillas dobles adentro se leen como una", () => {
   const filas = leerCsv('t\n"Dijo ""hola"" y se fue"\n');
-  assert.equal(filas[0]!.t, 'Dijo "hola" y se fue');
+  assert.equal(filas[0]!.celdas.t, 'Dijo "hola" y se fue');
 });
 
 test("el BOM y los CRLF de Excel no ensucian la primera columna", () => {
   const filas = leerCsv("﻿codigo,nombre\r\nMAT1610,Cálculo\r\n");
-  assert.equal(filas[0]!.codigo, "MAT1610");
+  assert.equal(filas[0]!.celdas.codigo, "MAT1610");
 });
 
 test("las líneas en blanco se ignoran", () => {
@@ -37,12 +37,12 @@ test("las líneas en blanco se ignoran", () => {
 
 test("la cabecera no distingue mayúsculas ni espacios", () => {
   const filas = leerCsv(" Codigo , Nombre \nMAT1610,Cálculo\n");
-  assert.equal(filas[0]!.codigo, "MAT1610");
+  assert.equal(filas[0]!.celdas.codigo, "MAT1610");
 });
 
 test("una celda que falta al final queda vacía y no indefinida", () => {
   const filas = leerCsv("a,b,c\n1,2\n");
-  assert.equal(filas[0]!.c, "");
+  assert.equal(filas[0]!.celdas.c, "");
 });
 
 test("una planilla vacía no da filas", () => {
@@ -223,61 +223,8 @@ test("el mismo orden en módulos distintos no choca", () => {
 });
 
 // ── Choques de horario ──────────────────────────────────────────────────
-
-const bloque = (b: Partial<Parameters<typeof choques>[0][number]>) => ({
-  codigo: "MAT1610", dia: 1, inicio: 510, fin: 600, sala: "A-201", tipo: "Cátedra", ...b,
-});
-
-test("dos ramos en la misma sala a la misma hora", () => {
-  const p = choques([bloque({}), bloque({ codigo: "FIS1503" })], []);
-  assert.equal(p.length, 1);
-  assert.match(p[0]!.mensaje, /La sala A-201 está tomada el lunes 08:30/);
-});
-
-test("la misma sala en días distintos no choca", () => {
-  assert.deepEqual(choques([bloque({}), bloque({ codigo: "FIS1503", dia: 2 })], []), []);
-});
-
-test("bloques pegados no se solapan", () => {
-  // Uno termina 10:00 y el otro empieza 10:00: eso es normal, no un choque.
-  const p = choques([bloque({ inicio: 510, fin: 600 }),
-                     bloque({ codigo: "FIS1503", inicio: 600, fin: 690 })], []);
-  assert.deepEqual(p, []);
-});
-
-test("un solapamiento parcial sí choca", () => {
-  const p = choques([bloque({ inicio: 510, fin: 600 }),
-                     bloque({ codigo: "FIS1503", inicio: 570, fin: 660 })], []);
-  assert.equal(p.length, 1);
-});
-
-test("un profesor citado en dos ramos a la vez", () => {
-  const p = choques(
-    [bloque({}), bloque({ codigo: "MAT1203", sala: "B-104" })],
-    [{ correo: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
-     { correo: "ana@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
-  );
-  assert.equal(p.length, 1);
-  assert.match(p[0]!.mensaje, /ana@colegio\.cl tiene MAT1610 y MAT1203 juntos/);
-});
-
-test("un ayudante en dos ramos a la vez no se reporta como choque del profesor", () => {
-  const p = choques(
-    [bloque({}), bloque({ codigo: "MAT1203", sala: "B-104" })],
-    [{ correo: "ana@colegio.cl", codigo: "MAT1610", papel: "ayudante" },
-     { correo: "ana@colegio.cl", codigo: "MAT1203", papel: "ayudante" }],
-  );
-  assert.deepEqual(p, []);
-});
-
-test("la sala y el profesor chocando a la vez dan dos avisos distintos", () => {
-  const p = choques(
-    [bloque({}), bloque({ codigo: "MAT1203" })],
-    [{ correo: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
-     { correo: "ana@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
-  );
-  assert.equal(p.length, 2);
-});
+// Los casos están en app/src/dominio/horario.prueba.ts: acá solo se
+// comprueba que la revisión de planillas los incorpore.
 
 test("los choques aparecen en la revisión completa", () => {
   const { problemas } = revisar(con({

@@ -10,7 +10,9 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./src/lib/supabase.ts";
 import { AVISO_DEMO, MODO_DEMO } from "./src/lib/config.ts";
 import { color } from "./src/ui/tema.ts";
-import type { RutasPestanas, RutasPila } from "./src/lib/rutas.ts";
+import type {
+  RutasPestanas, RutasPestanasDocente, RutasPila, RutasPilaDocente,
+} from "./src/lib/rutas.ts";
 
 import Sesion from "./src/pantallas/Sesion.tsx";
 import Inicio from "./src/pantallas/Inicio.tsx";
@@ -30,10 +32,18 @@ import Apunte from "./src/pantallas/Apunte.tsx";
 import Lectura from "./src/pantallas/Lectura.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
 import MisApuntes from "./src/pantallas/MisApuntes.tsx";
+import Perfiles from "./src/pantallas/Perfiles.tsx";
+import InicioDocente from "./src/pantallas/docente/InicioDocente.tsx";
+import RamoDocente from "./src/pantallas/docente/RamoDocente.tsx";
+import PerfilDocente from "./src/pantallas/docente/PerfilDocente.tsx";
+import InicioAdmin from "./src/pantallas/admin/InicioAdmin.tsx";
+import { usarPerfilDemo } from "./src/lib/perfiles-demo.ts";
 import { Icono } from "./src/ui/Icono.tsx";
 
 const Pila = createNativeStackNavigator<RutasPila>();
 const Pestanas = createBottomTabNavigator<RutasPestanas>();
+const PilaDocente = createNativeStackNavigator<RutasPilaDocente>();
+const PestanasDocente = createBottomTabNavigator<RutasPestanasDocente>();
 
 const ICONO_PESTANA = {
   Inicio: "inicio", Horario: "horario", Tareas: "tareas",
@@ -62,9 +72,49 @@ function Principal() {
   );
 }
 
+const ICONO_DOCENTE = { Cursos: "documento", Horario: "horario", Perfil: "persona" } as const;
+
+/** Las pestañas de quien dicta. Otra aplicación sobre los mismos datos. */
+function PrincipalDocente() {
+  return (
+    <PestanasDocente.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: color.marca,
+        tabBarInactiveTintColor: color.textoSuave,
+        tabBarIcon: ({ color: tono, size }) => (
+          <Icono nombre={ICONO_DOCENTE[route.name]} tamano={size} tono={tono} />
+        ),
+        tabBarLabelStyle: { fontSize: 10.5 },
+      })}
+    >
+      <PestanasDocente.Screen name="Cursos" component={InicioDocente} />
+      <PestanasDocente.Screen name="Horario" component={Horario} />
+      <PestanasDocente.Screen name="Perfil" component={PerfilDocente} />
+    </PestanasDocente.Navigator>
+  );
+}
+
+function AppDocente() {
+  return (
+    <PilaDocente.Navigator
+      screenOptions={{
+        headerTintColor: color.marca,
+        headerTitleStyle: { color: color.texto, fontSize: 15 },
+      }}
+    >
+      <PilaDocente.Screen name="PrincipalDocente" component={PrincipalDocente}
+        options={{ headerShown: false }} />
+      <PilaDocente.Screen name="RamoDocente" component={RamoDocente} options={{ title: "Curso" }} />
+    </PilaDocente.Navigator>
+  );
+}
+
 export default function App() {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [listo, setListo] = useState(false);
+  // En demostración no hay a quién preguntarle quién eres: se elige.
+  const { perfil, listo: perfilListo } = usarPerfilDemo();
 
   useEffect(() => {
     // En demostración no hay a quién preguntarle por la sesión: se entra directo.
@@ -78,7 +128,7 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  if (!listo) {
+  if (!listo || (MODO_DEMO && !perfilListo)) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.fondo }}>
         <ActivityIndicator color={color.marca} />
@@ -95,7 +145,15 @@ export default function App() {
         </SafeAreaView>
       ) : null}
       <NavigationContainer>
-        {sesion || MODO_DEMO ? (
+        {MODO_DEMO && !perfil ? (
+          <Perfiles />
+        ) : MODO_DEMO && perfil?.rol === "profesor" ? (
+          <AppDocente />
+        ) : MODO_DEMO && perfil?.rol === "administrador" ? (
+          <PilaDocente.Navigator screenOptions={{ headerShown: false }}>
+            <PilaDocente.Screen name="PrincipalDocente" component={PrincipalAdmin} />
+          </PilaDocente.Navigator>
+        ) : sesion || MODO_DEMO ? (
           <Pila.Navigator
             screenOptions={{
               headerTintColor: color.marca,
@@ -123,6 +181,28 @@ export default function App() {
         )}
       </NavigationContainer>
     </SafeAreaProvider>
+  );
+}
+
+const ICONO_ADMIN = { Cursos: "horario", Horario: "documento", Perfil: "persona" } as const;
+
+/** Las pestañas del colegio. */
+function PrincipalAdmin() {
+  return (
+    <PestanasDocente.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: color.marca,
+        tabBarInactiveTintColor: color.textoSuave,
+        tabBarIcon: ({ color: tono, size }) => (
+          <Icono nombre={ICONO_ADMIN[route.name]} tamano={size} tono={tono} />
+        ),
+        tabBarLabelStyle: { fontSize: 10.5 },
+      })}
+    >
+      <PestanasDocente.Screen name="Cursos" component={InicioAdmin} options={{ title: "Colegio" }} />
+      <PestanasDocente.Screen name="Perfil" component={PerfilDocente} />
+    </PestanasDocente.Navigator>
   );
 }
 

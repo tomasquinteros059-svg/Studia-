@@ -268,6 +268,32 @@ La tabla `transcripciones` ya existe y la función `resumen` la usa **cuando hay
 filas**. El día que el transporte alimente esa tabla, el resumen mejora solo,
 sin tocar la app.
 
+## Con quién se entra
+
+Con Supabase conectado, quién eres lo decide el inicio de sesión y el rol que
+trae tu perfil. Sin backend no hay a quién preguntarle, así que en modo
+demostración la app **ofrece elegir** entre cuatro perfiles al arrancar. No es
+un inicio de sesión de mentira y lo dice en pantalla: confundir eso con
+seguridad sería peor que no tenerlo.
+
+Cada rol abre una aplicación distinta sobre los mismos datos:
+
+| Perfil | Qué abre |
+|---|---|
+| Estudiante | Las pestañas de siempre: inicio, horario, tareas, apuntes, tutor |
+| Profesor | Sus cursos, con entregas por revisar y notas por publicar |
+| Ayudante | Lo mismo, sin el botón de publicar notas |
+| Administración | Los ramos, el horario y las personas del colegio |
+
+La diferencia entre profesor y ayudante aparece en la pantalla porque también
+existe en la base: `dicta_como_profesor` es lo que gobierna `evaluaciones` y
+`notas`. La app no decide el permiso, solo evita ofrecer un botón que el
+servidor va a rechazar — y hay una prueba de pantalla que lo fija.
+
+La pantalla de administración vuelve a correr **la misma** detección de
+choques que corre el importador: `dominio/horario.ts` la tiene una sola vez.
+Dos copias de esa regla es la manera de que discrepen.
+
 ## Tres capas de escritura
 
 Quien manda sobre cada dato es distinto, y el diseño lo sigue:

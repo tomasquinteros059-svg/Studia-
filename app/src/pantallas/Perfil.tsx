@@ -5,6 +5,8 @@ import { color, espacio, tipo } from "../ui/tema.ts";
 import { cambiarNombre, miPerfil } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { supabase } from "../lib/supabase.ts";
+import { MODO_DEMO } from "../lib/config.ts";
+import { salir } from "../lib/perfiles-demo.ts";
 
 export default function Perfil() {
   const { datos, cargando, error, recargar } = usarCarga(miPerfil, []);
@@ -65,6 +67,12 @@ export default function Perfil() {
         Tu correo no se guarda en la base de datos de la app: sale de tu sesión.
         Nadie más puede verlo.
       </Text>
+
+      {MODO_DEMO ? (
+        <View style={{ paddingHorizontal: espacio.l, paddingBottom: espacio.l }}>
+          <Boton texto="Cambiar de perfil" onPress={salir} />
+        </View>
+      ) : null}
     </Pantalla>
   );
 }

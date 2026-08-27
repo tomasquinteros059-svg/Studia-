@@ -9,9 +9,18 @@
 //   2. Cada problema dice archivo, línea y qué se esperaba. "Error de
 //      validación" no le sirve a nadie.
 
+import { choquesDeHorario, comoHora } from "../app/src/dominio/horario.ts";
+
+export { comoHora };
+
 export type Problema = { archivo: string; linea: number; mensaje: string };
 
-export type Fila = { _linea: number } & Record<string, string>;
+/**
+ * Una fila de planilla. El número de línea va aparte de las celdas y no
+ * mezclado con ellas: un `Record<string, string>` con un número adentro es
+ * un tipo que miente, y el error aparece recién donde se usa.
+ */
+export type Fila = { linea: number; celdas: Record<string, string> };
 
 /**
  * CSV de verdad, no `split(",")`: los nombres de ramo llevan comas, Excel
@@ -50,9 +59,9 @@ export function leerCsv(texto: string): Fila[] {
   const columnas = cabecera.map((c) => c.trim().toLowerCase());
   // +2: la cabecera es la línea 1 y las planillas cuentan desde 1, no desde 0.
   return conContenido.map((valores, i) => {
-    const f: Fila = { _linea: i + 2 };
-    columnas.forEach((col, j) => { f[col] = (valores[j] ?? "").trim(); });
-    return f;
+    const celdas: Record<string, string> = {};
+    columnas.forEach((col, j) => { celdas[col] = (valores[j] ?? "").trim(); });
+    return { linea: i + 2, celdas };
   });
 }
 
@@ -80,9 +89,6 @@ export function leerHora(valor: string): number | null {
   if (h > 23 || min > 59) return null;
   return h * 60 + min;
 }
-
-export const comoHora = (minutos: number): string =>
-  `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
 
 const esCorreo = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const esColor = (v: string) => /^#[0-9A-Fa-f]{6}$/.test(v);
@@ -147,51 +153,51 @@ export function revisar(p: Planillas): { colegio: Colegio; problemas: Problema[]
   const personas: Persona[] = [];
   const correos = new Set<string>();
   for (const f of leerCsv(p.personas ?? "")) {
-    const correo = (f.correo ?? "").toLowerCase();
-    if (!esCorreo(correo)) { b.anotar("personas.csv", f._linea, `"${f.correo}" no parece un correo.`); continue; }
-    if (correos.has(correo)) { b.anotar("personas.csv", f._linea, `${correo} aparece dos veces.`); continue; }
-    if (!f.nombre) { b.anotar("personas.csv", f._linea, "Falta el nombre."); continue; }
-    const rol = (f.rol || "estudiante").toLowerCase();
+    const correo = (f.celdas.correo ?? "").toLowerCase();
+    if (!esCorreo(correo)) { b.anotar("personas.csv", f.linea, `"${f.celdas.correo}" no parece un correo.`); continue; }
+    if (correos.has(correo)) { b.anotar("personas.csv", f.linea, `${correo} aparece dos veces.`); continue; }
+    if (!f.celdas.nombre) { b.anotar("personas.csv", f.linea, "Falta el nombre."); continue; }
+    const rol = (f.celdas.rol || "estudiante").toLowerCase();
     if (!["estudiante", "profesor", "administrador"].includes(rol)) {
-      b.anotar("personas.csv", f._linea, `Rol "${f.rol}": tiene que ser estudiante, profesor o administrador.`);
+      b.anotar("personas.csv", f.linea, `Rol "${f.celdas.rol}": tiene que ser estudiante, profesor o administrador.`);
       continue;
     }
     correos.add(correo);
-    personas.push({ correo, nombre: f.nombre, rol });
+    personas.push({ correo, nombre: f.celdas.nombre, rol });
   }
 
   // ---- asignaturas
   const asignaturas: Asignatura[] = [];
   const codigos = new Set<string>();
   for (const f of leerCsv(p.asignaturas ?? "")) {
-    const codigo = (f.codigo ?? "").toUpperCase();
-    if (!codigo) { b.anotar("asignaturas.csv", f._linea, "Falta el código."); continue; }
-    if (codigos.has(codigo)) { b.anotar("asignaturas.csv", f._linea, `El código ${codigo} está repetido.`); continue; }
-    if (!f.nombre) { b.anotar("asignaturas.csv", f._linea, `${codigo} no tiene nombre.`); continue; }
+    const codigo = (f.celdas.codigo ?? "").toUpperCase();
+    if (!codigo) { b.anotar("asignaturas.csv", f.linea, "Falta el código."); continue; }
+    if (codigos.has(codigo)) { b.anotar("asignaturas.csv", f.linea, `El código ${codigo} está repetido.`); continue; }
+    if (!f.celdas.nombre) { b.anotar("asignaturas.csv", f.linea, `${codigo} no tiene nombre.`); continue; }
 
-    const color = f.color || "#208AEF";
-    if (!esColor(color)) { b.anotar("asignaturas.csv", f._linea, `Color "${f.color}": va en formato #RRGGBB.`); continue; }
+    const color = f.celdas.color || "#208AEF";
+    if (!esColor(color)) { b.anotar("asignaturas.csv", f.linea, `Color "${f.celdas.color}": va en formato #RRGGBB.`); continue; }
 
-    const creditos = Number.parseInt(f.creditos || "0", 10);
+    const creditos = Number.parseInt(f.celdas.creditos || "0", 10);
     if (!Number.isInteger(creditos) || creditos <= 0) {
-      b.anotar("asignaturas.csv", f._linea, `Créditos "${f.creditos}": tiene que ser un número mayor que cero.`);
+      b.anotar("asignaturas.csv", f.linea, `Créditos "${f.celdas.creditos}": tiene que ser un número mayor que cero.`);
       continue;
     }
 
     codigos.add(codigo);
     asignaturas.push({
       codigo,
-      nombre: f.nombre,
-      profesor: f.profesor || "Por definir",
-      ayudante: f.ayudante || null,
+      nombre: f.celdas.nombre,
+      profesor: f.celdas.profesor || "Por definir",
+      ayudante: f.celdas.ayudante || null,
       color,
       creditos,
-      descripcion: f.descripcion || "",
-      requisitos: f.requisitos || "",
+      descripcion: f.celdas.descripcion || "",
+      requisitos: f.celdas.requisitos || "",
       // Varios libros en una celda, separados por barra: es lo que se puede
       // escribir cómodo en una planilla.
-      bibliografia: (f.bibliografia || "").split("|").map((x) => x.trim()).filter(Boolean),
-      intro_tutor: f.intro_tutor || `Cuéntame en qué parte de ${f.nombre} estás y qué intentaste.`,
+      bibliografia: (f.celdas.bibliografia || "").split("|").map((x) => x.trim()).filter(Boolean),
+      intro_tutor: f.celdas.intro_tutor || `Cuéntame en qué parte de ${f.celdas.nombre} estás y qué intentaste.`,
     });
   }
 
@@ -209,43 +215,43 @@ export function revisar(p: Planillas): { colegio: Colegio; problemas: Problema[]
   // ---- horario
   const horario: Bloque[] = [];
   for (const f of leerCsv(p.horario ?? "")) {
-    const codigo = (f.codigo ?? "").toUpperCase();
-    if (!existeRamo("horario.csv", f._linea, codigo)) continue;
+    const codigo = (f.celdas.codigo ?? "").toUpperCase();
+    if (!existeRamo("horario.csv", f.linea, codigo)) continue;
 
-    const dia = leerDia(f.dia ?? "");
-    if (dia === null) { b.anotar("horario.csv", f._linea, `Día "${f.dia}": va el nombre (Lunes) o el número (1 a 7).`); continue; }
+    const dia = leerDia(f.celdas.dia ?? "");
+    if (dia === null) { b.anotar("horario.csv", f.linea, `Día "${f.celdas.dia}": va el nombre (Lunes) o el número (1 a 7).`); continue; }
 
-    const inicio = leerHora(f.hora_inicio ?? "");
-    const fin = leerHora(f.hora_fin ?? "");
-    if (inicio === null) { b.anotar("horario.csv", f._linea, `Hora de inicio "${f.hora_inicio}": va como 08:30.`); continue; }
-    if (fin === null) { b.anotar("horario.csv", f._linea, `Hora de término "${f.hora_fin}": va como 10:00.`); continue; }
-    if (fin <= inicio) { b.anotar("horario.csv", f._linea, `El bloque termina (${f.hora_fin}) antes de empezar (${f.hora_inicio}).`); continue; }
-    if (!f.sala) { b.anotar("horario.csv", f._linea, "Falta la sala."); continue; }
+    const inicio = leerHora(f.celdas.hora_inicio ?? "");
+    const fin = leerHora(f.celdas.hora_fin ?? "");
+    if (inicio === null) { b.anotar("horario.csv", f.linea, `Hora de inicio "${f.celdas.hora_inicio}": va como 08:30.`); continue; }
+    if (fin === null) { b.anotar("horario.csv", f.linea, `Hora de término "${f.celdas.hora_fin}": va como 10:00.`); continue; }
+    if (fin <= inicio) { b.anotar("horario.csv", f.linea, `El bloque termina (${f.celdas.hora_fin}) antes de empezar (${f.celdas.hora_inicio}).`); continue; }
+    if (!f.celdas.sala) { b.anotar("horario.csv", f.linea, "Falta la sala."); continue; }
 
-    horario.push({ codigo, dia, inicio, fin, sala: f.sala, tipo: f.tipo || "Cátedra" });
+    horario.push({ codigo, dia, inicio, fin, sala: f.celdas.sala, tipo: f.celdas.tipo || "Cátedra" });
   }
 
   // ---- dictados
   const dictados: Dictado[] = [];
   const yaDicta = new Set<string>();
   for (const f of leerCsv(p.dictados ?? "")) {
-    const correo = (f.correo ?? "").toLowerCase();
-    const codigo = (f.codigo ?? "").toUpperCase();
-    if (!existePersona("dictados.csv", f._linea, correo)) continue;
-    if (!existeRamo("dictados.csv", f._linea, codigo)) continue;
+    const correo = (f.celdas.correo ?? "").toLowerCase();
+    const codigo = (f.celdas.codigo ?? "").toUpperCase();
+    if (!existePersona("dictados.csv", f.linea, correo)) continue;
+    if (!existeRamo("dictados.csv", f.linea, codigo)) continue;
 
-    const papel = (f.papel || "profesor").toLowerCase();
+    const papel = (f.celdas.papel || "profesor").toLowerCase();
     if (!["profesor", "ayudante"].includes(papel)) {
-      b.anotar("dictados.csv", f._linea, `Papel "${f.papel}": tiene que ser profesor o ayudante.`);
+      b.anotar("dictados.csv", f.linea, `Papel "${f.celdas.papel}": tiene que ser profesor o ayudante.`);
       continue;
     }
     const persona = personas.find((x) => x.correo === correo);
     if (persona && persona.rol === "estudiante") {
-      b.anotar("dictados.csv", f._linea, `${correo} está como estudiante en personas.csv y acá dicta un ramo.`);
+      b.anotar("dictados.csv", f.linea, `${correo} está como estudiante en personas.csv y acá dicta un ramo.`);
       continue;
     }
     const llave = `${correo}·${codigo}`;
-    if (yaDicta.has(llave)) { b.anotar("dictados.csv", f._linea, `${correo} ya aparece en ${codigo}.`); continue; }
+    if (yaDicta.has(llave)) { b.anotar("dictados.csv", f.linea, `${correo} ya aparece en ${codigo}.`); continue; }
     yaDicta.add(llave);
     dictados.push({ correo, codigo, papel });
   }
@@ -254,12 +260,12 @@ export function revisar(p: Planillas): { colegio: Colegio; problemas: Problema[]
   const inscripciones: Inscripcion[] = [];
   const yaInscrito = new Set<string>();
   for (const f of leerCsv(p.inscripciones ?? "")) {
-    const correo = (f.correo ?? "").toLowerCase();
-    const codigo = (f.codigo ?? "").toUpperCase();
-    if (!existePersona("inscripciones.csv", f._linea, correo)) continue;
-    if (!existeRamo("inscripciones.csv", f._linea, codigo)) continue;
+    const correo = (f.celdas.correo ?? "").toLowerCase();
+    const codigo = (f.celdas.codigo ?? "").toUpperCase();
+    if (!existePersona("inscripciones.csv", f.linea, correo)) continue;
+    if (!existeRamo("inscripciones.csv", f.linea, codigo)) continue;
     const llave = `${correo}·${codigo}`;
-    if (yaInscrito.has(llave)) { b.anotar("inscripciones.csv", f._linea, `${correo} ya está inscrito en ${codigo}.`); continue; }
+    if (yaInscrito.has(llave)) { b.anotar("inscripciones.csv", f.linea, `${correo} ya está inscrito en ${codigo}.`); continue; }
     yaInscrito.add(llave);
     inscripciones.push({ correo, codigo });
   }
@@ -268,53 +274,60 @@ export function revisar(p: Planillas): { colegio: Colegio; problemas: Problema[]
   const materia: Material[] = [];
   const yaOrden = new Set<string>();
   for (const f of leerCsv(p.materia ?? "")) {
-    const codigo = (f.codigo ?? "").toUpperCase();
-    if (!existeRamo("materia.csv", f._linea, codigo)) continue;
-    if (!f.modulo) { b.anotar("materia.csv", f._linea, "Falta el módulo al que pertenece."); continue; }
-    if (!f.titulo) { b.anotar("materia.csv", f._linea, "Falta el título del material."); continue; }
+    const codigo = (f.celdas.codigo ?? "").toUpperCase();
+    if (!existeRamo("materia.csv", f.linea, codigo)) continue;
+    if (!f.celdas.modulo) { b.anotar("materia.csv", f.linea, "Falta el módulo al que pertenece."); continue; }
+    if (!f.celdas.titulo) { b.anotar("materia.csv", f.linea, "Falta el título del material."); continue; }
 
-    const tipo = (f.tipo || "documento").toLowerCase();
+    const tipo = (f.celdas.tipo || "documento").toLowerCase();
     if (!["video", "documento", "ejercicios"].includes(tipo)) {
-      b.anotar("materia.csv", f._linea, `Tipo "${f.tipo}": tiene que ser video, documento o ejercicios.`);
+      b.anotar("materia.csv", f.linea, `Tipo "${f.celdas.tipo}": tiene que ser video, documento o ejercicios.`);
       continue;
     }
 
-    const ordenModulo = Number.parseInt(f.orden_modulo || "1", 10);
-    const orden = Number.parseInt(f.orden || "1", 10);
+    const ordenModulo = Number.parseInt(f.celdas.orden_modulo || "1", 10);
+    const orden = Number.parseInt(f.celdas.orden || "1", 10);
     if (!Number.isInteger(ordenModulo) || ordenModulo <= 0) {
-      b.anotar("materia.csv", f._linea, `orden_modulo "${f.orden_modulo}": va un número desde 1.`); continue;
+      b.anotar("materia.csv", f.linea, `orden_modulo "${f.celdas.orden_modulo}": va un número desde 1.`); continue;
     }
     if (!Number.isInteger(orden) || orden <= 0) {
-      b.anotar("materia.csv", f._linea, `orden "${f.orden}": va un número desde 1.`); continue;
+      b.anotar("materia.csv", f.linea, `orden "${f.celdas.orden}": va un número desde 1.`); continue;
     }
 
-    const lectura = f.lectura || null;
+    const lectura = f.celdas.lectura || null;
     if (lectura && !lecturas.has(lectura)) {
-      b.anotar("materia.csv", f._linea, `No encuentro datos/lecturas/${lectura}.`);
+      b.anotar("materia.csv", f.linea, `No encuentro datos/lecturas/${lectura}.`);
       continue;
     }
     // Un documento que no se puede ni leer ni abrir es una fila vacía con
     // título: aparece en la lista del alumno y no lleva a ninguna parte.
-    if (tipo === "documento" && !lectura && !f.url) {
-      b.anotar("materia.csv", f._linea, `"${f.titulo}" es un documento sin lectura ni url: no habría nada que abrir.`);
+    if (tipo === "documento" && !lectura && !f.celdas.url) {
+      b.anotar("materia.csv", f.linea, `"${f.celdas.titulo}" es un documento sin lectura ni url: no habría nada que abrir.`);
       continue;
     }
 
-    const llave = `${codigo}·${f.modulo}·${orden}`;
+    const llave = `${codigo}·${f.celdas.modulo}·${orden}`;
     if (yaOrden.has(llave)) {
-      b.anotar("materia.csv", f._linea, `En ${codigo} / ${f.modulo} ya hay algo en la posición ${orden}.`);
+      b.anotar("materia.csv", f.linea, `En ${codigo} / ${f.celdas.modulo} ya hay algo en la posición ${orden}.`);
       continue;
     }
     yaOrden.add(llave);
 
     materia.push({
-      codigo, modulo: f.modulo, orden_modulo: ordenModulo, tipo,
-      titulo: f.titulo, detalle: f.detalle || "", orden,
-      lectura, url: f.url || null,
+      codigo, modulo: f.celdas.modulo, orden_modulo: ordenModulo, tipo,
+      titulo: f.celdas.titulo, detalle: f.celdas.detalle || "", orden,
+      lectura, url: f.celdas.url || null,
     });
   }
 
-  b.problemas.push(...choques(horario, dictados));
+  // La misma revisión que corre la pantalla de administración sobre lo ya
+  // cargado. Vive en el dominio de la app para que no haya dos copias.
+  for (const c of choquesDeHorario(
+    horario.map((x) => ({ codigo: x.codigo, dia: x.dia, inicio: x.inicio, fin: x.fin, sala: x.sala })),
+    dictados.map((d) => ({ correo: d.correo, codigo: d.codigo, papel: d.papel })),
+  )) {
+    b.problemas.push({ archivo: "horario.csv", linea: 0, mensaje: c.mensaje });
+  }
 
   return {
     colegio: { personas, asignaturas, horario, dictados, inscripciones, materia },
@@ -322,45 +335,3 @@ export function revisar(p: Planillas): { colegio: Colegio; problemas: Problema[]
   };
 }
 
-/**
- * Lo que una planilla no puede ver sola: dos ramos en la misma sala a la
- * misma hora, o un profesor citado en dos partes a la vez. Es el error que
- * más caro sale, porque se descubre el primer día de clases.
- */
-export function choques(horario: Bloque[], dictados: Dictado[]): Problema[] {
-  const problemas: Problema[] = [];
-  const seSolapan = (a: Bloque, x: Bloque) =>
-    a.dia === x.dia && a.inicio < x.fin && x.inicio < a.fin;
-
-  const docenteDe = new Map<string, string[]>();
-  for (const d of dictados) {
-    if (d.papel !== "profesor") continue;
-    docenteDe.set(d.codigo, [...(docenteDe.get(d.codigo) ?? []), d.correo]);
-  }
-
-  for (let i = 0; i < horario.length; i++) {
-    for (let j = i + 1; j < horario.length; j++) {
-      const a = horario[i]!;
-      const x = horario[j]!;
-      if (!seSolapan(a, x)) continue;
-
-      const cuando = `${DIAS[a.dia - 1]} ${comoHora(Math.max(a.inicio, x.inicio))}`;
-
-      if (a.sala === x.sala) {
-        problemas.push({
-          archivo: "horario.csv", linea: 0,
-          mensaje: `La sala ${a.sala} está tomada el ${cuando} por ${a.codigo} y ${x.codigo}.`,
-        });
-      }
-      const comunes = (docenteDe.get(a.codigo) ?? [])
-        .filter((c) => (docenteDe.get(x.codigo) ?? []).includes(c));
-      for (const correo of comunes) {
-        problemas.push({
-          archivo: "horario.csv", linea: 0,
-          mensaje: `${correo} tiene ${a.codigo} y ${x.codigo} juntos el ${cuando}.`,
-        });
-      }
-    }
-  }
-  return problemas;
-}
