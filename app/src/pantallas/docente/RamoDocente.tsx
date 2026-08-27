@@ -5,13 +5,12 @@ import {
 import { Boton, Cargando, Encabezado, Error as ErrorUI, Fila, Vacio } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, fechaCorta, radio, tenue, tipo } from "../../ui/tema.ts";
-import { evaluacionesDe, materiaDe, misAsignaturas, misTareas } from "../../lib/consultas.ts";
 import {
-  corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas,
-} from "../../lib/datos-docente.ts";
+  corregir, cursoDe, entregasDe, evaluacionesDe, materiaDe, misAsignaturas, misTareas, notasDe, ponerNota, publicarNotas,
+} from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
-import { usarPerfilDemo } from "../../lib/perfiles-demo.ts";
+import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import {
   aprobacion, distribucion, estadoDeTarea, porRevisar, promedioDelCurso,
   puedePublicarNotas, sinPublicar, type EntregaDeCurso, type NotaDeCurso,
@@ -24,21 +23,22 @@ type Seccion = (typeof SECCIONES)[number];
 
 export default function RamoDocente({ route, navigation }: PropsPilaDocente<"RamoDocente">) {
   const { asignaturaId } = route.params;
-  const { perfil } = usarPerfilDemo();
+  const { yo } = usarQuienSoy();
   const { dosPaneles } = usarDisposicion();
   const [seccion, setSeccion] = useState<Seccion>("Tareas");
-  const papel = perfil?.papel ?? "ayudante";
+  const papel = yo?.papel ?? "ayudante";
 
   const traer = useCallback(async () => {
-    const [asignaturas, tareas, evaluaciones, curso, modulos] = await Promise.all([
+    const curso = await cursoDe(asignaturaId);
+    const [asignaturas, tareas, evaluaciones, modulos] = await Promise.all([
       misAsignaturas(), misTareas(asignaturaId), evaluacionesDe(asignaturaId),
-      cursoDe(asignaturaId), materiaDe(asignaturaId),
+      materiaDe(asignaturaId),
     ]);
     const conEntregas = await Promise.all(
-      tareas.map(async (t) => ({ tarea: t, entregas: await entregasDe(t.id) })),
+      tareas.map(async (t) => ({ tarea: t, entregas: await entregasDe(t.id, curso) })),
     );
     const conNotas = await Promise.all(
-      evaluaciones.map(async (ev) => ({ ev, filas: await notasDe(ev.id) })),
+      evaluaciones.map(async (ev) => ({ ev, filas: await notasDe(ev.id, curso) })),
     );
     return {
       ramo: asignaturas.find((a) => a.id === asignaturaId) ?? null,

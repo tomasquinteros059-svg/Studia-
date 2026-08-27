@@ -27,6 +27,7 @@ export const crearHilo = fuente.crearHilo;
 export const hiloPorId = fuente.hiloPorId;
 export const companerosDe = fuente.companerosDe;
 export const miPerfil = fuente.miPerfil;
+export const misDictados = fuente.misDictados;
 export const cambiarNombre = fuente.cambiarNombre;
 export const misNotificaciones = fuente.misNotificaciones;
 export const marcarLeida = fuente.marcarLeida;
@@ -39,3 +40,12 @@ export const guardarApunte = fuente.guardarApunte;
 export const fijarApunte = fuente.fijarApunte;
 export const borrarApunte = fuente.borrarApunte;
 export const resumenDe = fuente.resumenDe;
+
+/* Lo que ve y escribe quien dicta. */
+export const cursoDe = fuente.cursoDe;
+export const entregasDe = fuente.entregasDe;
+export const notasDe = fuente.notasDe;
+export const avanceDe = fuente.avanceDe;
+export const corregir = fuente.corregir;
+export const ponerNota = fuente.ponerNota;
+export const publicarNotas = fuente.publicarNotas;

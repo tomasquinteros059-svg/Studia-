@@ -2,7 +2,9 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Boton, Encabezado, Fila } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, radio, tipo } from "../../ui/tema.ts";
-import { salir, usarPerfilDemo } from "../../lib/perfiles-demo.ts";
+import { salir } from "../../lib/perfiles-demo.ts";
+import { usarQuienSoy } from "../../lib/quien-soy.ts";
+import { MODO_DEMO } from "../../lib/config.ts";
 import { puedePublicarNotas } from "../../dominio/curso.ts";
 
 /**
@@ -10,10 +12,10 @@ import { puedePublicarNotas } from "../../dominio/curso.ts";
  * ayudante que no sabe que no puede publicar notas va a buscar el botón.
  */
 export default function PerfilDocente() {
-  const { perfil } = usarPerfilDemo();
-  if (!perfil) return null;
-  const papel = perfil.papel ?? "ayudante";
-  const esColegio = perfil.rol === "administrador";
+  const { yo } = usarQuienSoy();
+  if (!yo) return null;
+  const papel = yo.papel ?? "ayudante";
+  const esColegio = yo.rol === "administrador";
 
   const puede = esColegio ? [
     { texto: "Definir qué ramos existen", si: true },
@@ -49,10 +51,10 @@ export default function PerfilDocente() {
       <View style={e.ficha}>
         <View style={e.avatar}><Icono nombre="persona" tamano={26} tono={color.marca} /></View>
         <View style={{ flex: 1 }}>
-          <Text style={e.nombre}>{perfil.nombre}</Text>
+          <Text style={e.nombre}>{yo.nombre}</Text>
           <Text style={tipo.detalle}>
             {esColegio ? "Administración" : papel === "profesor" ? "Profesora o profesor" : "Ayudante"}
-            {" · "}{perfil.correo}
+            {" · "}{yo.correo}
           </Text>
         </View>
       </View>
@@ -80,9 +82,11 @@ export default function PerfilDocente() {
         impide la base de datos, con tres pruebas que lo verifican.
       </Text>
 
-      <View style={{ padding: espacio.l }}>
-        <Boton texto="Cambiar de perfil" onPress={salir} />
-      </View>
+      {MODO_DEMO ? (
+        <View style={{ padding: espacio.l }}>
+          <Boton texto="Cambiar de perfil" onPress={salir} />
+        </View>
+      ) : null}
     </ScrollView>
   );
 }

@@ -5,11 +5,12 @@ import {
 import { Campo } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
-import { evaluacionesDe, materiaDe, misAsignaturas, misTareas } from "../../lib/consultas.ts";
-import { avanceDe, cursoDe, entregasDe, notasDe } from "../../lib/datos-docente.ts";
+import {
+  avanceDe, cursoDe, entregasDe, evaluacionesDe, misAsignaturas, misTareas, notasDe,
+} from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
-import { usarPerfilDemo } from "../../lib/perfiles-demo.ts";
+import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import { MODO_DEMO } from "../../lib/config.ts";
 import {
   SUGERENCIAS, responder, type CursoParaElAsistente, type Respuesta,
@@ -24,19 +25,20 @@ type Burbuja = { mia: boolean; texto: string; filas?: string[] };
  * sino no perder media hora cruzando planillas.
  */
 export default function Asistente() {
-  const { perfil } = usarPerfilDemo();
+  const { yo } = usarQuienSoy();
   const { anchoContenido } = usarDisposicion();
-  const dicta = perfil?.dicta ?? [];
+  const dicta = yo?.dicta ?? [];
 
   const traer = useCallback(async (): Promise<CursoParaElAsistente[]> => {
     const asignaturas = await misAsignaturas();
     const mios = asignaturas.filter((a) => dicta.includes(a.id));
 
     return Promise.all(mios.map(async (ramo) => {
-      const [inscritos, tareas, evaluaciones, avance] = await Promise.all([
-        cursoDe(ramo.id), misTareas(ramo.id), evaluacionesDe(ramo.id), avanceDe(ramo.id),
+      // El curso primero: lo demás lo necesita y así se pide una sola vez.
+      const inscritos = await cursoDe(ramo.id);
+      const [tareas, evaluaciones, avance] = await Promise.all([
+        misTareas(ramo.id), evaluacionesDe(ramo.id), avanceDe(ramo.id, inscritos),
       ]);
-      await materiaDe(ramo.id);
       return {
         codigo: ramo.codigo,
         nombre: ramo.nombre,
@@ -44,10 +46,10 @@ export default function Asistente() {
         avance,
         tareas: await Promise.all(tareas.map(async (t) => ({
           id: t.id, titulo: t.titulo, puntos: t.puntos, vence_en: t.vence_en,
-          entregas: await entregasDe(t.id),
+          entregas: await entregasDe(t.id, inscritos),
         }))),
         evaluaciones: await Promise.all(evaluaciones.map(async (ev) => ({
-          id: ev.id, titulo: ev.titulo, peso: ev.peso, notas: await notasDe(ev.id),
+          id: ev.id, titulo: ev.titulo, peso: ev.peso, notas: await notasDe(ev.id, inscritos),
         }))),
       };
     }));

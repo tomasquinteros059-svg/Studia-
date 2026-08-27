@@ -3,8 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error as ErrorUI, Fila } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, hora, nombreDia, radio, tenue, tipo } from "../../ui/tema.ts";
-import { miHorario, misAsignaturas } from "../../lib/consultas.ts";
-import { CURSO } from "../../lib/datos-docente.ts";
+import { cursoDe, miHorario, misAsignaturas } from "../../lib/consultas.ts";
 import { PERFILES_DEMO } from "../../lib/perfiles-demo.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { choquesDeHorario, type BloqueDeClase, type QuienDicta } from "../../dominio/horario.ts";
@@ -23,7 +22,11 @@ export default function InicioAdmin() {
 
   const traer = useCallback(async () => {
     const [asignaturas, horario] = await Promise.all([misAsignaturas(), miHorario()]);
-    return { asignaturas, horario };
+    const cursos = await Promise.all(asignaturas.map((a) => cursoDe(a.id)));
+    return {
+      asignaturas, horario,
+      inscritos: cursos.reduce((n, c) => n + c.length, 0),
+    };
   }, []);
 
   const { datos, cargando, error, recargar } = usarCarga(traer, []);
@@ -51,14 +54,12 @@ export default function InicioAdmin() {
     })));
   const problemas = choquesDeHorario(bloques, dictados);
 
-  const totalInscritos = Object.values(CURSO).reduce((n, c) => n + c.length, 0);
-
   return (
     <View style={{ flex: 1, backgroundColor: color.fondo }}>
       <View style={e.cabecera}>
         <Text style={e.titulo}>El colegio</Text>
         <Text style={tipo.detalle}>
-          {datos.asignaturas.length} ramos · {datos.horario.length} bloques · {totalInscritos} inscripciones
+          {datos.asignaturas.length} ramos · {datos.horario.length} bloques · {datos.inscritos} inscripciones
         </Text>
       </View>
 

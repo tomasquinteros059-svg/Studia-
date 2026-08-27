@@ -5,9 +5,11 @@
 import { supabase } from "./supabase.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
-  Hilo, Lectura, MensajeTutor, Modulo, Notificacion, ResumenGuardado, Respuesta,
-  TareaConEstado,
+  Dictado, Hilo, Lectura, MensajeTutor, Modulo, Notificacion, Perfil,
+  ResumenGuardado, Respuesta, TareaConEstado,
 } from "./tipos.ts";
+import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
+import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
   if (error) throw new Error(`${contexto}: ${error.message}`);
@@ -317,17 +319,33 @@ export async function hiloPorId(hiloId: string) {
   return data;
 }
 
-export async function miPerfil(): Promise<{ nombre: string; correo: string }> {
+export async function miPerfil(): Promise<Perfil> {
   const { data: sesion } = await supabase.auth.getUser();
   if (!sesion.user) throw new Error("No hay sesión.");
 
   const { data, error } = await supabase
-    .from("perfiles").select("nombre").eq("id", sesion.user.id).single();
+    .from("perfiles").select("nombre, rol").eq("id", sesion.user.id).single();
   reventar("No pude cargar tu perfil", error);
 
   // El correo sale de la sesión, no de la base: la columna no es legible desde
-  // el cliente para que nadie pueda leer el de otro.
-  return { nombre: data?.nombre ?? "", correo: sesion.user.email ?? "" };
+  // el cliente para que nadie pueda leer el de otro. El rol sí se lee, y es lo
+  // que decide qué aplicación abre la persona.
+  return {
+    nombre: data?.nombre ?? "",
+    correo: sesion.user.email ?? "",
+    rol: (data?.rol as Perfil["rol"]) ?? "estudiante",
+  };
+}
+
+/** Qué dicta esta persona, y con qué papel. Vacío para un estudiante. */
+export async function misDictados(): Promise<Dictado[]> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) return [];
+
+  const { data, error } = await supabase
+    .from("dictados").select("asignatura_id, papel").eq("docente_id", sesion.user.id);
+  reventar("No pude cargar tus ramos", error);
+  return (data ?? []) as Dictado[];
 }
 
 export async function cambiarNombre(nombre: string): Promise<void> {
@@ -436,4 +454,143 @@ export async function mensajesDe(conversacionId: string): Promise<MensajeTutor[]
     .order("creado_en");
   reventar("No pude cargar la conversación", error);
   return data ?? [];
+}
+
+/* ------------------------------------------------------------- docentes */
+// Lo que ve quien dicta. Todo vuelve filtrado por las políticas: un ramo
+// ajeno no aparece aunque se pida por su identificador.
+
+export async function cursoDe(asignaturaId: string): Promise<{ id: string; nombre: string }[]> {
+  // Por función y no por tabla: `perfiles` está cerrado por columnas y el
+  // correo no se lee desde el cliente.
+  const { data, error } = await supabase.rpc("alumnos_de", { p_asignatura: asignaturaId });
+  reventar("No pude cargar el curso", error);
+  return (data ?? []) as { id: string; nombre: string }[];
+}
+
+/**
+ * El curso llega como parámetro y no se vuelve a pedir acá. Antes cada
+ * llamada resolvía la lista sola, y una pantalla que carga diez tareas hacía
+ * veinte viajes de más para traer siempre los mismos veinte nombres.
+ */
+export async function entregasDe(
+  tareaId: string, curso: { id: string; nombre: string }[],
+): Promise<EntregaDeCurso[]> {
+  const { data, error } = await supabase
+    .from("entregas")
+    .select("id, tarea_id, estudiante_id, entregado_en, puntos_obtenidos")
+    .eq("tarea_id", tareaId);
+  reventar("No pude cargar las entregas", error);
+
+  const nombres = new Map(curso.map((a) => [a.id, a.nombre]));
+  return (data ?? []).map((e) => ({
+    id: e.id,
+    tarea_id: e.tarea_id,
+    estudiante_id: e.estudiante_id,
+    estudiante: nombres.get(e.estudiante_id) ?? "Sin nombre",
+    entregado_en: e.entregado_en,
+    puntos_obtenidos: e.puntos_obtenidos,
+  }));
+}
+
+export async function notasDe(
+  evaluacionId: string, curso: { id: string; nombre: string }[],
+): Promise<NotaDeCurso[]> {
+  const { data, error } = await supabase
+    .from("notas").select("estudiante_id, nota, publicada_en").eq("evaluacion_id", evaluacionId);
+  reventar("No pude cargar las notas", error);
+
+  // Se parte del curso y no de las notas: quien todavía no tiene nota igual
+  // tiene que aparecer en la lista, o el docente no sabe a quién le falta.
+  const puestas = new Map((data ?? []).map((n) => [n.estudiante_id, n]));
+  return curso.map((alumno) => {
+    const fila = puestas.get(alumno.id);
+    return {
+      evaluacion_id: evaluacionId,
+      estudiante_id: alumno.id,
+      estudiante: alumno.nombre,
+      nota: fila?.nota == null ? null : Number(fila.nota),
+      publicada: Boolean(fila?.publicada_en),
+    };
+  });
+}
+
+export async function avanceDe(
+  asignaturaId: string, curso: { id: string; nombre: string }[],
+): Promise<AvanceDeAlumno[]> {
+  const { data: modulos, error } = await supabase
+    .from("modulos").select("materiales(id)").eq("asignatura_id", asignaturaId);
+  reventar("No pude cargar el material del ramo", error);
+
+  const materiales = (modulos ?? []).flatMap((m) => (m.materiales ?? []).map((x) => x.id));
+  if (materiales.length === 0) {
+    return curso.map((a) => ({
+      estudiante_id: a.id, estudiante: a.nombre, hechos: 0, totales: 0, ultimo_acceso: null,
+    }));
+  }
+
+  const { data: progreso, error: errorProgreso } = await supabase
+    .from("progreso_material")
+    .select("estudiante_id, completado_en")
+    .in("material_id", materiales);
+  // Sin esto, una consulta fallida devolvería a todo el curso con cero
+  // materiales vistos, y el asistente diría que nadie ha estudiado.
+  reventar("No pude cargar el avance del curso", errorProgreso);
+
+  const porAlumno = new Map<string, { hechos: number; ultimo: string | null }>();
+  for (const p of progreso ?? []) {
+    const fila = porAlumno.get(p.estudiante_id) ?? { hechos: 0, ultimo: null };
+    fila.hechos += 1;
+    if (!fila.ultimo || p.completado_en > fila.ultimo) fila.ultimo = p.completado_en;
+    porAlumno.set(p.estudiante_id, fila);
+  }
+
+  return curso.map((a) => {
+    const fila = porAlumno.get(a.id);
+    return {
+      estudiante_id: a.id,
+      estudiante: a.nombre,
+      hechos: fila?.hechos ?? 0,
+      totales: materiales.length,
+      ultimo_acceso: fila?.ultimo ?? null,
+    };
+  });
+}
+
+/**
+ * Corregir es poner el puntaje y nada más. El identificador de la tarea no
+ * hace falta acá, pero se recibe igual para que la firma sea la misma en las
+ * dos fuentes: en demostración es lo que permite encontrar la entrega.
+ */
+export async function corregir(
+  _tareaId: string, entregaId: string, puntos: number | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("entregas").update({ puntos_obtenidos: puntos }).eq("id", entregaId);
+  reventar("No pude guardar el puntaje", error);
+}
+
+export async function ponerNota(
+  evaluacionId: string, estudianteId: string, nota: number | null,
+): Promise<void> {
+  if (nota === null) {
+    const { error } = await supabase.from("notas").delete()
+      .eq("evaluacion_id", evaluacionId).eq("estudiante_id", estudianteId);
+    reventar("No pude borrar la nota", error);
+    return;
+  }
+  const { error } = await supabase.from("notas")
+    .upsert({ evaluacion_id: evaluacionId, estudiante_id: estudianteId, nota },
+            { onConflict: "evaluacion_id,estudiante_id" });
+  reventar("No pude guardar la nota", error);
+}
+
+/** Publicar deja al curso ver lo que ya estaba puesto, y solo eso. */
+export async function publicarNotas(evaluacionId: string): Promise<void> {
+  const { error } = await supabase
+    .from("notas")
+    .update({ publicada_en: new Date().toISOString() })
+    .eq("evaluacion_id", evaluacionId)
+    .is("publicada_en", null);
+  reventar("No pude publicar las notas", error);
 }

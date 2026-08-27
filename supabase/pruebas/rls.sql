@@ -383,4 +383,29 @@ begin
   raise notice 'ok · el estudiante no se cambia las notas (0 filas)';
 end $$;
 
+-- ======================== como la administración ========================
+-- La secretaría no dicta nada, y aun así tiene que poder contar el curso.
+reset role;
+update public.perfiles set rol = 'administrador'
+ where id = 'e0000000-0000-4000-8000-000000000002';
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+
+select pg_temp.afirmar('la administración ve todas las asignaturas',
+  (select count(*) from asignaturas)::int, 6);
+select pg_temp.afirmar('la administración saca la lista de un curso que no dicta',
+  (select count(*) from public.alumnos_de(pg_temp.id_de('MAT1610')))::int, 2);
+select pg_temp.afirmar('la administración no ve apuntes de nadie',
+  (select count(*) from apuntes)::int, 0);
+
+do $$
+begin
+  insert into public.notas (evaluacion_id, estudiante_id, nota)
+  values ((select id from public.evaluaciones limit 1),
+          'e0000000-0000-4000-8000-000000000001', 7.0);
+  raise exception 'FALLA · la administración pudo poner una nota';
+exception when insufficient_privilege then
+  raise notice 'ok · la administración no pone notas';
+end $$;
+
 select '— también pasaron las pruebas de docentes —' as resultado;

@@ -304,6 +304,12 @@ enumera lo que sí sabe responder, en vez de inventar.
 
 ## Con quién se entra
 
+Todo lo que la app necesita saber de quien la usa sale de `lib/quien-soy.ts`:
+nombre, rol, papel y qué ramos dicta. Con Supabase conectado eso viene de
+`perfiles.rol` y de `dictados`; sin backend, del perfil que se eligió al
+entrar. **Las pantallas no saben cuál de los dos es**, y esa es la idea: si lo
+supieran, habría que acordarse de tocar las dos ramas cada vez.
+
 Con Supabase conectado, quién eres lo decide el inicio de sesión y el rol que
 trae tu perfil. Sin backend no hay a quién preguntarle, así que en modo
 demostración la app **ofrece elegir** entre cuatro perfiles al arrancar. No es

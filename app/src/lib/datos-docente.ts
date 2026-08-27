@@ -102,7 +102,9 @@ export const AVANCE: Record<string, AvanceDeAlumno[]> = {
 const dormir = () => new Promise((r) => setTimeout(r, 90));
 const copiar = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 
-export async function avanceDe(asignaturaId: string): Promise<AvanceDeAlumno[]> {
+export async function avanceDe(
+  asignaturaId: string, _curso?: { id: string; nombre: string }[],
+): Promise<AvanceDeAlumno[]> {
   await dormir();
   return copiar(AVANCE[asignaturaId] ?? []);
 }
@@ -112,12 +114,19 @@ export async function cursoDe(asignaturaId: string) {
   return copiar(CURSO[asignaturaId] ?? []);
 }
 
-export async function entregasDe(tareaId: string): Promise<EntregaDeCurso[]> {
+// El curso se recibe y se ignora: acá los nombres ya vienen en la entrega.
+// La firma es la misma que la de Supabase para que las pantallas no tengan
+// que saber de dónde salen los datos.
+export async function entregasDe(
+  tareaId: string, _curso?: { id: string; nombre: string }[],
+): Promise<EntregaDeCurso[]> {
   await dormir();
   return copiar(ENTREGAS[tareaId] ?? []);
 }
 
-export async function notasDe(evaluacionId: string): Promise<NotaDeCurso[]> {
+export async function notasDe(
+  evaluacionId: string, _curso?: { id: string; nombre: string }[],
+): Promise<NotaDeCurso[]> {
   await dormir();
   return copiar(NOTAS[evaluacionId] ?? []);
 }

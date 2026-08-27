@@ -114,6 +114,21 @@ export type Notificacion = {
   creado_en: string;
 };
 
+export type Rol = "estudiante" | "profesor" | "administrador";
+
+export type Perfil = {
+  nombre: string;
+  correo: string;
+  /** Decide qué aplicación abre la persona. Lo pone el colegio, no el cliente. */
+  rol: Rol;
+};
+
+/** Un ramo que esta persona dicta, y con qué papel. */
+export type Dictado = {
+  asignatura_id: string;
+  papel: "profesor" | "ayudante";
+};
+
 export type MensajeTutor = { id: string; rol: "estudiante" | "tutor"; contenido: string };
 
 export type Apunte = {

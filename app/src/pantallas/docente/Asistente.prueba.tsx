@@ -4,19 +4,16 @@ import { RAMO, TAREA_PENDIENTE, renderPantalla } from "../../../pruebas/dobles.t
 jest.mock("../../lib/consultas.ts", () => ({
   misAsignaturas: jest.fn(), misTareas: jest.fn(),
   evaluacionesDe: jest.fn(), materiaDe: jest.fn(),
-}));
-
-jest.mock("../../lib/datos-docente.ts", () => ({
   cursoDe: jest.fn(), entregasDe: jest.fn(), notasDe: jest.fn(), avanceDe: jest.fn(),
 }));
 
-jest.mock("../../lib/perfiles-demo.ts", () => ({
-  usarPerfilDemo: () => ({
-    perfil: { id: "p-ana", nombre: "Ana Ríos", rol: "profesor", papel: "profesor", dicta: ["r-cal"] },
+// La pantalla pregunta quién soy, no de dónde salió.
+jest.mock("../../lib/quien-soy.ts", () => ({
+  usarQuienSoy: () => ({
+    yo: { nombre: "Ana Ríos", correo: "ana@studia.cl", rol: "profesor",
+          papel: "profesor", dicta: ["r-cal"] },
     listo: true,
   }),
-  salir: jest.fn(),
-  PERFILES_DEMO: [],
 }));
 
 // El andamio de pruebas simula tener Supabase configurado, así que el modo
@@ -34,11 +31,14 @@ jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
 }));
 
 import * as consultas from "../../lib/consultas.ts";
-import * as docente from "../../lib/datos-docente.ts";
 import Asistente from "./Asistente.tsx";
 
 const mock = consultas as jest.Mocked<typeof consultas>;
-const mockD = docente as jest.Mocked<typeof docente>;
+// Las consultas del docente salen de la misma fachada que las del alumno.
+const mockD = mock as unknown as {
+  cursoDe: jest.Mock; entregasDe: jest.Mock; notasDe: jest.Mock;
+  avanceDe: jest.Mock; corregir: jest.Mock; ponerNota: jest.Mock; publicarNotas: jest.Mock;
+};
 
 const curso = [
   { id: "a1", nombre: "Eduardo Q." },

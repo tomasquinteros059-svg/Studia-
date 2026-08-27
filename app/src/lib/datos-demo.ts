@@ -6,10 +6,11 @@
 
 import type * as Real from "./consultas-supabase.ts";
 import { TEXTOS_DEMO } from "./textos-demo.ts";
+import { perfilActual } from "./perfiles-demo.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
-  Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Respuesta,
-  ResumenGuardado, TareaConEstado,
+  Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
+  Respuesta, ResumenGuardado, TareaConEstado,
 } from "./tipos.ts";
 
 const ahora = Date.now();
@@ -433,9 +434,23 @@ export async function companerosDe(): Promise<{ id: string; nombre: string }[]> 
   return copiar(COMPANEROS);
 }
 
-export async function miPerfil(): Promise<{ nombre: string; correo: string }> {
+export async function miPerfil(): Promise<Perfil> {
   await respirar();
-  return { nombre: "Eduardo Q.", correo: "eduardo@studia.cl" };
+  const quien = perfilActual();
+  return {
+    nombre: quien?.nombre ?? "Eduardo Q.",
+    correo: quien?.correo ?? "eduardo@studia.cl",
+    rol: quien?.rol ?? "estudiante",
+  };
+}
+
+export async function misDictados(): Promise<Dictado[]> {
+  await respirar();
+  const quien = perfilActual();
+  return (quien?.dicta ?? []).map((asignatura_id) => ({
+    asignatura_id,
+    papel: quien?.papel ?? "ayudante",
+  }));
 }
 
 export async function cambiarNombre(): Promise<void> {
@@ -513,6 +528,15 @@ export function guardarResumenDemo(apunteId: string, resumen: ResumenGuardado): 
   resumenes.set(apunteId, resumen);
 }
 
+// Lo del docente vive en su propio archivo porque son otras listas, pero
+// pasa por la misma fachada: si no, con Supabase conectado las pantallas del
+// profesor seguirían mostrando el curso inventado, y en silencio.
+import {
+  avanceDe, corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas,
+} from "./datos-docente.ts";
+
+export { avanceDe, corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas };
+
 // Si en `consultas-supabase.ts` aparece una consulta nueva, esto deja de
 // compilar hasta que exista también acá.
 const _cobertura: Omit<typeof Real, "default"> = {
@@ -520,7 +544,8 @@ const _cobertura: Omit<typeof Real, "default"> = {
   lecturaPorId, capitulosDe, misTareas, tareaPorId, entregarTarea, evaluacionesDe,
   todasLasEvaluaciones, foroDe, respuestasDe, responderHilo, crearHilo,
   hiloPorId, companerosDe, miPerfil, cambiarNombre, misNotificaciones,
-  marcarLeida, marcarTodasLeidas, mensajesDe, misApuntes, apuntePorId,
+  marcarLeida, marcarTodasLeidas, mensajesDe, misApuntes, apuntePorId, misDictados,
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
+  cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
 };
 void _cobertura;

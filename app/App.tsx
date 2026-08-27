@@ -38,7 +38,7 @@ import RamoDocente from "./src/pantallas/docente/RamoDocente.tsx";
 import PerfilDocente from "./src/pantallas/docente/PerfilDocente.tsx";
 import Asistente from "./src/pantallas/docente/Asistente.tsx";
 import InicioAdmin from "./src/pantallas/admin/InicioAdmin.tsx";
-import { usarPerfilDemo } from "./src/lib/perfiles-demo.ts";
+import { usarQuienSoy } from "./src/lib/quien-soy.ts";
 import { Icono } from "./src/ui/Icono.tsx";
 
 const Pila = createNativeStackNavigator<RutasPila>();
@@ -117,8 +117,9 @@ function AppDocente() {
 export default function App() {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [listo, setListo] = useState(false);
-  // En demostración no hay a quién preguntarle quién eres: se elige.
-  const { perfil, listo: perfilListo } = usarPerfilDemo();
+  // Quién eres sale de la base cuando hay servidor, y del perfil elegido
+  // cuando no. La app no distingue: solo mira el rol.
+  const { yo, listo: sePudoAveriguar } = usarQuienSoy();
 
   useEffect(() => {
     // En demostración no hay a quién preguntarle por la sesión: se entra directo.
@@ -132,7 +133,7 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  if (!listo || (MODO_DEMO && !perfilListo)) {
+  if (!listo || !sePudoAveriguar) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.fondo }}>
         <ActivityIndicator color={color.marca} />
@@ -149,15 +150,17 @@ export default function App() {
         </SafeAreaView>
       ) : null}
       <NavigationContainer>
-        {MODO_DEMO && !perfil ? (
+        {MODO_DEMO && !yo ? (
           <Perfiles />
-        ) : MODO_DEMO && perfil?.rol === "profesor" ? (
+        ) : !sesion && !MODO_DEMO ? (
+          <Sesion />
+        ) : yo?.rol === "profesor" ? (
           <AppDocente />
-        ) : MODO_DEMO && perfil?.rol === "administrador" ? (
+        ) : yo?.rol === "administrador" ? (
           <PilaDocente.Navigator screenOptions={{ headerShown: false }}>
             <PilaDocente.Screen name="PrincipalDocente" component={PrincipalAdmin} />
           </PilaDocente.Navigator>
-        ) : sesion || MODO_DEMO ? (
+        ) : (
           <Pila.Navigator
             screenOptions={{
               headerTintColor: color.marca,
@@ -180,8 +183,6 @@ export default function App() {
             <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}
               options={{ headerShown: false, presentation: "fullScreenModal" }} />
           </Pila.Navigator>
-        ) : (
-          <Sesion />
         )}
       </NavigationContainer>
     </SafeAreaProvider>

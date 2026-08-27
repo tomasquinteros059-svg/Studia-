@@ -3,18 +3,19 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error as ErrorUI, Vacio } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, diaCorto, espacio, hora, radio, tenue, tipo } from "../../ui/tema.ts";
-import { claseEnVivo, clasesDe, evaluacionesDe, miHorario, misAsignaturas, misTareas } from "../../lib/consultas.ts";
-import { cursoDe, entregasDe, notasDe } from "../../lib/datos-docente.ts";
+import {
+  claseEnVivo, clasesDe, cursoDe, entregasDe, evaluacionesDe, miHorario, misAsignaturas, misTareas, notasDe,
+} from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
-import { usarPerfilDemo } from "../../lib/perfiles-demo.ts";
+import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import { estadoDeTarea, porRevisar, sinPublicar } from "../../dominio/curso.ts";
 import type { PropsPestanaDocente } from "../../lib/rutas.ts";
 
 export default function InicioDocente({ navigation }: PropsPestanaDocente<"Cursos">) {
-  const { perfil } = usarPerfilDemo();
+  const { yo } = usarQuienSoy();
   const { columnas } = usarDisposicion();
-  const dicta = perfil?.dicta ?? [];
+  const dicta = yo?.dicta ?? [];
 
   const traer = useCallback(async () => {
     const [asignaturas, horario, viva] = await Promise.all([
@@ -23,14 +24,15 @@ export default function InicioDocente({ navigation }: PropsPestanaDocente<"Curso
     const mios = asignaturas.filter((a) => dicta.includes(a.id));
 
     const ramos = await Promise.all(mios.map(async (ramo) => {
-      const [tareas, evaluaciones, curso, clases] = await Promise.all([
-        misTareas(ramo.id), evaluacionesDe(ramo.id), cursoDe(ramo.id), clasesDe(ramo.id),
+      const curso = await cursoDe(ramo.id);
+      const [tareas, evaluaciones, clases] = await Promise.all([
+        misTareas(ramo.id), evaluacionesDe(ramo.id), clasesDe(ramo.id),
       ]);
       const conEntregas = await Promise.all(
-        tareas.map(async (t) => ({ tarea: t, entregas: await entregasDe(t.id) })),
+        tareas.map(async (t) => ({ tarea: t, entregas: await entregasDe(t.id, curso) })),
       );
       const notas = await Promise.all(
-        evaluaciones.map(async (ev) => ({ ev, filas: await notasDe(ev.id) })),
+        evaluaciones.map(async (ev) => ({ ev, filas: await notasDe(ev.id, curso) })),
       );
       return {
         ramo, clases, curso,
@@ -63,9 +65,9 @@ export default function InicioDocente({ navigation }: PropsPestanaDocente<"Curso
       contentContainerStyle={{ paddingBottom: espacio.xl }}>
 
       <View style={e.saludo}>
-        <Text style={e.hola}>Hola, {perfil?.nombre.split(" ")[0]}</Text>
+        <Text style={e.hola}>Hola, {yo?.nombre.split(" ")[0]}</Text>
         <Text style={tipo.detalle}>
-          {perfil?.papel === "ayudante" ? "Ayudante" : "Profesora o profesor"}
+          {yo?.papel === "ayudante" ? "Ayudante" : "Profesora o profesor"}
           {" · "}{datos.ramos.length === 1 ? "1 ramo" : `${datos.ramos.length} ramos`}
         </Text>
       </View>
