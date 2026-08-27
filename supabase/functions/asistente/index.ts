@@ -20,6 +20,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { cabecerasCors, json } from "../_compartido/cors.ts";
 import {
   BUSQUEDAS_MAXIMAS,
+  PREGUNTAS_POR_MINUTO,
   normalizarTurnos,
   promptAsistente,
   RESPUESTA_DE_RESPALDO,
@@ -32,8 +33,15 @@ import {
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
 const CLAVE_ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+const CLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const claude = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
+
+// Lleva la cuenta de uso. Va con la clave de servicio a propósito: si el
+// cliente pudiera escribir o borrar esas filas, el tope no sería un tope.
+const servicio = createClient(URL_SUPABASE, CLAVE_SERVICIO, {
+  auth: { persistSession: false },
+});
 
 const comaDecimal = (n: number | null) => (n === null ? "—" : n.toFixed(1).replace(".", ","));
 
@@ -84,6 +92,21 @@ Deno.serve(async (req: Request) => {
     // El alumno tiene el tutor, que es otra cosa y con otras reglas.
     return json({ error: "Este asistente es para docentes y administración." }, 403, origen);
   }
+
+  // --------------------------------------------------------- límite de uso
+  // Cada pregunta llega a Claude con búsqueda activada: sin tope, un dedo
+  // apoyado en el botón es una cuenta que crece sola.
+  const desde = new Date(Date.now() - 60_000).toISOString();
+  const { count: recientes } = await servicio
+    .from("usos_asistente")
+    .select("id", { count: "exact", head: true })
+    .eq("docente_id", sesion.user.id)
+    .gte("creado_en", desde);
+
+  if ((recientes ?? 0) >= PREGUNTAS_POR_MINUTO) {
+    return json({ error: "Vas muy rápido. Espera un momento." }, 429, origen);
+  }
+  await servicio.from("usos_asistente").insert({ docente_id: sesion.user.id });
 
   const { data: dictados } = await comoDocente
     .from("dictados")

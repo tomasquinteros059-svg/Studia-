@@ -408,4 +408,21 @@ exception when insufficient_privilege then
   raise notice 'ok · la administración no pone notas';
 end $$;
 
+-- El tope de uso del asistente no se toca desde el cliente.
+do $$
+begin
+  perform 1 from public.usos_asistente;
+  raise exception 'FALLA · pude leer el registro de uso del asistente';
+exception when insufficient_privilege then
+  raise notice 'ok · el registro de uso del asistente no se lee desde el cliente';
+end $$;
+
+do $$
+begin
+  delete from public.usos_asistente;
+  raise exception 'FALLA · pude borrar el registro de uso, y con eso el tope';
+exception when insufficient_privilege then
+  raise notice 'ok · el registro de uso del asistente no se borra desde el cliente';
+end $$;
+
 select '— también pasaron las pruebas de docentes —' as resultado;
