@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
-  Cargando, Encabezado, Error, Fila, Pastilla, Vacio,
+  Boton, Cargando, Encabezado, Error, Fila, Pastilla, Vacio,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { color, duracion, espacio, fechaCorta, hora, nombreDia, radio, tenue, tipo } from "../ui/tema.ts";
 import {
-  clasesDe, companerosDe, crearApunte, evaluacionesDe, foroDe, marcarMaterial,
-  materiaDe, miHorario, misApuntes, misAsignaturas, misTareas,
+  clasesDe, companerosDe, crearApunte, crearMaterial, crearModulo,
+  evaluacionesDe, foroDe, marcarMaterial, materiaDe, miHorario, misApuntes,
+  misAsignaturas, misTareas,
 } from "../lib/consultas.ts";
+import NuevoMaterial, { type MaterialArmado } from "./propio/NuevoMaterial.tsx";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
@@ -19,6 +21,13 @@ type Props = PropsPila<"Asignatura">;
 
 /** Solo tres viven en la fila; el resto está tras los tres puntitos. */
 const EN_LA_FILA = ["materia", "clases", "tareas"] as const;
+
+/**
+ * Un ramo propio no tiene curso detrás: nadie publica tareas, nadie dicta
+ * clases, no hay foro ni notas ni compañeros. Mostrar esas secciones vacías
+ * sería prometer algo que no va a llegar nunca.
+ */
+const SECCIONES_PROPIAS = ["materia", "apuntes", "archivos"] as const;
 const SECCIONES = [
   { id: "materia", texto: "Materia", corto: "Materia" },
   { id: "clases", texto: "Clases", corto: "Clases" },
@@ -43,6 +52,7 @@ export default function Asignatura({ route, navigation }: Props) {
   const { asignaturaId } = route.params;
   const [seccion, setSeccion] = useState<Seccion>((route.params.seccion as Seccion) ?? "materia");
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [agregando, setAgregando] = useState(false);
   // Con ancho de sobra, las nueve secciones caben a la vista y esconderlas
   // tras un menú sería peor: el menú existe porque en un teléfono no caben.
   const { barraDeSecciones } = usarDisposicion();
@@ -88,9 +98,28 @@ export default function Asignatura({ route, navigation }: Props) {
   if (!datos?.ramo) return <Vacio texto="No encontré esa asignatura." />;
 
   const ramo = datos.ramo;
-  const visibles: Seccion[] = EN_LA_FILA.includes(seccion as (typeof EN_LA_FILA)[number])
-    ? [...EN_LA_FILA]
-    : [seccion, ...EN_LA_FILA];
+  const propio = ramo.propio;
+  const secciones = propio
+    ? SECCIONES.filter((x) => (SECCIONES_PROPIAS as readonly string[]).includes(x.id))
+    : SECCIONES;
+  // Si se llegó pidiendo una sección que este ramo no tiene —un enlace viejo,
+  // o un ramo que dejó de ser del colegio— se cae a la primera y no a nada.
+  const actual: Seccion = secciones.some((x) => x.id === seccion) ? seccion : "materia";
+  const enLaFila = propio ? SECCIONES_PROPIAS : EN_LA_FILA;
+  const visibles: Seccion[] = (enLaFila as readonly Seccion[]).includes(actual)
+    ? [...enLaFila]
+    : [actual, ...enLaFila];
+
+  /**
+   * Guardar material en un ramo propio. Si todavía no hay ninguna unidad se
+   * crea una sola vez: pedirle a alguien que invente una unidad antes de
+   * poder pegar un texto es un paso de más.
+   */
+  const guardarMaterial = async (nuevo: MaterialArmado) => {
+    const moduloId = datos.modulos[0]?.id ?? await crearModulo(asignaturaId, "Mi material");
+    await crearMaterial({ moduloId, ...nuevo });
+    recargar();
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: color.fondo }}>
@@ -105,7 +134,7 @@ export default function Asignatura({ route, navigation }: Props) {
         style={e.fila} contentContainerStyle={{ gap: 6, paddingHorizontal: espacio.m, paddingVertical: 11 }}>
         {visibles.map((id) => {
           const s = SECCIONES.find((x) => x.id === id)!;
-          const activa = id === seccion;
+          const activa = id === actual;
           return (
             <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: activa }}
               onPress={() => setSeccion(id)} style={[e.chip, activa && { backgroundColor: color.marca }]}>
@@ -121,8 +150,8 @@ export default function Asignatura({ route, navigation }: Props) {
       <View style={barraDeSecciones ? e.conBarra : undefined}>
       {barraDeSecciones ? (
         <View style={e.barraLateral}>
-          {SECCIONES.map((sec) => {
-            const activa = sec.id === seccion;
+          {secciones.map((sec) => {
+            const activa = sec.id === actual;
             return (
               <Pressable key={sec.id} accessibilityRole="tab"
                 accessibilityState={{ selected: activa }}
@@ -145,8 +174,18 @@ export default function Asignatura({ route, navigation }: Props) {
 
       <ScrollView style={barraDeSecciones ? { flex: 1 } : undefined}
         contentContainerStyle={{ paddingBottom: espacio.xl }}>
-        {seccion === "materia" ? (
-          datos.modulos.length === 0 ? <Vacio texto="Todavía no hay material publicado." /> :
+        {actual === "materia" && propio ? (
+          <View style={e.agregarCaja}>
+            <Boton texto="Agregar material" onPress={() => setAgregando(true)} />
+          </View>
+        ) : null}
+
+        {actual === "materia" ? (
+          datos.modulos.length === 0 ? (
+            <Vacio texto={propio
+              ? "Todavía no hay nada acá. Agrega un texto y el lector te lo lee en voz alta."
+              : "Todavía no hay material publicado."} />
+          ) :
           datos.modulos.map((m) => (
             <View key={m.id}>
               <View style={e.modulo}>
@@ -192,7 +231,7 @@ export default function Asignatura({ route, navigation }: Props) {
           ))
         ) : null}
 
-        {seccion === "clases" ? (
+        {actual === "clases" ? (
           <>
             {datos.clases.filter((c) => c.estado === "en_vivo").map((c) => (
               <Pressable key={c.id} accessibilityRole="button" style={e.enVivo}
@@ -236,7 +275,7 @@ export default function Asignatura({ route, navigation }: Props) {
           </>
         ) : null}
 
-        {seccion === "tareas" ? (
+        {actual === "tareas" ? (
           datos.tareas.length === 0 ? <Vacio texto="Sin tareas en esta asignatura." /> :
           ordenarTareas(datos.tareas).map((t) => {
             const estado = estadoDeTarea(t);
@@ -251,7 +290,7 @@ export default function Asignatura({ route, navigation }: Props) {
           })
         ) : null}
 
-        {seccion === "foro" ? (
+        {actual === "foro" ? (
           <>
             <View style={{ padding: espacio.m }}>
               <Pressable accessibilityRole="button" style={e.nuevoHilo}
@@ -277,9 +316,9 @@ export default function Asignatura({ route, navigation }: Props) {
           </>
         ) : null}
 
-        {seccion === "notas" ? <SeccionNotas evaluaciones={datos.evaluaciones} /> : null}
+        {actual === "notas" ? <SeccionNotas evaluaciones={datos.evaluaciones} /> : null}
 
-        {seccion === "horario" ? (
+        {actual === "horario" ? (
           datos.horario.map((b) => (
             <Fila key={b.id}
               izquierda={<View style={[e.barraColor, { backgroundColor: ramo.color }]} />}
@@ -289,7 +328,7 @@ export default function Asignatura({ route, navigation }: Props) {
           ))
         ) : null}
 
-        {seccion === "programa" ? (
+        {actual === "programa" ? (
           <>
             <Text style={e.prosa}>{ramo.descripcion ?? "Sin descripción."}</Text>
             <Encabezado texto="Requisitos" />
@@ -304,7 +343,7 @@ export default function Asignatura({ route, navigation }: Props) {
           </>
         ) : null}
 
-        {seccion === "apuntes" ? (
+        {actual === "apuntes" ? (
           <>
             <View style={{ padding: espacio.m }}>
               <Pressable accessibilityRole="button" style={e.nuevoHilo}
@@ -340,7 +379,7 @@ export default function Asignatura({ route, navigation }: Props) {
           </>
         ) : null}
 
-        {seccion === "companeros" ? (
+        {actual === "companeros" ? (
           <>
             <Encabezado texto="Equipo docente" />
             <Fila izquierda={<Avatar nombre={ramo.profesor} destacado tono={ramo.color} />}
@@ -361,7 +400,7 @@ export default function Asignatura({ route, navigation }: Props) {
           </>
         ) : null}
 
-        {seccion === "archivos" ? (
+        {actual === "archivos" ? (
           (() => {
             const docs = datos.modulos.flatMap((m) =>
               m.materiales.filter((x) => x.tipo === "documento").map((x) => ({ ...x, modulo: m.titulo })));
@@ -377,6 +416,11 @@ export default function Asignatura({ route, navigation }: Props) {
       </ScrollView>
       </View>
 
+      {propio ? (
+        <NuevoMaterial abierto={agregando} cerrar={() => setAgregando(false)}
+          guardar={guardarMaterial} />
+      ) : null}
+
       <Modal visible={menuAbierto} transparent animationType="slide"
         onRequestClose={() => setMenuAbierto(false)}>
         <Pressable style={e.fondoModal} onPress={() => setMenuAbierto(false)} accessibilityLabel="Cerrar" />
@@ -384,8 +428,8 @@ export default function Asignatura({ route, navigation }: Props) {
           <View style={e.asa} />
           <Text style={tipo.etiqueta}>Ir a una sección de</Text>
           <Text style={e.hojaNombre}>{ramo.nombre}</Text>
-          {SECCIONES.map((s) => {
-            const activa = s.id === seccion;
+          {secciones.map((s) => {
+            const activa = s.id === actual;
             return (
               <Pressable key={s.id} accessibilityRole="button"
                 onPress={() => { setSeccion(s.id); setMenuAbierto(false); }}
@@ -467,6 +511,7 @@ function SeccionNotas({ evaluaciones }: { evaluaciones: { id: string; titulo: st
 }
 
 const e = StyleSheet.create({
+  agregarCaja: { padding: espacio.m, paddingBottom: 0 },
   cabecera: { padding: espacio.m, paddingBottom: espacio.m },
   codigo: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 0.6, opacity: 0.85 },
   nombre: { color: "#fff", fontSize: 20, fontWeight: "600", marginTop: 2 },

@@ -1,6 +1,6 @@
-import { fireEvent, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, waitFor } from "@testing-library/react-native";
 import {
-  BLOQUE, CLASE_VIVA, EVALUACIONES, NOTIFICACION, RAMO, RAMO_2,
+  BLOQUE, CLASE_VIVA, EVALUACIONES, NOTIFICACION, RAMO, RAMO_2, RAMO_PROPIO,
   TAREA_ATRASADA, TAREA_ENTREGADA, TAREA_PENDIENTE, renderPantalla,
 } from "../../pruebas/dobles.tsx";
 
@@ -11,6 +11,7 @@ jest.mock("../lib/consultas.ts", () => ({
   claseEnVivo: jest.fn(),
   misNotificaciones: jest.fn(),
   todasLasEvaluaciones: jest.fn(),
+  crearRamoPropio: jest.fn(),
 }));
 
 import * as consultas from "../lib/consultas.ts";
@@ -104,5 +105,69 @@ describe("Inicio", () => {
     mock.misTareas.mockResolvedValue([TAREA_ENTREGADA] as never);
     const t = await renderPantalla(Inicio);
     await waitFor(() => expect(t.getByText("Estás al día. Nada por entregar.")).toBeTruthy());
+  });
+});
+
+describe("Inicio · lo que la persona arma por su cuenta", () => {
+  test("los ramos propios van en su propia sección, no mezclados con los del colegio", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([RAMO, RAMO_2, RAMO_PROPIO] as never);
+    const t = await renderPantalla(Inicio);
+
+    await waitFor(() => expect(t.getByText("Lo mío")).toBeTruthy());
+    expect(t.getByText("Inglés")).toBeTruthy();
+    // Y no se cuela entre las tarjetas del colegio, que llevan nota: son dos.
+    expect(t.getAllByText(/^Nota /)).toHaveLength(2);
+  });
+
+  test("quien no tiene institución no ve horario, ni entregas, ni notas", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([] as never);
+    mock.misTareas.mockResolvedValue([] as never);
+    mock.miHorario.mockResolvedValue([] as never);
+    mock.claseEnVivo.mockResolvedValue(null as never);
+    mock.todasLasEvaluaciones.mockResolvedValue(new Map() as never);
+
+    const t = await renderPantalla(Inicio);
+    await waitFor(() => expect(t.getByText("Lo mío")).toBeTruthy());
+
+    expect(t.queryByText("Hoy")).toBeNull();
+    expect(t.queryByText("Próximas entregas")).toBeNull();
+    expect(t.queryByText("Mis asignaturas")).toBeNull();
+    // En vez de secciones vacías, le dice por dónde empezar.
+    expect(t.getByText(/Empieza por acá/)).toBeTruthy();
+  });
+
+  test("crear un ramo lo guarda y vuelve a cargar la lista", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([] as never);
+    mock.crearRamoPropio.mockResolvedValue(RAMO_PROPIO as never);
+    const t = await renderPantalla(Inicio);
+
+    await waitFor(() => expect(t.getByLabelText("Nuevo ramo")).toBeTruthy());
+    await act(async () => { fireEvent.press(t.getByLabelText("Nuevo ramo")); });
+
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Nombre del ramo"), "Inglés");
+    });
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Crear ramo" }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mock.crearRamoPropio).toHaveBeenCalledWith("Inglés", expect.any(String)));
+    // Y no se queda con la lista vieja: la pantalla vuelve a preguntar.
+    expect(mock.misAsignaturas.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  test("sin nombre no deja crear el ramo", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([] as never);
+    const t = await renderPantalla(Inicio);
+
+    await waitFor(() => expect(t.getByLabelText("Nuevo ramo")).toBeTruthy());
+    await act(async () => { fireEvent.press(t.getByLabelText("Nuevo ramo")); });
+
+    expect(t.getByRole("button", { name: "Crear ramo" })).toBeDisabled();
   });
 });

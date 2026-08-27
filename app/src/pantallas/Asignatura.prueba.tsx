@@ -1,6 +1,6 @@
-import { fireEvent, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, waitFor } from "@testing-library/react-native";
 import {
-  CLASE_GRABADA, CLASE_VIVA, EVALUACIONES, HILO, MODULO, RAMO,
+  CLASE_GRABADA, CLASE_VIVA, EVALUACIONES, HILO, MODULO, RAMO, RAMO_PROPIO,
   TAREA_PENDIENTE, APUNTE, BLOQUE, renderConNavegador, renderPantalla,
 } from "../../pruebas/dobles.tsx";
 
@@ -9,6 +9,15 @@ jest.mock("../lib/consultas.ts", () => ({
   misTareas: jest.fn(), foroDe: jest.fn(), evaluacionesDe: jest.fn(),
   miHorario: jest.fn(), companerosDe: jest.fn(), misApuntes: jest.fn(),
   marcarMaterial: jest.fn(), crearApunte: jest.fn(),
+  crearModulo: jest.fn(), crearMaterial: jest.fn(),
+}));
+
+jest.mock("../lib/archivos.ts", () => ({
+  sePuedeElegirArchivo: false,
+  HAY_ALMACENAMIENTO: false,
+  AVISO_SIN_ALMACENAMIENTO: "Todavía no hay almacenamiento conectado.",
+  elegirArchivo: jest.fn(),
+  subir: jest.fn(),
 }));
 
 const anchoFalso = { valor: { width: 750, height: 1334, scale: 2, fontScale: 1 } };
@@ -223,5 +232,92 @@ describe("Asignatura en pantalla amplia", () => {
     await waitFor(() => expect(t.getAllByText("Cálculo I").length).toBeGreaterThan(0));
     expect(t.getByLabelText("Todas las secciones")).toBeTruthy();
     expect(t.queryByText("Programa del curso")).toBeNull();
+  });
+});
+
+describe("Asignatura · un ramo propio", () => {
+  const abrirPropio = async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([RAMO_PROPIO] as never);
+    mock.materiaDe.mockResolvedValue([] as never);
+    mock.crearModulo.mockResolvedValue("mod-1" as never);
+    mock.crearMaterial.mockResolvedValue(undefined as never);
+    const t = await renderPantalla(Asignatura, { asignaturaId: RAMO_PROPIO.id });
+    await waitFor(() => expect(t.getAllByText("Inglés").length).toBeGreaterThan(0));
+    return t;
+  };
+
+  test("no ofrece foro, ni notas, ni compañeros: no hay curso detrás", async () => {
+    // En una tablet ancha se ven todas las secciones a la vez, así que si
+    // alguna sobra se nota de inmediato.
+    anchoFalso.valor = { width: 1194, height: 834, scale: 2, fontScale: 1 };
+    const t = await abrirPropio();
+    expect(t.queryByText("Foro")).toBeNull();
+    expect(t.queryByText("Notas")).toBeNull();
+    expect(t.queryByText("Compañeros")).toBeNull();
+    expect(t.queryByText("Clases")).toBeNull();
+    expect(t.getByText("Materia")).toBeTruthy();
+    expect(t.getByText("Mis apuntes")).toBeTruthy();
+  });
+
+  test("un ramo propio vacío invita a agregar, no dice que no publicaron nada", async () => {
+    anchoFalso.valor = { width: 390, height: 844, scale: 2, fontScale: 1 };
+    const t = await abrirPropio();
+    expect(t.getByText(/el lector te lo lee en voz alta/)).toBeTruthy();
+    expect(t.getByRole("button", { name: "Agregar material" })).toBeTruthy();
+  });
+
+  test("el primer material crea la unidad solo: nadie tiene que inventarla", async () => {
+    const t = await abrirPropio();
+    await act(async () => { fireEvent.press(t.getByRole("button", { name: "Agregar material" })); });
+
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Título del material"), "Phrasal verbs");
+    });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Texto del material"), "Look up means to search.");
+    });
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Guardar" }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mock.crearMaterial).toHaveBeenCalled());
+    expect(mock.crearModulo).toHaveBeenCalledWith(RAMO_PROPIO.id, "Mi material");
+    expect(mock.crearMaterial).toHaveBeenCalledWith(expect.objectContaining({
+      moduloId: "mod-1", titulo: "Phrasal verbs", tipo: "documento",
+      texto: "Look up means to search.",
+    }));
+  });
+
+  test("si ya hay una unidad, el material entra ahí y no se crea otra", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([RAMO_PROPIO] as never);
+    mock.materiaDe.mockResolvedValue([{ ...MODULO, materiales: [] }] as never);
+    mock.crearMaterial.mockResolvedValue(undefined as never);
+    const t = await renderPantalla(Asignatura, { asignaturaId: RAMO_PROPIO.id });
+    await waitFor(() => expect(t.getAllByText("Inglés").length).toBeGreaterThan(0));
+
+    await act(async () => { fireEvent.press(t.getByRole("button", { name: "Agregar material" })); });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Título del material"), "Otro");
+    });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Texto del material"), "Algo.");
+    });
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Guardar" }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mock.crearMaterial).toHaveBeenCalled());
+    expect(mock.crearModulo).not.toHaveBeenCalled();
+    expect(mock.crearMaterial).toHaveBeenCalledWith(
+      expect.objectContaining({ moduloId: MODULO.id }));
+  });
+
+  test("un ramo del colegio no ofrece agregar material desde acá", async () => {
+    const t = await abrir();
+    expect(t.queryByText("Agregar material")).toBeNull();
   });
 });

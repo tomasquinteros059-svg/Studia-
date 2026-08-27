@@ -1,11 +1,12 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   Cargando, Encabezado, Error, Fila, Pantalla, Pastilla, Punto,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
-import { claseEnVivo, miHorario, misAsignaturas, misNotificaciones, misTareas, todasLasEvaluaciones } from "../lib/consultas.ts";
+import { claseEnVivo, crearRamoPropio, miHorario, misAsignaturas, misNotificaciones, misTareas, todasLasEvaluaciones } from "../lib/consultas.ts";
+import NuevoRamo, { colorSugerido } from "./propio/NuevoRamo.tsx";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo } from "../dominio/notas.ts";
@@ -16,6 +17,7 @@ type Props = PropsPestana<"Inicio">;
 
 export default function Inicio({ navigation }: Props) {
   const { columnas } = usarDisposicion();
+  const [creando, setCreando] = useState(false);
 
   const traer = useCallback(async () => {
     const [asignaturas, tareas, horario, vivo, notificaciones, evaluaciones] = await Promise.all([
@@ -33,6 +35,11 @@ export default function Inicio({ navigation }: Props) {
 
   const { asignaturas, tareas, horario, vivo, notificaciones, evaluaciones } = datos;
   const porId = new Map(asignaturas.map((a) => [a.id, a]));
+  // Los ramos de la institución y los que armó la persona se muestran
+  // aparte: son dos cosas distintas y mezclarlas confunde a los dos lados.
+  const delColegio = asignaturas.filter((a) => !a.propio);
+  const mios = asignaturas.filter((a) => a.propio);
+  const hayColegio = delColegio.length > 0;
   const sinLeer = notificaciones.filter((n) => !n.leida).length;
 
   const hoy = ((new Date().getDay() + 6) % 7) + 1; // domingo = 7
@@ -80,6 +87,7 @@ export default function Inicio({ navigation }: Props) {
         </Pressable>
       ) : null}
 
+      {hayColegio ? <>
       <Encabezado texto="Hoy" accion={
         <Pressable onPress={() => navigation.navigate("Horario")}>
           <Text style={e.enlace}>Ver horario</Text>
@@ -133,7 +141,7 @@ export default function Inicio({ navigation }: Props) {
           <Text style={e.enlace}>Ver notas</Text>
         </Pressable>} />
       <View style={[e.rejilla, { paddingHorizontal: espacio.m }]}>
-        {asignaturas.map((a) => {
+        {delColegio.map((a) => {
           const { nota } = notaDelRamo(evaluaciones.get(a.id) ?? []);
           const pendientes = tareas.filter(
             (t) => t.asignatura_id === a.id && estadoDeTarea(t) !== "entregada").length;
@@ -161,7 +169,39 @@ export default function Inicio({ navigation }: Props) {
           );
         })}
       </View>
+      </> : null}
 
+      <Encabezado texto="Lo mío" accion={
+        <Pressable accessibilityRole="button" accessibilityLabel="Nuevo ramo"
+          onPress={() => setCreando(true)}>
+          <Text style={e.enlace}>Nuevo ramo</Text>
+        </Pressable>} />
+      {mios.length === 0 ? (
+        <Text style={e.pistaConsejos}>
+          {hayColegio
+            ? "Acá puedes armar tus propios ramos, con lo que quieras estudiar aparte."
+            : "Empieza por acá: crea un ramo, pega o escribe el texto que quieras estudiar y escúchalo con el lector."}
+        </Text>
+      ) : (
+        mios.map((a) => (
+          <Fila key={a.id}
+            izquierda={<View style={[e.barraColor, { backgroundColor: a.color }]} />}
+            titulo={a.nombre}
+            detalle={a.codigo}
+            onPress={() => navigation.navigate("Asignatura", { asignaturaId: a.id })}
+          />
+        ))
+      )}
+
+      <NuevoRamo
+        abierto={creando}
+        cerrar={() => setCreando(false)}
+        colorInicial={colorSugerido(mios.length)}
+        crear={async (nombre, tono) => {
+          await crearRamoPropio(nombre, tono);
+          await recargar();
+        }}
+      />
     </Pantalla>
   );
 }

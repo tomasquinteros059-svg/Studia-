@@ -84,7 +84,9 @@ function sqlDe(c: Colegio): string {
     l.push(`  (codigo, nombre, profesor, ayudante, color, creditos, descripcion, requisitos, bibliografia, intro_tutor)`);
     l.push(`values (${t(a.codigo)}, ${t(a.nombre)}, ${t(a.profesor)}, ${t(a.ayudante)}, ${t(a.color)}, ${a.creditos},`);
     l.push(`        ${t(a.descripcion)}, ${t(a.requisitos)}, ${arreglo(a.bibliografia)}, ${t(a.intro_tutor)})`);
-    l.push(`on conflict (codigo) do update set`);
+    // El índice único de `codigo` es parcial: solo cubre los ramos del
+    // colegio. Sin repetir su condición, Postgres no sabe cuál inferir.
+    l.push(`on conflict (codigo) where creador_id is null do update set`);
     l.push(`  nombre = excluded.nombre, profesor = excluded.profesor, ayudante = excluded.ayudante,`);
     l.push(`  color = excluded.color, creditos = excluded.creditos, descripcion = excluded.descripcion,`);
     l.push(`  requisitos = excluded.requisitos, bibliografia = excluded.bibliografia,`);

@@ -16,6 +16,14 @@ const TONO: Record<PerfilDemo["rol"], string> = {
   administrador: "#C9701C",
 };
 
+// Quien llega sin institución es un estudiante más para la aplicación, pero
+// en esta pantalla conviene que se distinga: es la vista más distinta de las
+// cinco y confundirla con la del alumno del colegio sería lo fácil.
+const tonoDe = (p: PerfilDemo): string =>
+  p.institucion ? TONO[p.rol] : "#7A4FD6";
+const iconoDe = (p: PerfilDemo) =>
+  p.institucion ? ICONO[p.rol] : ("tutor" as const);
+
 /**
  * Con quién entrar, solo en modo demostración.
  *
@@ -32,7 +40,8 @@ export default function Perfiles() {
       <Text style={e.titulo}>¿Con quién quieres entrar?</Text>
       <Text style={e.bajada}>
         Cada perfil ve una aplicación distinta. Puedes cambiarte cuando
-        quieras desde tu perfil, sin perder nada.
+        quieras desde tu perfil, sin perder nada. El último no pertenece a
+        ninguna institución: parte de cero y arma sus propios ramos.
       </Text>
 
       <View style={[e.grilla, columnas > 1 ? e.grillaAncha : null]}>
@@ -48,15 +57,15 @@ export default function Perfiles() {
               pressed ? e.apretada : null,
             ]}
           >
-            <View style={[e.marca, { backgroundColor: tenue(TONO[p.rol]) }]}>
-              <Icono nombre={ICONO[p.rol]} tamano={20} tono={TONO[p.rol]} />
+            <View style={[e.marca, { backgroundColor: tenue(tonoDe(p)) }]}>
+              <Icono nombre={iconoDe(p)} tamano={20} tono={tonoDe(p)} />
             </View>
 
             <View style={{ flex: 1, gap: 3 }}>
               <View style={e.encabezado}>
                 <Text style={e.nombre}>{p.nombre}</Text>
-                <View style={[e.pastilla, { backgroundColor: tenue(TONO[p.rol]) }]}>
-                  <Text style={[e.pastillaTexto, { color: TONO[p.rol] }]}>{p.titulo}</Text>
+                <View style={[e.pastilla, { backgroundColor: tenue(tonoDe(p)) }]}>
+                  <Text style={[e.pastillaTexto, { color: tonoDe(p) }]}>{p.titulo}</Text>
                 </View>
               </View>
               <Text style={e.descripcion}>{p.descripcion}</Text>

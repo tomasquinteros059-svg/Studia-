@@ -7,6 +7,9 @@
 import type * as Real from "./consultas-supabase.ts";
 import { TEXTOS_DEMO } from "./textos-demo.ts";
 import { perfilActual } from "./perfiles-demo.ts";
+import {
+  RAMOS_PROPIOS, lecturaPropiaDe, modulosPropiosDe,
+} from "./datos-propios.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
@@ -25,6 +28,7 @@ const ASIGNATURAS: Asignatura[] = [
     requisitos: "Álgebra y geometría de enseñanza media",
     bibliografia: ["Stewart, J. — Cálculo de una variable", "Spivak, M. — Calculus"],
     intro_tutor: "Cuéntame en qué problema de cálculo estás. ¿Qué te piden encontrar y qué datos tienes?",
+    propio: false,
   },
   {
     id: "alg", codigo: "MAT1203", nombre: "Álgebra Lineal", profesor: "Diego Fuentes",
@@ -33,6 +37,7 @@ const ASIGNATURAS: Asignatura[] = [
     requisitos: "Álgebra de enseñanza media",
     bibliografia: ["Grossman, S. — Álgebra lineal"],
     intro_tutor: "¿En qué andas? Antes de operar: ¿qué esperas de la solución del sistema, única, infinitas o ninguna?",
+    propio: false,
   },
   {
     id: "fis", codigo: "FIS1503", nombre: "Física I", profesor: "Carla Núñez",
@@ -41,6 +46,7 @@ const ASIGNATURAS: Asignatura[] = [
     requisitos: "Cálculo I (puede cursarse en paralelo)",
     bibliografia: ["Serway, R. — Física para ciencias e ingeniería"],
     intro_tutor: "Partamos por el diagrama de cuerpo libre. ¿Qué fuerzas actúan sobre el cuerpo?",
+    propio: false,
   },
   {
     id: "io", codigo: "ICS2123", nombre: "Investigación de Operaciones", profesor: "Rodrigo Salas",
@@ -49,6 +55,7 @@ const ASIGNATURAS: Asignatura[] = [
     requisitos: "Álgebra Lineal",
     bibliografia: ["Hillier & Lieberman — Introducción a la investigación de operaciones"],
     intro_tutor: "Modelemos juntos. ¿Cuáles serían tus variables de decisión, en palabras?",
+    propio: false,
   },
   {
     id: "mic", codigo: "EAE1110", nombre: "Microeconomía", profesor: "Paula Vergara",
@@ -57,6 +64,7 @@ const ASIGNATURAS: Asignatura[] = [
     requisitos: "Sin requisitos",
     bibliografia: ["Varian, H. — Microeconomía intermedia"],
     intro_tutor: "Vamos con un ejemplo concreto. ¿Qué cambia en el mercado y por qué crees que se mueve?",
+    propio: false,
   },
   {
     id: "pro", codigo: "IIC1103", nombre: "Programación", profesor: "Matías Leiva",
@@ -65,6 +73,7 @@ const ASIGNATURAS: Asignatura[] = [
     requisitos: "Sin requisitos",
     bibliografia: ["Downey, A. — Think Python"],
     intro_tutor: "Descríbeme el algoritmo en palabras. ¿Cuál sería el primer paso antes de escribir código?",
+    propio: false,
   },
 ];
 
@@ -294,18 +303,33 @@ const respirar = () => new Promise<void>((listo) => setTimeout(listo, 120));
 /** Copia superficial: nadie debe poder mutar el estado del demo desde afuera. */
 const copiar = <T,>(x: T): T => (Array.isArray(x) ? x.map((e) => ({ ...e })) : { ...x }) as T;
 
+/**
+ * Quien no tiene institución no ve nada de la institución: ni ramos, ni
+ * horario, ni tareas, ni notas, ni foro. No es una lista filtrada, es una
+ * lista que nunca existió para esa persona.
+ */
+const conInstitucion = (): boolean => perfilActual()?.institucion !== false;
+
 export async function misAsignaturas(): Promise<Asignatura[]> {
   await respirar();
-  return copiar(ASIGNATURAS);
+  if (!conInstitucion()) return copiar(RAMOS_PROPIOS);
+  // Los ramos propios van al final: primero lo que trae la institución,
+  // después lo que la persona armó. Quien no tiene institución ve solo los
+  // suyos, que es exactamente la lista vacía más lo que agregó.
+  return copiar([...ASIGNATURAS, ...RAMOS_PROPIOS]);
 }
 
 export async function miHorario(): Promise<BloqueHorario[]> {
   await respirar();
+  if (!conInstitucion()) return [];
   return copiar(HORARIO);
 }
 
 export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
   await respirar();
+  const propios = modulosPropiosDe(asignaturaId);
+  if (propios.length > 0) return propios;
+
   return (MODULOS[asignaturaId] ?? []).map((m) => ({
     ...m,
     materiales: m.materiales.map((x) => ({
@@ -318,6 +342,9 @@ export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
 
 export async function lecturaPorId(materialId: string): Promise<Lectura | null> {
   await respirar();
+  const propia = lecturaPropiaDe(materialId);
+  if (propia) return propia;
+
   const texto = TEXTOS_DEMO[materialId];
   if (!texto) return null;
 
@@ -344,11 +371,13 @@ export async function marcarMaterial(materialId: string, completado: boolean): P
 
 export async function clasesDe(asignaturaId: string): Promise<Clase[]> {
   await respirar();
+  if (!conInstitucion()) return [];
   return copiar(CLASES.filter((c) => c.asignatura_id === asignaturaId));
 }
 
 export async function claseEnVivo(): Promise<Clase | null> {
   await respirar();
+  if (!conInstitucion()) return null;
   const viva = CLASES.find((c) => c.estado === "en_vivo");
   return viva ? { ...viva } : null;
 }
@@ -367,6 +396,7 @@ export async function capitulosDe(claseId: string): Promise<Capitulo[]> {
 
 export async function misTareas(asignaturaId?: string): Promise<TareaConEstado[]> {
   await respirar();
+  if (!conInstitucion()) return [];
   return copiar(asignaturaId ? TAREAS.filter((t) => t.asignatura_id === asignaturaId) : TAREAS);
 }
 
@@ -383,16 +413,19 @@ export async function entregarTarea(tareaId: string): Promise<void> {
 
 export async function evaluacionesDe(asignaturaId: string): Promise<EvaluacionConNota[]> {
   await respirar();
+  if (!conInstitucion()) return [];
   return copiar(EVALUACIONES[asignaturaId] ?? []);
 }
 
 export async function todasLasEvaluaciones(): Promise<Map<string, EvaluacionConNota[]>> {
   await respirar();
+  if (!conInstitucion()) return new Map();
   return new Map(Object.entries(EVALUACIONES).map(([id, evs]) => [id, copiar(evs)]));
 }
 
 export async function foroDe(asignaturaId: string): Promise<Hilo[]> {
   await respirar();
+  if (!conInstitucion()) return [];
   return copiar(HILOS.filter((h) => h.asignatura_id === asignaturaId));
 }
 
@@ -431,6 +464,7 @@ export async function hiloPorId(hiloId: string) {
 
 export async function companerosDe(): Promise<{ id: string; nombre: string }[]> {
   await respirar();
+  if (!conInstitucion()) return [];
   return copiar(COMPANEROS);
 }
 
@@ -459,6 +493,7 @@ export async function cambiarNombre(): Promise<void> {
 
 export async function misNotificaciones(): Promise<Notificacion[]> {
   await respirar();
+  if (!conInstitucion()) return [];
   return copiar(notificaciones);
 }
 
@@ -535,7 +570,17 @@ import {
   avanceDe, corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas,
 } from "./datos-docente.ts";
 
-export { avanceDe, corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas };
+export {
+  avanceDe, corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas,
+};
+
+// Y lo que arma quien llega por su cuenta vive en otro archivo más, por la
+// misma razón: son sus ramos, no los de una institución.
+import {
+  borrarRamoPropio, crearMaterial, crearModulo, crearRamoPropio,
+} from "./datos-propios.ts";
+
+export { borrarRamoPropio, crearMaterial, crearModulo, crearRamoPropio };
 
 // Si en `consultas-supabase.ts` aparece una consulta nueva, esto deja de
 // compilar hasta que exista también acá.
@@ -547,5 +592,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   marcarLeida, marcarTodasLeidas, mensajesDe, misApuntes, apuntePorId, misDictados,
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
   cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
+  crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial,
 };
 void _cobertura;

@@ -10,6 +10,12 @@ export type Asignatura = {
   requisitos: string | null;
   bibliografia: string[];
   intro_tutor: string;
+  /**
+   * Lo armó la propia persona, no una institución. Cambia qué se muestra:
+   * un ramo propio no tiene foro, ni notas, ni compañeros, y sí tiene el
+   * botón para agregar material.
+   */
+  propio: boolean;
 };
 
 export type BloqueHorario = {

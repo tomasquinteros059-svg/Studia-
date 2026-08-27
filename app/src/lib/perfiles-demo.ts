@@ -22,6 +22,12 @@ export type PerfilDemo = {
   papel?: "profesor" | "ayudante";
   /** Ramos que dicta, por id. Vacío para estudiante y administración. */
   dicta: string[];
+  /**
+   * Si es falso, esta persona no pertenece a ninguna institución: no tiene
+   * ramos, ni horario, ni tareas, ni notas que le hayan cargado. Solo lo que
+   * arme por su cuenta. Es el caso de quien baja la aplicación sin más.
+   */
+  institucion: boolean;
   titulo: string;
   descripcion: string;
 };
@@ -33,6 +39,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     correo: "eduardo@studia.cl",
     rol: "estudiante",
     dicta: [],
+    institucion: true,
     titulo: "Estudiante",
     descripcion:
       "Segundo año. Cursa seis ramos. Ve su horario, su material, sus tareas y sus notas, y tiene el tutor y el lector.",
@@ -44,6 +51,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     rol: "profesor",
     papel: "profesor",
     dicta: ["cal"],
+    institucion: true,
     titulo: "Profesora",
     descripcion:
       "Dicta Cálculo I. Carga material, publica tareas, corrige entregas y es la única que puede publicar notas.",
@@ -55,6 +63,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     rol: "profesor",
     papel: "ayudante",
     dicta: ["cal"],
+    institucion: true,
     titulo: "Ayudante",
     descripcion:
       "Ayuda en Cálculo I. Corrige, carga material y responde el foro. No puede publicar notas: eso es del profesor.",
@@ -65,9 +74,21 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     correo: "secretaria@studia.cl",
     rol: "administrador",
     dicta: [],
+    institucion: true,
     titulo: "Administración",
     descripcion:
       "El colegio. Define qué ramos existen, quién los dicta, quién está inscrito y en qué sala y a qué hora.",
+  },
+  {
+    id: "p-sofia",
+    nombre: "Sofía Lagos",
+    correo: "sofia@gmail.com",
+    rol: "estudiante",
+    dicta: [],
+    institucion: false,
+    titulo: "Por tu cuenta",
+    descripcion:
+      "Bajó la aplicación sin institución. Empieza con todo vacío: arma sus propios ramos, carga sus textos y los escucha con el lector.",
   },
 ];
 
@@ -75,6 +96,24 @@ export const perfilPorId = (id: string): PerfilDemo | null =>
   PERFILES_DEMO.find((p) => p.id === id) ?? null;
 
 const CLAVE = "studia.demo.perfil";
+
+// El almacenamiento del aparato puede no estar —en las pruebas no lo está— y
+// recordar el perfil elegido es una comodidad, no un requisito: si falla, la
+// app sigue funcionando y solo vuelve a preguntar al abrirla.
+const guardar = (id: string | null): void => {
+  try {
+    void (id === null ? AsyncStorage.removeItem(CLAVE) : AsyncStorage.setItem(CLAVE, id))
+      .catch(() => {});
+  } catch { /* sin almacenamiento */ }
+};
+
+const leerGuardado = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(CLAVE);
+  } catch {
+    return null;
+  }
+};
 
 let actual: PerfilDemo | null = null;
 const oyentes = new Set<() => void>();
@@ -86,13 +125,13 @@ export const perfilActual = (): PerfilDemo | null => actual;
 
 export function entrarComo(id: string): void {
   actual = perfilPorId(id);
-  void AsyncStorage.setItem(CLAVE, id).catch(() => {});
+  guardar(id);
   avisar();
 }
 
 export function salir(): void {
   actual = null;
-  void AsyncStorage.removeItem(CLAVE).catch(() => {});
+  guardar(null);
   avisar();
 }
 
@@ -114,13 +153,11 @@ export function usarPerfilDemo(): { perfil: PerfilDemo | null; listo: boolean } 
   useEffect(() => {
     if (actual !== null) { setListo(true); return; }
     let vigente = true;
-    void AsyncStorage.getItem(CLAVE)
-      .then((id) => {
-        if (!vigente) return;
-        if (id) { actual = perfilPorId(id); setPerfil(actual); }
-        setListo(true);
-      })
-      .catch(() => { if (vigente) setListo(true); });
+    void leerGuardado().then((id) => {
+      if (!vigente) return;
+      if (id) { actual = perfilPorId(id); setPerfil(actual); }
+      setListo(true);
+    });
     return () => { vigente = false; };
   }, []);
 

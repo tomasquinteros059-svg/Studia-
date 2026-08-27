@@ -10,6 +10,7 @@ import type {
 } from "./tipos.ts";
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
+import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
   if (error) throw new Error(`${contexto}: ${error.message}`);
@@ -18,10 +19,12 @@ function reventar(contexto: string, error: { message: string } | null): void {
 export async function misAsignaturas(): Promise<Asignatura[]> {
   const { data, error } = await supabase
     .from("asignaturas")
-    .select("id, codigo, nombre, profesor, ayudante, color, creditos, descripcion, requisitos, bibliografia, intro_tutor")
+    .select("id, codigo, nombre, profesor, ayudante, color, creditos, descripcion, requisitos, bibliografia, intro_tutor, creador_id")
     .order("nombre");
   reventar("No pude cargar tus asignaturas", error);
-  return data ?? [];
+  // Un ramo con creador es un ramo propio. La columna no sale de acá: quién
+  // lo creó es asunto de la base, la app solo necesita el sí o el no.
+  return (data ?? []).map(({ creador_id, ...a }) => ({ ...a, propio: creador_id !== null }));
 }
 
 export async function miHorario(): Promise<BloqueHorario[]> {
@@ -593,4 +596,89 @@ export async function publicarNotas(evaluacionId: string): Promise<void> {
     .eq("evaluacion_id", evaluacionId)
     .is("publicada_en", null);
   reventar("No pude publicar las notas", error);
+}
+
+/* -------------------------------------------------------- espacio propio */
+// Quien llega sin institución arma sus propios ramos. Las políticas exigen
+// que queden a nombre propio, así que acá no hay nada que decidir: se manda
+// el identificador de quien está en sesión y la base hace el resto.
+
+export async function crearRamoPropio(nombre: string, color: string): Promise<Asignatura> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+
+  const limpio = normalizar(nombre);
+  const { data, error } = await supabase
+    .from("asignaturas")
+    .insert({
+      // El código lo ve la persona en su propia lista: se arma de su nombre.
+      codigo: codigoDe(limpio),
+      nombre: limpio,
+      color,
+      creditos: 1,
+      intro_tutor: introDe(limpio),
+      creador_id: sesion.user.id,
+    })
+    .select()
+    .single();
+  reventar("No pude crear el ramo", error);
+  if (!data) throw new Error("No pude crear el ramo.");
+
+  // Se inscribe solo: sin esto vería el ramo por ser su dueño, pero no
+  // aparecería en su horario ni en sus tareas, que van por la inscripción.
+  const { error: errorInscripcion } = await supabase
+    .from("inscripciones")
+    .insert({ estudiante_id: sesion.user.id, asignatura_id: data.id });
+  reventar("Creé el ramo pero no pude inscribirte", errorInscripcion);
+
+  return data as Asignatura;
+}
+
+export async function borrarRamoPropio(asignaturaId: string): Promise<void> {
+  const { error } = await supabase.from("asignaturas").delete().eq("id", asignaturaId);
+  reventar("No pude borrar el ramo", error);
+}
+
+/** Un módulo dentro de un ramo propio, al final de la lista. */
+export async function crearModulo(asignaturaId: string, titulo: string): Promise<string> {
+  const { data: existentes } = await supabase
+    .from("modulos").select("orden").eq("asignatura_id", asignaturaId);
+  const orden = Math.max(0, ...(existentes ?? []).map((m) => m.orden)) + 1;
+
+  const { data, error } = await supabase
+    .from("modulos")
+    .insert({ asignatura_id: asignaturaId, titulo: titulo.trim(), orden })
+    .select("id")
+    .single();
+  reventar("No pude crear la unidad", error);
+  if (!data) throw new Error("No pude crear la unidad.");
+  return data.id as string;
+}
+
+export type MaterialNuevo = {
+  moduloId: string;
+  tipo: "video" | "documento" | "ejercicios";
+  titulo: string;
+  detalle: string;
+  /** El texto que el lector va a leer, si lo escribió a mano. */
+  texto?: string | null;
+  /** La ruta del archivo, cuando haya almacenamiento. */
+  url?: string | null;
+};
+
+export async function crearMaterial(nuevo: MaterialNuevo): Promise<void> {
+  const { data: existentes } = await supabase
+    .from("materiales").select("orden").eq("modulo_id", nuevo.moduloId);
+  const orden = Math.max(0, ...(existentes ?? []).map((m) => m.orden)) + 1;
+
+  const { error } = await supabase.from("materiales").insert({
+    modulo_id: nuevo.moduloId,
+    tipo: nuevo.tipo,
+    titulo: nuevo.titulo.trim(),
+    detalle: nuevo.detalle,
+    texto: nuevo.texto ?? null,
+    url: nuevo.url ?? null,
+    orden,
+  });
+  reventar("No pude guardar el material", error);
 }

@@ -106,7 +106,7 @@ values
    'Sin requisitos',
    array['Downey, A. — Think Python, 2ª ed.', 'Documentación oficial de Python 3'],
    'Descríbeme el algoritmo en palabras. ¿Cuál sería el primer paso antes de escribir código?')
-on conflict (codigo) do nothing;
+on conflict (codigo) where creador_id is null do nothing;
 
 insert into public.inscripciones (estudiante_id, asignatura_id)
 select 'e0000000-0000-4000-8000-000000000001', id from public.asignaturas

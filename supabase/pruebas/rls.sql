@@ -494,6 +494,46 @@ exception when insufficient_privilege then
   raise notice 'ok · un espacio propio no lleva evaluaciones ni notas';
 end $$;
 
+-- Dos personas pueden estudiar lo mismo: el código de un ramo propio no es
+-- único en la tabla, solo lo es entre los ramos del colegio.
+reset role;
+insert into auth.users (id, email, raw_user_meta_data)
+values ('c0000000-0000-4000-8000-000000000002', 'otra@gmail.com',
+        '{"nombre":"Rosa Sola"}'::jsonb)
+on conflict do nothing;
+
+set role authenticated;
+set pruebas.uid = 'c0000000-0000-4000-8000-000000000002';
+
+do $$
+begin
+  insert into public.asignaturas (codigo, nombre, color, creditos, intro_tutor, creador_id)
+  values ('PROPIO-1', 'Estadística por mi cuenta', '#208AEF', 1, '¿?', auth.uid());
+  raise notice 'ok · otra persona puede tener un ramo con el mismo código';
+exception when unique_violation then
+  raise exception 'FALLA · el código de un ramo propio choca con el de otra persona';
+end $$;
+
+-- Pero no puede tocar el ramo de la primera, aunque se llame igual.
+do $$
+declare v_tocadas int;
+begin
+  update public.asignaturas set nombre = 'Se lo cambio'
+   where creador_id = 'c0000000-0000-4000-8000-000000000001';
+  get diagnostics v_tocadas = row_count;
+  if v_tocadas > 0 then
+    raise exception 'FALLA · le cambió el nombre al ramo de otra persona';
+  end if;
+  raise notice 'ok · no alcanza el ramo propio de otra persona';
+end $$;
+
+select pg_temp.afirmar('cada una ve un solo ramo, el suyo',
+  (select count(*) from asignaturas)::int, 1);
+
+set pruebas.uid = 'c0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('y el de la primera sigue llamándose como ella lo puso',
+  (select count(*) from asignaturas where nombre = 'Estadística por mi cuenta')::int, 1);
+
 -- Y el resto sigue sin verlo a él.
 set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
 select pg_temp.afirmar('el alumno del colegio no ve el ramo propio de otro',

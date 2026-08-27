@@ -49,3 +49,9 @@ export const avanceDe = fuente.avanceDe;
 export const corregir = fuente.corregir;
 export const ponerNota = fuente.ponerNota;
 export const publicarNotas = fuente.publicarNotas;
+
+/* El espacio de quien llega por su cuenta. */
+export const crearRamoPropio = fuente.crearRamoPropio;
+export const borrarRamoPropio = fuente.borrarRamoPropio;
+export const crearModulo = fuente.crearModulo;
+export const crearMaterial = fuente.crearMaterial;

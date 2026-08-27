@@ -12,6 +12,7 @@ export const RAMO = {
   requisitos: "Álgebra de enseñanza media",
   bibliografia: ["Stewart, J. — Cálculo"],
   intro_tutor: "Cuéntame en qué problema estás.",
+  propio: false,
 };
 
 export const RAMO_2 = {
@@ -59,6 +60,15 @@ export const MODULO = {
     { id: "mat-1", tipo: "video" as const, titulo: "Idea de límite", detalle: "Video · 14 min", orden: 1, completado: true, leible: false },
     { id: "mat-2", tipo: "documento" as const, titulo: "Apunte de límites", detalle: "Lectura · 4 min", orden: 2, completado: false, leible: true },
   ],
+};
+
+/** Un ramo que armó la propia persona: no tiene curso, ni foro, ni notas. */
+export const RAMO_PROPIO = {
+  ...RAMO, id: "r-mio", codigo: "MIS-INGLES", nombre: "Inglés",
+  profesor: "Por tu cuenta", ayudante: null, creditos: 1,
+  descripcion: null, requisitos: null, bibliografia: [],
+  intro_tutor: "¿En qué parte de Inglés estás? Cuéntame qué intentaste.",
+  propio: true,
 };
 
 export const EVALUACIONES = [
