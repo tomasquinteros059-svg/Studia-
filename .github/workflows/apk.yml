@@ -58,25 +58,34 @@ jobs:
       # `assembleRelease` empaqueta el JavaScript adentro del APK. Un build de
       # depuración no sirve: esperaría un servidor de desarrollo en la red y
       # fallaría al abrirlo, que es exactamente lo que hay que evitar.
-      - name: Compilar el APK
+      # Se compila dos veces a propósito. Por omisión el APK trae las cuatro
+      # arquitecturas de Android en el mismo archivo, y las bibliotecas
+      # nativas se llevan ahí la mayor parte de los 84 MB: un aparato usa una
+      # sola y carga las otras tres de puro peso muerto. El primero trae solo
+      # arm64, que es lo que usa cualquier tablet o teléfono de los últimos
+      # años. El segundo las trae todas y queda como red de seguridad para un
+      # aparato viejo o un Chromebook con procesador Intel.
+      - name: Compilar el APK para arm64
         working-directory: app/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+          mkdir -p ../../entrega
+          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA.apk
 
-      - name: Ponerle nombre
-        id: apk
+      - name: Compilar el APK universal
+        working-directory: app/android
         run: |
-          origen=$(find app/android -name "*.apk" | head -1)
-          test -n "$origen" || { echo "No se generó ningún APK"; exit 1; }
-          mkdir -p entrega
-          cp "$origen" entrega/StudIA.apk
-          ls -lh entrega/StudIA.apk
+          ./gradlew clean assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA-universal.apk
+
+      - name: Cuánto pesa cada uno
+        run: ls -lh entrega/
 
       - uses: actions/upload-artifact@v4
         with:
           name: studia-apk
-          path: entrega/StudIA.apk
+          path: entrega/*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -89,10 +98,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete ultimo-apk --yes --cleanup-tag 2>/dev/null || true
-          gh release create ultimo-apk entrega/StudIA.apk \
+          gh release create ultimo-apk entrega/StudIA.apk entrega/StudIA-universal.apk \
             --title "StudIA · último APK" \
             --notes "Compilado desde \`${{ github.ref_name }}\` (${{ github.sha }}).
 
-          Se instala en cualquier Android: tócalo y acepta instalar desde esta fuente.
-          Trae datos de ejemplo, así que funciona sin servidor." \
+          **StudIA.apk** es el que sirve: trae solo arm64, que es lo que usa cualquier
+          tablet o teléfono de los últimos años.
+
+          **StudIA-universal.apk** trae las cuatro arquitecturas y pesa el triple. Solo
+          hace falta si el otro dice que no se puede instalar, cosa que pasa en aparatos
+          viejos o en un Chromebook con procesador Intel.
+
+          Se instala tocándolo y aceptando instalar desde esta fuente. Trae datos de
+          ejemplo, así que funciona sin servidor." \
             --target "${{ github.sha }}"
