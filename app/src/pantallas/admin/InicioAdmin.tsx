@@ -2,11 +2,15 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error as ErrorUI, Fila } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, hora, nombreDia, radio, tenue, tipo } from "../../ui/tema.ts";
+import {
+  color, colorDeRamo, espacio, hora, nombreDia, radio, tenue, tipo,
+} from "../../ui/tema.ts";
 import { cursoDe, miHorario, misAsignaturas } from "../../lib/consultas.ts";
 import { PERFILES_DEMO } from "../../lib/perfiles-demo.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
-import { choquesDeHorario, type BloqueDeClase, type QuienDicta } from "../../dominio/horario.ts";
+import {
+  choquesDeHorario, porHora, type BloqueDeClase, type QuienDicta,
+} from "../../dominio/horario.ts";
 
 const SECCIONES = ["Ramos", "Horario", "Personas"] as const;
 type Seccion = (typeof SECCIONES)[number];
@@ -98,16 +102,14 @@ export default function InicioAdmin() {
       <ScrollView contentContainerStyle={{ paddingBottom: espacio.xl }}>
         {seccion === "Ramos" ? datos.asignaturas.map((a) => (
           <Fila key={a.id}
-            izquierda={<View style={[e.punto, { backgroundColor: a.color }]} />}
+            izquierda={<View style={[e.punto, { backgroundColor: colorDeRamo(a.id, a.color) }]} />}
             titulo={`${a.codigo} · ${a.nombre}`}
             detalle={`${a.profesor}${a.ayudante ? ` · ayudante ${a.ayudante}` : ""} · ${a.creditos} créditos`}
           />
         )) : null}
 
         {seccion === "Horario" ? [1, 2, 3, 4, 5].map((dia) => {
-          const delDia = datos.horario
-            .filter((b) => b.dia === dia)
-            .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+          const delDia = porHora(datos.horario.filter((b) => b.dia === dia));
           if (delDia.length === 0) return null;
           return (
             <View key={dia}>

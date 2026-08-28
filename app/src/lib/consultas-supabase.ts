@@ -68,7 +68,7 @@ export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
 export async function lecturaPorId(materialId: string): Promise<Lectura | null> {
   const { data, error } = await supabase
     .from("materiales")
-    .select("id, titulo, texto, modulos(asignatura_id, asignaturas(nombre))")
+    .select("id, titulo, texto, modulos(asignatura_id, asignaturas(nombre, color))")
     .eq("id", materialId)
     .maybeSingle();
   reventar("No pude cargar la lectura", error);
@@ -82,6 +82,7 @@ export async function lecturaPorId(materialId: string): Promise<Lectura | null> 
     texto: data.texto,
     asignatura_id: modulo?.asignatura_id ?? "",
     asignatura_nombre: asignatura?.nombre ?? "",
+    asignatura_color: asignatura?.color ?? null,
   };
 }
 

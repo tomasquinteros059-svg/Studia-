@@ -4,7 +4,9 @@ import {
 } from "react-native";
 import { Boton, Cargando, Encabezado, Error as ErrorUI, Fila, Vacio } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, fechaCorta, radio, tenue, tipo } from "../../ui/tema.ts";
+import {
+  color, colorDeRamo, espacio, fechaCorta, radio, tenue, tipo,
+} from "../../ui/tema.ts";
 import {
   corregir, cursoDe, entregasDe, evaluacionesDe, materiaDe, misAsignaturas, misTareas, notasDe, ponerNota, publicarNotas,
 } from "../../lib/consultas.ts";
@@ -60,6 +62,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
   if (!datos?.ramo) return <ErrorUI mensaje="No encontré ese ramo." />;
 
   const ramo = datos.ramo;
+  const tono = colorDeRamo(ramo.id, ramo.color);
   const inscritos = datos.curso.length;
 
   return (
@@ -69,7 +72,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
           <Pressable key={s} accessibilityRole="button"
             accessibilityState={{ selected: seccion === s }}
             onPress={() => setSeccion(s)}
-            style={[e.pestana, seccion === s ? { borderBottomColor: ramo.color } : null]}>
+            style={[e.pestana, seccion === s ? { borderBottomColor: tono } : null]}>
             <Text style={[e.pestanaTexto, seccion === s ? { color: color.texto } : null]}>{s}</Text>
           </Pressable>
         ))}
@@ -92,7 +95,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
                   {est.entregadas} de {est.inscritos} entregaron · {est.corregidas} corregidas
                   {est.sinEntregar > 0 ? ` · faltan ${est.sinEntregar}` : ""}
                 </Text>
-                <Barra hecho={est.corregidas} total={est.inscritos} tono={ramo.color} />
+                <Barra hecho={est.corregidas} total={est.inscritos} tono={tono} />
 
                 {pendientes.length === 0 ? (
                   <Text style={[e.aviso, { color: color.ok }]}>Todo corregido.</Text>
@@ -131,7 +134,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
                     <Text style={tipo.detalle}>
                       Promedio {formatearNota(promedio)} · aprueban {aprobados} de {conNota}
                     </Text>
-                    <Histograma filas={filas} tono={ramo.color} />
+                    <Histograma filas={filas} tono={tono} />
                   </>
                 )}
 
@@ -161,7 +164,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
 
                 {filas.map((f) => (
                   <Fila key={f.estudiante_id}
-                    izquierda={<Icono nombre="persona" tono={f.nota === null ? color.textoSuave : ramo.color} />}
+                    izquierda={<Icono nombre="persona" tono={f.nota === null ? color.textoSuave : tono} />}
                     titulo={f.estudiante}
                     detalle={f.nota === null ? "Sin nota" : f.publicada ? "Publicada" : "Sin publicar"}
                     derecha={<Text style={[e.nota, f.nota !== null && f.nota < 4 ? { color: color.vivo } : null]}>
@@ -183,7 +186,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
                 {m.materiales.map((mat) => (
                   <Fila key={mat.id}
                     izquierda={<Icono nombre={mat.tipo === "video" ? "video" : mat.tipo === "documento" ? "documento" : "ejercicios"}
-                      tono={ramo.color} />}
+                      tono={tono} />}
                     titulo={mat.titulo}
                     detalle={mat.detalle + (mat.leible ? " · se puede escuchar" : "")}
                   />
@@ -203,7 +206,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
             <Encabezado texto={`${inscritos} inscritos`} />
             {datos.curso.map((a) => (
               <Fila key={a.id}
-                izquierda={<Icono nombre="persona" tono={ramo.color} />}
+                izquierda={<Icono nombre="persona" tono={tono} />}
                 titulo={a.nombre}
               />
             ))}

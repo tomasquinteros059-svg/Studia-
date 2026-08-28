@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   admiteDosPaneles, ANCHO_LECTURA, anchoDeContenido, clasificarAncho,
-  columnasDeTarjetas, CORTE_AMPLIO, CORTE_MEDIO, muestraBarraDeSecciones,
+  anchoDeTarjeta, columnasDeTarjetas, CORTE_AMPLIO, CORTE_MEDIO,
+  muestraBarraDeSecciones, SEPARACION_TARJETAS,
 } from "./disposicion.ts";
 
 // Anchos reales, en puntos, de aparatos que la app va a ver.
@@ -75,4 +76,21 @@ test("las secciones se esconden tras el menú solo cuando no caben", () => {
   assert.equal(muestraBarraDeSecciones(APARATOS["teléfono vertical"]), false);
   assert.equal(muestraBarraDeSecciones(APARATOS["tablet vertical"]), false);
   assert.equal(muestraBarraDeSecciones(APARATOS["tablet horizontal"]), true);
+});
+
+// ── El ancho de las tarjetas ────────────────────────────────────────────
+
+test("una sola columna ocupa la fila entera", () => {
+  assert.equal(anchoDeTarjeta(1), "100%");
+  assert.equal(anchoDeTarjeta(0), "100%");
+});
+
+test("las tarjetas de una fila más su separación nunca pasan del 100%", () => {
+  for (const columnas of [2, 3, 4]) {
+    const ancho = Number(anchoDeTarjeta(columnas).replace("%", ""));
+    const total = ancho * columnas + SEPARACION_TARJETAS * (columnas - 1);
+    assert.ok(total <= 100, `${columnas} columnas suman ${total}%`);
+    // Y tampoco sobra tanto como para que quepa una tarjeta más.
+    assert.ok(total > 100 - ancho, `${columnas} columnas dejan sitio de más`);
+  }
 });

@@ -23,7 +23,7 @@ const enDias = (d: number) => new Date(ahora + d * 86_400_000).toISOString();
 const ASIGNATURAS: Asignatura[] = [
   {
     id: "cal", codigo: "MAT1610", nombre: "Cálculo I", profesor: "Ana Ríos",
-    ayudante: "Ignacio Soto", color: "#208AEF", creditos: 10,
+    ayudante: "Ignacio Soto", color: "#2563C9", creditos: 10,
     descripcion: "Cálculo diferencial en una variable: límites, continuidad, derivada y sus aplicaciones.",
     requisitos: "Álgebra y geometría de enseñanza media",
     bibliografia: ["Stewart, J. — Cálculo de una variable", "Spivak, M. — Calculus"],
@@ -32,7 +32,7 @@ const ASIGNATURAS: Asignatura[] = [
   },
   {
     id: "alg", codigo: "MAT1203", nombre: "Álgebra Lineal", profesor: "Diego Fuentes",
-    ayudante: "Camila Reyes", color: "#7A4FD6", creditos: 10,
+    ayudante: "Camila Reyes", color: "#6D3FD1", creditos: 10,
     descripcion: "Sistemas de ecuaciones, espacios vectoriales y transformaciones lineales.",
     requisitos: "Álgebra de enseñanza media",
     bibliografia: ["Grossman, S. — Álgebra lineal"],
@@ -41,7 +41,7 @@ const ASIGNATURAS: Asignatura[] = [
   },
   {
     id: "fis", codigo: "FIS1503", nombre: "Física I", profesor: "Carla Núñez",
-    ayudante: "Pedro Lagos", color: "#C9701C", creditos: 10,
+    ayudante: "Pedro Lagos", color: "#C25A18", creditos: 10,
     descripcion: "Mecánica clásica: cinemática, dinámica de la partícula, trabajo y energía.",
     requisitos: "Cálculo I (puede cursarse en paralelo)",
     bibliografia: ["Serway, R. — Física para ciencias e ingeniería"],
@@ -50,7 +50,7 @@ const ASIGNATURAS: Asignatura[] = [
   },
   {
     id: "io", codigo: "ICS2123", nombre: "Investigación de Operaciones", profesor: "Rodrigo Salas",
-    ayudante: "Fernanda Díaz", color: "#1E8E5A", creditos: 10,
+    ayudante: "Fernanda Díaz", color: "#0F6E6E", creditos: 10,
     descripcion: "Programación lineal, método simplex y dualidad. Se evalúa el modelo, no la herramienta.",
     requisitos: "Álgebra Lineal",
     bibliografia: ["Hillier & Lieberman — Introducción a la investigación de operaciones"],
@@ -59,7 +59,7 @@ const ASIGNATURAS: Asignatura[] = [
   },
   {
     id: "mic", codigo: "EAE1110", nombre: "Microeconomía", profesor: "Paula Vergara",
-    ayudante: "Joaquín Herrera", color: "#D93B6B", creditos: 8,
+    ayudante: "Joaquín Herrera", color: "#C4326B", creditos: 8,
     descripcion: "Consumidores y productores, equilibrio de mercado y elasticidad.",
     requisitos: "Sin requisitos",
     bibliografia: ["Varian, H. — Microeconomía intermedia"],
@@ -68,7 +68,7 @@ const ASIGNATURAS: Asignatura[] = [
   },
   {
     id: "pro", codigo: "IIC1103", nombre: "Programación", profesor: "Matías Leiva",
-    ayudante: "Valentina Ruiz", color: "#0C447C", creditos: 10,
+    ayudante: "Valentina Ruiz", color: "#0E5A8A", creditos: 10,
     descripcion: "Fundamentos de programación en Python: control de flujo, estructuras de datos y recursión.",
     requisitos: "Sin requisitos",
     bibliografia: ["Downey, A. — Think Python"],
@@ -358,6 +358,7 @@ export async function lecturaPorId(materialId: string): Promise<Lectura | null> 
         texto,
         asignatura_id: asignaturaId,
         asignatura_nombre: ASIGNATURAS.find((a) => a.id === asignaturaId)?.nombre ?? "",
+        asignatura_color: ASIGNATURAS.find((a) => a.id === asignaturaId)?.color ?? null,
       };
     }
   }

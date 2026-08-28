@@ -1,7 +1,9 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Cargando, Error, Fila, Pantalla, Pastilla, Punto, Vacio } from "../ui/componentes.tsx";
-import { color, espacio, fechaYHora, radio, tipo } from "../ui/tema.ts";
+import {
+  FILETE, color, colorDeRamo, espacio, fechaYHora, radio, tipo,
+} from "../ui/tema.ts";
 import { misAsignaturas, misTareas } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
@@ -55,7 +57,7 @@ export default function Tareas({ navigation }: Props) {
         const estado = estadoDeTarea(t);
         return (
           <Fila key={t.id}
-            izquierda={<Punto tono={ramo?.color ?? color.marca} />}
+            izquierda={<Punto tono={ramo ? colorDeRamo(ramo.id, ramo.color) : color.bordeFuerte} />}
             titulo={t.titulo}
             detalle={`${ramo?.nombre ?? ""} · ${fechaYHora(t.vence_en)} · ${t.puntos} pts`}
             derecha={
@@ -78,8 +80,11 @@ export default function Tareas({ navigation }: Props) {
 }
 
 const e = StyleSheet.create({
-  filtros: { flexDirection: "row", gap: 6, padding: espacio.m },
-  filtro: { borderRadius: radio.pastilla, paddingHorizontal: 13, paddingVertical: 7, backgroundColor: color.elemento },
-  filtroTexto: { fontSize: 12.5, color: color.textoSuave },
+  filtros: { flexDirection: "row", gap: espacio.s, padding: espacio.m },
+  filtro: {
+    borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 9,
+    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.borde,
+  },
+  filtroTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave },
   pie: { ...tipo.detalle, textAlign: "center", padding: espacio.l, lineHeight: 19 },
 });

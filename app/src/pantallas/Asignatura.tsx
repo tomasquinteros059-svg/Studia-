@@ -4,7 +4,10 @@ import {
   Boton, Cargando, Encabezado, Error, Fila, Pastilla, Vacio,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
-import { color, duracion, espacio, fechaCorta, hora, nombreDia, radio, tenue, tipo } from "../ui/tema.ts";
+import {
+  FILETE, cifras, color, colorDeRamo, duracion, espacio, fechaCorta, hora,
+  inicialesDeRamo, nombreDia, radio, tenue, tipo, velado,
+} from "../ui/tema.ts";
 import {
   clasesDe, companerosDe, crearApunte, crearMaterial, crearModulo,
   evaluacionesDe, foroDe, marcarMaterial, materiaDe, miHorario, misApuntes,
@@ -15,6 +18,7 @@ import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
+import { inicialesDePersona } from "../dominio/personas.ts";
 import { type PropsPila } from "../lib/rutas.ts";
 
 type Props = PropsPila<"Asignatura">;
@@ -98,6 +102,7 @@ export default function Asignatura({ route, navigation }: Props) {
   if (!datos?.ramo) return <Vacio texto="No encontré esa asignatura." />;
 
   const ramo = datos.ramo;
+  const tono = colorDeRamo(ramo.id, ramo.color);
   const propio = ramo.propio;
   const secciones = propio
     ? SECCIONES.filter((x) => (SECCIONES_PROPIAS as readonly string[]).includes(x.id))
@@ -123,22 +128,34 @@ export default function Asignatura({ route, navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: color.fondo }}>
-      <View style={[e.cabecera, { backgroundColor: ramo.color }]}>
-        <Text style={e.codigo}>{ramo.codigo}</Text>
-        <Text style={e.nombre}>{ramo.nombre}</Text>
-        <Text style={e.profesor}>{ramo.profesor}</Text>
+      {/* El color del ramo es dueño de la cabecera: es cómo sabes dónde
+          estás sin leer el título. */}
+      <View style={[e.cabecera, { backgroundColor: tono }]}>
+        <View style={e.selloRamo}>
+          <Text style={e.selloTexto}>{inicialesDeRamo(ramo.nombre)}</Text>
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={e.codigo}>{ramo.codigo}</Text>
+          <Text style={e.nombre} numberOfLines={2}>{ramo.nombre}</Text>
+          <Text style={e.profesor} numberOfLines={1}>{ramo.profesor}</Text>
+        </View>
       </View>
 
       {barraDeSecciones ? null : (
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        style={e.fila} contentContainerStyle={{ gap: 6, paddingHorizontal: espacio.m, paddingVertical: 11 }}>
+        style={e.fila} contentContainerStyle={{ gap: espacio.s, paddingHorizontal: espacio.m, paddingVertical: espacio.m }}>
         {visibles.map((id) => {
           const s = SECCIONES.find((x) => x.id === id)!;
           const activa = id === actual;
           return (
             <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: activa }}
-              onPress={() => setSeccion(id)} style={[e.chip, activa && { backgroundColor: color.marca }]}>
-              <Text style={[e.chipTexto, activa && { color: color.sobreMarca, fontWeight: "600" }]}>
+              onPress={() => setSeccion(id)}
+              style={({ pressed }) => [
+                e.chip,
+                activa ? { backgroundColor: tono, borderColor: tono } : null,
+                pressed && !activa ? { backgroundColor: color.elemento } : null,
+              ]}>
+              <Text style={[e.chipTexto, activa ? { color: color.sobreMarca, fontWeight: "700" } : null]}>
                 {s.corto}
               </Text>
             </Pressable>
@@ -147,7 +164,7 @@ export default function Asignatura({ route, navigation }: Props) {
       </ScrollView>
       )}
 
-      <View style={barraDeSecciones ? e.conBarra : undefined}>
+      <View style={[e.cuerpo, barraDeSecciones ? e.conBarra : null]}>
       {barraDeSecciones ? (
         <View style={e.barraLateral}>
           {secciones.map((sec) => {
@@ -158,12 +175,12 @@ export default function Asignatura({ route, navigation }: Props) {
                 onPress={() => setSeccion(sec.id)}
                 style={({ pressed }) => [
                   e.itemBarra,
-                  activa && { backgroundColor: tenue(ramo.color) },
+                  activa && { backgroundColor: tenue(tono) },
                   pressed && !activa && { backgroundColor: color.elemento },
                 ]}>
-                <Icono nombre={ICONO_SECCION[sec.id]} tamano={17}
-                  tono={activa ? ramo.color : color.textoSuave} />
-                <Text style={[e.itemBarraTexto, activa && { color: ramo.color, fontWeight: "700" }]}>
+                <Icono nombre={ICONO_SECCION[sec.id]} tamano={18}
+                  tono={activa ? tono : color.textoSuave} />
+                <Text style={[e.itemBarraTexto, activa && { color: tono, fontWeight: "700" }]}>
                   {sec.texto}
                 </Text>
               </Pressable>
@@ -172,7 +189,7 @@ export default function Asignatura({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      <ScrollView style={barraDeSecciones ? { flex: 1 } : undefined}
+      <ScrollView style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: espacio.xl }}>
         {actual === "materia" && propio ? (
           <View style={e.agregarCaja}>
@@ -189,8 +206,8 @@ export default function Asignatura({ route, navigation }: Props) {
           datos.modulos.map((m) => (
             <View key={m.id}>
               <View style={e.modulo}>
-                <Text style={e.moduloTitulo}>{m.titulo}</Text>
-                <Text style={tipo.detalle}>
+                <Text style={e.moduloTitulo} numberOfLines={2}>{m.titulo}</Text>
+                <Text style={e.moduloCuenta}>
                   {m.materiales.filter((x) => x.completado).length}/{m.materiales.length}
                 </Text>
               </View>
@@ -203,7 +220,7 @@ export default function Asignatura({ route, navigation }: Props) {
                   <Fila key={mat.id}
                     izquierda={<Icono
                       nombre={mat.tipo === "video" ? "video" : mat.tipo === "documento" ? "documento" : "ejercicios"}
-                      tono={mat.completado ? ramo.color : color.textoSuave} />}
+                      tono={mat.completado ? tono : color.textoSuave} />}
                     titulo={mat.titulo}
                     detalle={mat.detalle}
                     derecha={
@@ -215,10 +232,10 @@ export default function Asignatura({ route, navigation }: Props) {
                           accessibilityLabel={mat.completado ? `Desmarcar ${mat.titulo}` : `Marcar ${mat.titulo} como visto`}
                           onPress={() => void marcar()}>
                           <Icono nombre={mat.completado ? "listo" : "escuchar"} tamano={18}
-                            tono={mat.completado ? ramo.color : color.marca} />
+                            tono={mat.completado ? tono : color.marca} />
                         </Pressable>
                       ) : mat.completado ? (
-                        <Icono nombre="listo" tamano={17} tono={ramo.color} />
+                        <Icono nombre="listo" tamano={18} tono={tono} />
                       ) : null
                     }
                     onPress={mat.leible
@@ -256,7 +273,7 @@ export default function Asignatura({ route, navigation }: Props) {
               ? <Vacio texto="Todavía no hay grabaciones de esta asignatura." />
               : datos.clases.filter((c) => c.estado === "grabada").map((c) => (
                   <Fila key={c.id}
-                    izquierda={<Icono nombre="video" tono={ramo.color} />}
+                    izquierda={<Icono nombre="video" tono={tono} />}
                     titulo={c.titulo}
                     detalle={`${fechaCorta(c.inicia_en)} · audio`}
                     derecha={<Text style={tipo.detalle}>
@@ -321,7 +338,7 @@ export default function Asignatura({ route, navigation }: Props) {
         {actual === "horario" ? (
           datos.horario.map((b) => (
             <Fila key={b.id}
-              izquierda={<View style={[e.barraColor, { backgroundColor: ramo.color }]} />}
+              izquierda={<View style={[e.barraColor, { backgroundColor: tono }]} />}
               titulo={b.tipo}
               detalle={`${nombreDia(b.dia)} · ${hora(b.hora_inicio)}–${hora(b.hora_fin)} · ${b.sala}`}
             />
@@ -368,7 +385,7 @@ export default function Asignatura({ route, navigation }: Props) {
               ? <Vacio texto="Todavía no tienes apuntes de este ramo. En tablet puedes escribir con el tutor al lado." />
               : datos.apuntes.map((a) => (
                   <Fila key={a.id}
-                    izquierda={<Icono nombre="documento" tono={ramo.color} />}
+                    izquierda={<Icono nombre="documento" tono={tono} />}
                     titulo={a.titulo}
                     detalle={a.contenido.trim()
                       ? `${a.contenido.trim().slice(0, 60)}…`
@@ -382,15 +399,15 @@ export default function Asignatura({ route, navigation }: Props) {
         {actual === "companeros" ? (
           <>
             <Encabezado texto="Equipo docente" />
-            <Fila izquierda={<Avatar nombre={ramo.profesor} destacado tono={ramo.color} />}
+            <Fila izquierda={<Avatar nombre={ramo.profesor} destacado tono={tono} />}
               titulo={ramo.profesor} detalle="Profesor o profesora del curso" />
             {ramo.ayudante ? (
-              <Fila izquierda={<Avatar nombre={ramo.ayudante} destacado tono={ramo.color} />}
+              <Fila izquierda={<Avatar nombre={ramo.ayudante} destacado tono={tono} />}
                 titulo={ramo.ayudante} detalle="Ayudantía" />
             ) : null}
             <Encabezado texto={`Inscritos · ${datos.companeros.length}`} />
             {datos.companeros.map((c) => (
-              <Fila key={c.id} izquierda={<Avatar nombre={c.nombre} tono={ramo.color} />}
+              <Fila key={c.id} izquierda={<Avatar nombre={c.nombre} tono={tono} />}
                 titulo={c.nombre} detalle="Estudiante" />
             ))}
             <Text style={e.pie}>
@@ -407,9 +424,9 @@ export default function Asignatura({ route, navigation }: Props) {
             return docs.length === 0
               ? <Vacio texto="No hay documentos en esta asignatura." />
               : docs.map((d) => (
-                  <Fila key={d.id} izquierda={<Icono nombre="documento" tono={ramo.color} />}
+                  <Fila key={d.id} izquierda={<Icono nombre="documento" tono={tono} />}
                     titulo={d.titulo} detalle={`${d.modulo} · ${d.detalle}`}
-                    derecha={<Icono nombre="descargar" tamano={17} tono={ramo.color} />} />
+                    derecha={<Icono nombre="descargar" tamano={18} tono={tono} />} />
                 ));
           })()
         ) : null}
@@ -448,11 +465,11 @@ export default function Asignatura({ route, navigation }: Props) {
 }
 
 function Avatar({ nombre, tono, destacado }: { nombre: string; tono: string; destacado?: boolean }) {
-  const partes = nombre.replace(/\./g, "").split(" ").filter(Boolean);
-  const iniciales = `${partes[0]?.[0] ?? ""}${partes[1]?.[0] ?? ""}`.toUpperCase();
   return (
     <View style={[e.avatar, destacado && { backgroundColor: tono }]}>
-      <Text style={[e.avatarTexto, destacado && { color: "#fff" }]}>{iniciales}</Text>
+      <Text style={[e.avatarTexto, destacado && { color: "#fff" }]}>
+        {inicialesDePersona(nombre)}
+      </Text>
     </View>
   );
 }
@@ -512,70 +529,106 @@ function SeccionNotas({ evaluaciones }: { evaluaciones: { id: string; titulo: st
 
 const e = StyleSheet.create({
   agregarCaja: { padding: espacio.m, paddingBottom: 0 },
-  cabecera: { padding: espacio.m, paddingBottom: espacio.m },
-  codigo: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 0.6, opacity: 0.85 },
-  nombre: { color: "#fff", fontSize: 20, fontWeight: "600", marginTop: 2 },
-  profesor: { color: "#fff", fontSize: 12.5, opacity: 0.88, marginTop: 2 },
-  fila: { flexGrow: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde },
-  conBarra: { flex: 1, flexDirection: "row" },
+  cabecera: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: espacio.l,
+  },
+  selloRamo: {
+    width: 52, height: 52, borderRadius: 16,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  selloTexto: {
+    color: "#fff", fontSize: 19, fontWeight: "800", letterSpacing: -0.5,
+  },
+  codigo: {
+    ...cifras,
+    color: "#fff", fontSize: 11.5, fontWeight: "700", letterSpacing: 1, opacity: 0.85,
+  },
+  nombre: { color: "#fff", fontSize: 22, fontWeight: "700", letterSpacing: -0.4 },
+  profesor: { color: "#fff", fontSize: 13, opacity: 0.9 },
+  // `flexShrink: 0` no es adorno: sin él, cuando la sección de abajo trae
+  // una lista larga —la materia de un ramo completo— esta fila se encoge
+  // hasta un píxel y las secciones desaparecen de la pantalla.
+  fila: {
+    flexGrow: 0, flexShrink: 0,
+    backgroundColor: color.papel,
+    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+  },
+  cuerpo: { flex: 1 },
+  conBarra: { flexDirection: "row" },
   barraLateral: {
-    width: 232, paddingVertical: espacio.s, paddingHorizontal: espacio.s, gap: 2,
-    borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: color.borde,
+    width: 240, paddingVertical: espacio.m, paddingHorizontal: espacio.s, gap: 2,
+    backgroundColor: color.papel,
+    borderRightWidth: FILETE, borderRightColor: color.borde,
   },
   itemBarra: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    paddingVertical: 11, paddingHorizontal: 12, borderRadius: radio.boton,
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingVertical: 13, paddingHorizontal: espacio.m, borderRadius: radio.boton,
   },
-  itemBarraTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave },
-  chip: { borderRadius: radio.pastilla, paddingHorizontal: 13, paddingVertical: 7, backgroundColor: color.elemento },
-  chipTexto: { fontSize: 12.5, color: color.textoSuave },
+  itemBarraTexto: { ...tipo.fila, color: color.textoSuave },
+  chip: {
+    borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 9,
+    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.borde,
+  },
+  chipTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave },
+  // La unidad se anuncia, no se encajona: un rótulo sobre el papel pesa
+  // menos a la vista que una franja gris y separa igual de bien.
   modulo: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: color.elemento, paddingHorizontal: espacio.m, paddingVertical: 11,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "baseline",
+    gap: espacio.m, paddingHorizontal: espacio.m,
+    paddingTop: espacio.l, paddingBottom: espacio.s,
   },
-  moduloTitulo: { fontSize: 13, fontWeight: "600", color: color.texto },
+  moduloTitulo: { ...tipo.etiqueta, flex: 1 },
+  moduloCuenta: { ...tipo.detalle, ...cifras, color: color.textoTenue },
   enVivo: {
-    flexDirection: "row", alignItems: "center", gap: 11, margin: espacio.m, padding: 13,
-    borderRadius: radio.tarjeta, borderWidth: 1,
-    borderColor: "rgba(217,59,59,0.28)", backgroundColor: "rgba(217,59,59,0.06)",
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    margin: espacio.m, padding: espacio.m,
+    borderRadius: radio.tarjeta, borderWidth: FILETE,
+    borderColor: velado(color.vivo), backgroundColor: tenue(color.vivo),
   },
-  puntoVivo: { width: 9, height: 9, borderRadius: 5, backgroundColor: color.vivo },
-  vivoEtiqueta: { fontSize: 11, fontWeight: "700", color: color.vivo, letterSpacing: 0.6 },
-  vivoTitulo: { fontSize: 14, fontWeight: "600", color: color.texto, marginTop: 1 },
-  barraColor: { width: 3, height: 34, borderRadius: 2 },
-  prosa: { ...tipo.cuerpo, color: color.texto, lineHeight: 22, paddingHorizontal: espacio.m, paddingVertical: espacio.s },
+  puntoVivo: { width: 10, height: 10, borderRadius: 5, backgroundColor: color.vivo },
+  vivoEtiqueta: { ...tipo.etiqueta, color: color.vivo },
+  vivoTitulo: { ...tipo.fila, marginTop: 2 },
+  barraColor: { width: 3, height: 38, borderRadius: 2 },
+  prosa: { ...tipo.cuerpo, lineHeight: 24, paddingHorizontal: espacio.m, paddingVertical: espacio.s },
   pie: { ...tipo.detalle, textAlign: "center", padding: espacio.l, lineHeight: 19 },
   heroNotas: {
-    alignItems: "center", paddingVertical: espacio.l, gap: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
+    alignItems: "center", paddingVertical: espacio.xl, gap: espacio.xs,
+    backgroundColor: color.papel,
+    borderBottomWidth: FILETE, borderBottomColor: color.borde,
   },
-  notaGrande: { fontSize: 44, fontWeight: "600", color: color.texto, letterSpacing: -1 },
-  notaFila: { fontSize: 17, fontWeight: "600", color: color.texto },
+  notaGrande: { ...cifras, fontSize: 64, fontWeight: "700", color: color.texto, letterSpacing: -2.5 },
+  notaFila: { ...cifras, fontSize: 19, fontWeight: "700", color: color.texto },
   proyeccion: {
-    margin: espacio.m, padding: 13, borderRadius: radio.tarjeta,
-    borderWidth: 1, borderColor: color.borde, backgroundColor: color.elemento,
+    margin: espacio.m, padding: espacio.m, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.borde, backgroundColor: color.papel, gap: espacio.xs,
   },
-  proyeccionTitulo: { fontSize: 12.5, fontWeight: "600", color: color.texto, marginBottom: 4 },
-  fondoModal: { flex: 1, backgroundColor: "rgba(14,23,38,0.45)" },
+  proyeccionTitulo: { ...tipo.fila },
+  fondoModal: { flex: 1, backgroundColor: "rgba(25,26,31,0.4)" },
   hoja: {
-    backgroundColor: color.fondo, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: color.papel, borderTopLeftRadius: radio.tarjeta, borderTopRightRadius: radio.tarjeta,
     paddingHorizontal: espacio.l, paddingBottom: espacio.xl,
   },
-  asa: { width: 38, height: 4, borderRadius: 2, backgroundColor: color.borde, alignSelf: "center", marginVertical: 9 },
-  hojaNombre: { fontSize: 17, fontWeight: "600", color: color.texto, marginTop: 2, marginBottom: espacio.s },
+  asa: {
+    width: 40, height: 4, borderRadius: 2, backgroundColor: color.bordeFuerte,
+    alignSelf: "center", marginVertical: espacio.m,
+  },
+  hojaNombre: { ...tipo.subtitulo, marginTop: 2, marginBottom: espacio.s },
   opcion: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: espacio.m,
   },
-  opcionTexto: { fontSize: 14.5, fontWeight: "600", color: color.texto },
+  opcionTexto: { ...tipo.fila },
   avatar: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: color.elemento,
+    width: 38, height: 38, borderRadius: radio.campo, backgroundColor: color.elemento,
     alignItems: "center", justifyContent: "center",
   },
-  avatarTexto: { fontSize: 11.5, fontWeight: "700", color: color.textoSuave },
+  avatarTexto: { fontSize: 13, fontWeight: "700", color: color.textoSuave },
   nuevoHilo: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.boton, paddingVertical: 12,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: espacio.s,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.boton,
+    backgroundColor: color.papel, paddingVertical: 14,
   },
-  nuevoHiloTexto: { fontSize: 14, fontWeight: "600", color: color.marca },
+  nuevoHiloTexto: { ...tipo.fila, color: color.marca },
 });

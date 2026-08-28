@@ -114,6 +114,7 @@ export function lecturaPropiaDe(materialId: string): Lectura | null {
         texto,
         asignatura_id: ramo.id,
         asignatura_nombre: ramo.nombre,
+        asignatura_color: ramo.color,
       };
     }
   }

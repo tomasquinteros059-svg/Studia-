@@ -1,9 +1,10 @@
 // Datos y dobles compartidos por las pruebas de pantalla.
 
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { act, render } from "@testing-library/react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export const RAMO = {
   id: "r-cal", codigo: "MAT1610", nombre: "Cálculo I", profesor: "Ana Ríos",
@@ -41,6 +42,12 @@ export const TAREA_ENTREGADA = {
 export const BLOQUE = {
   id: "b-1", asignatura_id: RAMO.id, dia: ((new Date().getDay() + 6) % 7) + 1,
   hora_inicio: "08:30:00", hora_fin: "10:00:00", sala: "A-201", tipo: "Cátedra",
+};
+
+/** Un segundo bloque del mismo día, más temprano que BLOQUE. */
+export const BLOQUE_TEMPRANO = {
+  id: "b-0", asignatura_id: RAMO_2.id, dia: ((new Date().getDay() + 6) % 7) + 1,
+  hora_inicio: "07:00:00", hora_fin: "08:20:00", sala: "B-104", tipo: "Laboratorio",
 };
 
 export const CLASE_VIVA = {
@@ -113,6 +120,23 @@ export function navegacionFalsa() {
 }
 
 /**
+ * Los márgenes del sistema con que se prueban las pantallas.
+ *
+ * Con valores de verdad y no en cero: la aplicación dibuja de borde a borde
+ * en Android, y una prueba con márgenes en cero no vería nunca el error de
+ * un botón que queda debajo de la barra de gestos.
+ */
+export const MARGENES = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 47, left: 0, right: 0, bottom: 34 },
+};
+
+/** El envoltorio que la aplicación pone arriba de todo. */
+export function ConMargenes({ children }: { children: ReactNode }) {
+  return <SafeAreaProvider initialMetrics={MARGENES}>{children}</SafeAreaProvider>;
+}
+
+/**
  * Renderiza una pantalla dándole props de navegación creíbles.
  *
  * Las pantallas están tipadas contra rutas concretas; acá se les entrega una
@@ -126,7 +150,9 @@ export async function renderPantalla(
   const navigation = navegacionFalsa();
   const Suelta = Pantalla as ComponentType<Record<string, unknown>>;
   const elemento = (
-    <Suelta navigation={navigation} route={{ key: "k", name: "X", params }} />
+    <ConMargenes>
+      <Suelta navigation={navigation} route={{ key: "k", name: "X", params }} />
+    </ConMargenes>
   );
   const vista = await render(elemento);
   // Deja que la carga inicial de datos asiente antes de devolver la pantalla:
@@ -146,10 +172,12 @@ export async function renderConNavegador(
 ) {
   const Pila = createNativeStackNavigator();
   return render(
-    <NavigationContainer>
-      <Pila.Navigator>
-        <Pila.Screen name="Prueba" component={Pantalla as never} initialParams={params} />
-      </Pila.Navigator>
-    </NavigationContainer>,
+    <ConMargenes>
+      <NavigationContainer>
+        <Pila.Navigator>
+          <Pila.Screen name="Prueba" component={Pantalla as never} initialParams={params} />
+        </Pila.Navigator>
+      </NavigationContainer>
+    </ConMargenes>,
   );
 }

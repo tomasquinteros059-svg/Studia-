@@ -4,7 +4,7 @@ import {
   MAXIMO_FRASE, PREFERENCIAS_POR_DEFECTO, TAMANOS, VELOCIDADES,
   agruparEnParrafos, anterior, citar, estiloDeLectura, minutosDeEscucha,
   normalizarPreferencias, paletaDeLectura, palabras, paraVoz, partirEnFrases,
-  progreso, retomar, siguiente, velocidadDe,
+  progreso, resalteDeRamo, retomar, siguiente, velocidadDe,
 } from "./lectura.ts";
 
 const textos = (t: string) => partirEnFrases(t).map((f) => f.texto);
@@ -351,4 +351,18 @@ test("un texto sin signos raros sale igual que entró", () => {
 test("lo que se ve no cambia: paraVoz no toca las frases", () => {
   const frases = partirEnFrases("El teorema (que ya vimos) exige continuidad.");
   assert.equal(frases[0].texto, "El teorema (que ya vimos) exige continuidad.");
+});
+
+test("el resalte toma el color del ramo, más cargado de noche", () => {
+  assert.equal(resalteDeRamo("papel", "#2563C9"), "#2563C924");
+  assert.equal(resalteDeRamo("sepia", "#2563C9"), "#2563C924");
+  assert.equal(resalteDeRamo("noche", "#2563C9"), "#2563C959");
+});
+
+test("sin color de ramo, el resalte es el del fondo y nunca queda vacío", () => {
+  for (const fondo of ["papel", "sepia", "noche"] as const) {
+    for (const tono of [null, undefined, "", "azul", "#GGG", "#2563C"]) {
+      assert.equal(resalteDeRamo(fondo, tono), paletaDeLectura(fondo).resalte);
+    }
+  }
 });

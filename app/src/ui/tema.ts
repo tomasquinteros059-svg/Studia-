@@ -1,42 +1,88 @@
-// Los mismos tokens del prototipo, para que la app y el diseño no se separen.
+// El sistema visual de StudIA.
+//
+// La idea que ordena todo: **el color siempre significa un ramo**.
+//
+// Cada asignatura tiene el suyo, y ese color es dueño de la pantalla cuando
+// estás adentro: la cabecera, el ícono, la frase que el lector va resaltando.
+// Así sabes dónde estás sin leer nada, que es lo que de verdad hace fácil una
+// aplicación con seis ramos encima.
+//
+// El corolario es lo que la mantiene elegante: si el color es del ramo,
+// entonces NADA MÁS lleva color. Los botones son tinta, la barra de abajo es
+// tinta, las tarjetas son papel. Seis colores fuertes sobre un fondo neutro
+// se ven vivos; los mismos seis peleando con un celeste de marca se ven
+// desordenados.
+
+import { Platform } from "react-native";
+import type { TextStyle } from "react-native";
+
+// El color de cada ramo vive en el dominio: no es una decisión de estilo,
+// es la regla con la que la persona sabe dónde está.
+export { COLORES_DE_RAMO, colorDeRamo, inicialesDeRamo } from "../dominio/ramos.ts";
 
 export const color = {
-  marca: "#208AEF",
-  marcaOscura: "#0C447C",
-  ambar: "#C9701C",
-  vivo: "#D93B3B",
-  ok: "#1E8E5A",
+  /* Tinta y papel. El negro tira a cálido, no a azul: acompaña mejor a los
+     seis colores de ramo, que son todos saturados. */
+  texto:       "#191A1F",
+  textoSuave:  "#5C5E66",
+  textoTenue:  "#8E9098",
+  fondo:       "#F7F6F4",
+  papel:       "#FFFFFF",
+  elemento:    "#EFEEEA",
+  borde:       "#E8E6E2",
+  bordeFuerte: "#D5D2CC",
 
-  fondo: "#FFFFFF",
-  texto: "#0B1220",
-  textoSuave: "#60646C",
-  elemento: "#F1F1F4",
-  borde: "#E1E2E7",
-  sobreMarca: "#FFFFFF",
-  nocturno: "#0E1726",
+  /* Lo que en el resto de la aplicación sería "la marca". Acá es tinta: los
+     botones principales son negros para que el color quede libre. */
+  marca:       "#191A1F",
+  marcaOscura: "#000000",
+  sobreMarca:  "#FFFFFF",
+
+  /* Estados. Van aparte de los colores de ramo porque significan otra cosa:
+     un ramo es dónde estás, un estado es qué te pasa. */
+  vivo:        "#C0392B",
+  ambar:       "#B26A08",
+  ok:          "#1B7A4F",
+
+  nocturno:    "#191A1F",
 } as const;
 
-export const radio = { campo: 11, boton: 12, tarjeta: 14, burbuja: 15, pastilla: 999 } as const;
+/* Más redondo que un panel de trabajo: esto lo usa alguien estudiando en su
+   casa, no alguien firmando un acta. */
+export const radio = { campo: 14, boton: 16, tarjeta: 20, burbuja: 18, pastilla: 999 } as const;
 
-export const espacio = { xs: 4, s: 8, m: 14, l: 18, xl: 26 } as const;
+export const espacio = { xs: 4, s: 8, m: 14, l: 20, xl: 30 } as const;
+
+/** El filete más fino que el aparato sepa dibujar. */
+export const FILETE = Platform.select({ ios: 0.5, default: 0.7 }) as number;
+
+/** Cifras que se alinean: notas, horas, minutos de lectura. */
+export const cifras: { fontVariant: TextStyle["fontVariant"] } = {
+  fontVariant: ["tabular-nums"],
+};
 
 export const tipo = {
-  titulo: { fontSize: 25, fontWeight: "600" },
-  subtitulo: { fontSize: 20, fontWeight: "600" },
-  fila: { fontSize: 14, fontWeight: "600" },
-  cuerpo: { fontSize: 14 },
-  detalle: { fontSize: 12, color: color.textoSuave },
+  /* Grande y con aire: se lee de reojo, con el teléfono apoyado en la mesa. */
+  portada:   { fontSize: 30, fontWeight: "700", letterSpacing: -0.8, color: color.texto },
+  titulo:    { fontSize: 23, fontWeight: "700", letterSpacing: -0.5, color: color.texto },
+  subtitulo: { fontSize: 18, fontWeight: "700", letterSpacing: -0.3, color: color.texto },
+  fila:      { fontSize: 16, fontWeight: "600", letterSpacing: -0.2, color: color.texto },
+  cuerpo:    { fontSize: 15.5, color: color.texto },
+  detalle:   { fontSize: 13, color: color.textoSuave },
   etiqueta: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 11.5,
+    fontWeight: "700",
     letterSpacing: 0.9,
     textTransform: "uppercase",
-    color: color.textoSuave,
+    color: color.textoTenue,
   },
 } as const;
 
-/** El color del ramo, atenuado, para fondos de íconos. */
-export const tenue = (hex: string) => `${hex}1F`;
+/** Un color de ramo apenas insinuado, para el fondo de una baldosa. */
+export const tenue = (hex: string) => `${hex}14`;
+
+/** Algo más presente, para lo que sí tiene que pesar. */
+export const velado = (hex: string) => `${hex}26`;
 
 const DIAS = ["", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 export const nombreDia = (n: number) => DIAS[n] ?? "";

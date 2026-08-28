@@ -80,3 +80,18 @@ export function choquesDeHorario(bloques: BloqueDeClase[], dictan: QuienDicta[])
   }
   return choques;
 }
+
+/**
+ * El día en el orden en que se vive: de la primera clase a la última.
+ *
+ * Lo que llega de la base viene en el orden en que se cargó el semestre, que
+ * no tiene por qué ser cronológico. Un horario con las 14:00 antes que las
+ * 10:15 obliga a leerlo entero para saber qué viene ahora.
+ *
+ * Las horas son "HH:MM", así que se comparan como texto sin convertir nada.
+ * Se ordena sobre una copia: quien llama suele estar mostrando la misma
+ * lista en otra parte.
+ */
+export function porHora<T extends { hora_inicio: string }>(bloques: readonly T[]): T[] {
+  return [...bloques].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+}

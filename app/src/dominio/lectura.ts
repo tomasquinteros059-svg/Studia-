@@ -263,6 +263,19 @@ export function paletaDeLectura(fondo: Fondo): Paleta {
 }
 
 /**
+ * La frase que suena se resalta con el color del ramo: es lo que hace que
+ * escuchar Cálculo se vea distinto de escuchar Química sin leer el título.
+ *
+ * Sobre papel y sepia alcanza con un velo; sobre el fondo de noche el mismo
+ * velo no se vería, así que el color va bastante más cargado.
+ */
+export function resalteDeRamo(fondo: Fondo, tono: string | null | undefined): string {
+  const paleta = paletaDeLectura(fondo);
+  if (typeof tono !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(tono)) return paleta.resalte;
+  return `${tono}${fondo === "noche" ? "59" : "24"}`;
+}
+
+/**
  * Lo que se guardó puede venir de una versión anterior de la app, o estar
  * corrupto. Se acepta lo que sirva y se rellena el resto: nunca debe hacer
  * que el lector no abra.

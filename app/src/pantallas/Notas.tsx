@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error, Fila, Pantalla, Punto } from "../ui/componentes.tsx";
-import { color, espacio, tipo } from "../ui/tema.ts";
+import { FILETE, cifras, color, colorDeRamo, espacio, tipo } from "../ui/tema.ts";
 import { misAsignaturas, todasLasEvaluaciones } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { formatearNota, notaDelRamo, promedioPonderado } from "../dominio/notas.ts";
@@ -44,7 +44,7 @@ export default function Notas({ navigation }: Props) {
         const { nota, rendido } = notaDelRamo(datos.evaluaciones.get(a.id) ?? []);
         return (
           <Fila key={a.id}
-            izquierda={<Punto tono={a.color} />}
+            izquierda={<Punto tono={colorDeRamo(a.id, a.color)} />}
             titulo={a.nombre}
             detalle={`${rendido}% del curso evaluado · ${a.creditos} créditos`}
             derecha={
@@ -67,11 +67,12 @@ export default function Notas({ navigation }: Props) {
 
 const e = StyleSheet.create({
   hero: {
-    alignItems: "center", paddingVertical: espacio.l, gap: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
+    alignItems: "center", paddingVertical: espacio.xl, gap: espacio.xs,
+    backgroundColor: color.papel,
+    borderBottomWidth: FILETE, borderBottomColor: color.borde,
   },
-  heroNota: { fontSize: 44, fontWeight: "600", color: color.texto, letterSpacing: -1 },
-  nota: { fontSize: 17, fontWeight: "600", color: color.texto },
+  heroNota: { ...cifras, fontSize: 64, fontWeight: "700", color: color.texto, letterSpacing: -2.5 },
+  nota: { ...cifras, fontSize: 19, fontWeight: "700", color: color.texto },
   notaVacia: { color: color.textoSuave, fontWeight: "400" },
   pie: { ...tipo.detalle, textAlign: "center", padding: espacio.l, lineHeight: 19 },
 });

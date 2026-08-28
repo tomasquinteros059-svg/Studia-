@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { choquesDeHorario, comoHora, seSolapan, type BloqueDeClase } from "./horario.ts";
+import {
+  choquesDeHorario, comoHora, porHora, seSolapan, type BloqueDeClase,
+} from "./horario.ts";
 
 const b = (x: Partial<BloqueDeClase>): BloqueDeClase =>
   ({ codigo: "MAT1610", dia: 1, inicio: 510, fin: 600, sala: "A-201", ...x });
@@ -85,4 +87,26 @@ test("el mismo ramo dos veces el mismo día en la misma sala también choca", ()
 test("un horario vacío o de un solo bloque no da choques", () => {
   assert.deepEqual(choquesDeHorario([], []), []);
   assert.deepEqual(choquesDeHorario([b({})], []), []);
+});
+
+// ── El orden del día ────────────────────────────────────────────────────
+
+test("el día se muestra de la primera clase a la última", () => {
+  const dia = [
+    { hora_inicio: "14:00", sala: "A" },
+    { hora_inicio: "08:30", sala: "B" },
+    { hora_inicio: "10:15", sala: "C" },
+  ];
+  assert.deepEqual(porHora(dia).map((b) => b.hora_inicio), ["08:30", "10:15", "14:00"]);
+});
+
+test("ordenar no toca la lista que le pasaron", () => {
+  const dia = [{ hora_inicio: "14:00" }, { hora_inicio: "08:30" }];
+  porHora(dia);
+  assert.deepEqual(dia.map((b) => b.hora_inicio), ["14:00", "08:30"]);
+});
+
+test("dos clases a la misma hora no se pierden ni se duplican", () => {
+  const dia = [{ hora_inicio: "10:00", sala: "A" }, { hora_inicio: "10:00", sala: "B" }];
+  assert.deepEqual(porHora(dia).map((b) => b.sala).sort(), ["A", "B"]);
 });

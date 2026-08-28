@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
 import {
-  ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable,
+  RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Icono } from "./Icono.tsx";
 import { usarDisposicion } from "../lib/pantalla.ts";
-import { color, espacio, radio, tenue, tipo } from "./tema.ts";
+import { FILETE, color, espacio, radio, tenue, tipo } from "./tema.ts";
 
 export function Titulo({ children }: { children: ReactNode }) {
   return <Text style={e.titulo}>{children}</Text>;
@@ -18,6 +21,42 @@ export function Encabezado({ texto, accion }: { texto: string; accion?: ReactNod
     <View style={e.encabezado}>
       <Etiqueta>{texto}</Etiqueta>
       {accion}
+    </View>
+  );
+}
+
+/**
+ * Una tarjeta de papel sobre el fondo. Es la unidad con que se compone todo:
+ * cada bloque de una pantalla es una hoja, y adentro van filas.
+ */
+export function Hoja({
+  children, ceñida, style,
+}: {
+  children: ReactNode;
+  /** Sin relleno interior, para hojas que solo llevan filas. */
+  ceñida?: boolean;
+  style?: object;
+}) {
+  return <View style={[e.hoja, ceñida ? null : e.hojaConAire, style]}>{children}</View>;
+}
+
+/**
+ * La baldosa de un ramo: su color a plena fuerza con las iniciales encima.
+ * Es lo que hace que una cuadrícula de seis ramos se lea de un vistazo.
+ */
+export function Baldosa({
+  tono, texto, tamano = 46,
+}: {
+  tono: string;
+  texto: string;
+  tamano?: number;
+}) {
+  return (
+    <View style={[
+      e.baldosa,
+      { backgroundColor: tono, width: tamano, height: tamano, borderRadius: tamano * 0.3 },
+    ]}>
+      <Text style={[e.baldosaTexto, { fontSize: tamano * 0.36 }]}>{texto}</Text>
     </View>
   );
 }
@@ -39,29 +78,27 @@ export function Boton({
       style={({ pressed }) => [
         e.boton,
         suave ? e.botonSuave : e.botonPrimario,
-        (pressed || deshabilitado) && { opacity: 0.6 },
+        pressed && !deshabilitado && (suave ? e.botonSuavePresionado : e.botonPresionado),
+        deshabilitado && { opacity: 0.4 },
       ]}
     >
-      <Text style={[e.botonTexto, suave && { color: color.textoSuave }]}>{texto}</Text>
+      <Text style={[e.botonTexto, suave && { color: color.texto }]}>{texto}</Text>
     </Pressable>
   );
 }
 
 export function Campo(props: React.ComponentProps<typeof TextInput>) {
-  return <TextInput placeholderTextColor="#9AA0A6" {...props} style={[e.campo, props.style]} />;
+  return <TextInput placeholderTextColor={color.textoTenue} {...props} style={[e.campo, props.style]} />;
 }
 
 export function Pastilla({ texto, tono }: { texto: string; tono: "pendiente" | "ok" | "atrasada" | "vivo" }) {
   const tonos = {
-    pendiente: { bg: tenue(color.ambar), fg: color.ambar },
-    ok: { bg: tenue(color.ok), fg: color.ok },
-    atrasada: { bg: tenue(color.vivo), fg: color.vivo },
-    vivo: { bg: tenue(color.vivo), fg: color.vivo },
+    pendiente: color.ambar, ok: color.ok, atrasada: color.vivo, vivo: color.vivo,
   } as const;
   const t = tonos[tono];
   return (
-    <View style={[e.pastilla, { backgroundColor: t.bg }]}>
-      <Text style={[e.pastillaTexto, { color: t.fg }]}>{texto}</Text>
+    <View style={[e.pastilla, { backgroundColor: tenue(t) }]}>
+      <Text style={[e.pastillaTexto, { color: t }]}>{texto}</Text>
     </View>
   );
 }
@@ -88,7 +125,7 @@ export function Fila({
   if (!onPress) return contenido;
   return (
     <Pressable accessibilityRole="button" onPress={onPress}
-      style={({ pressed }) => pressed && { backgroundColor: color.elemento }}>
+      style={({ pressed }) => pressed && { opacity: 0.6 }}>
       {contenido}
     </Pressable>
   );
@@ -134,12 +171,16 @@ export function Pantalla({
   sinLimite?: boolean;
 }) {
   const { anchoContenido } = usarDisposicion();
+  // Android dibuja de borde a borde: sin esto, lo último de la pantalla queda
+  // debajo de la barra de gestos del sistema y no se puede tocar.
+  const margenes = useSafeAreaInsets();
 
   return (
     <ScrollView
+      testID="pantalla"
       style={e.pantalla}
       contentContainerStyle={[
-        { paddingBottom: espacio.xl },
+        { paddingBottom: espacio.xl + margenes.bottom },
         // En una tablet, un texto que cruza toda la pantalla es incómodo de
         // leer: la columna se limita y se centra. En un teléfono no cambia nada.
         !sinLimite && { width: "100%", maxWidth: anchoContenido, alignSelf: "center" },
@@ -155,32 +196,121 @@ export function Pantalla({
   );
 }
 
+/**
+ * Un modal a pantalla completa que respeta las barras del sistema.
+ *
+ * Hace falta porque un `Modal` de React Native se dibuja fuera de la
+ * jerarquía normal y no hereda nada de lo que hace la navegación: sin esto
+ * su barra de arriba queda debajo del reloj, y el botón del final debajo de
+ * la barra de gestos.
+ */
+export function HojaModal({
+  abierto, cerrar, titulo, children, derecha,
+}: {
+  abierto: boolean;
+  cerrar: () => void;
+  titulo: string;
+  children: ReactNode;
+  derecha?: ReactNode;
+}) {
+  const margenes = useSafeAreaInsets();
+
+  return (
+    <Modal visible={abierto} animationType="slide" onRequestClose={cerrar} statusBarTranslucent>
+      <View testID="modal" style={[e.modalFondo, { paddingTop: margenes.top }]}>
+        <View style={e.modalBarra}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={cerrar} hitSlop={12}>
+            <Icono nombre="cerrar" tamano={23} tono={color.texto} />
+          </Pressable>
+          <Text style={e.modalTitulo}>{titulo}</Text>
+          <View style={{ minWidth: 23, alignItems: "flex-end" }}>{derecha}</View>
+        </View>
+
+        <KeyboardAvoidingView style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={margenes.top}>
+          <ScrollView
+            testID="modal-hoja"
+            contentContainerStyle={[e.modalHoja, { paddingBottom: espacio.xl + margenes.bottom }]}
+            keyboardShouldPersistTaps="handled">
+            {children}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
+  );
+}
+
 const e = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: color.fondo },
-  titulo: { ...tipo.titulo, color: color.texto },
+  titulo: { ...tipo.titulo },
   etiqueta: { ...tipo.etiqueta },
   encabezado: {
-    flexDirection: "row", alignItems: "baseline", justifyContent: "space-between",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: espacio.m, paddingTop: espacio.l, paddingBottom: espacio.s,
   },
-  boton: { borderRadius: radio.boton, paddingVertical: espacio.m, alignItems: "center" },
+
+  hoja: {
+    backgroundColor: color.papel,
+    borderRadius: radio.tarjeta,
+    borderWidth: FILETE,
+    borderColor: color.borde,
+    marginHorizontal: espacio.m,
+    overflow: "hidden",
+  },
+  hojaConAire: { padding: espacio.m, gap: espacio.s },
+
+  baldosa: { alignItems: "center", justifyContent: "center" },
+  baldosaTexto: {
+    color: "#FFFFFF", fontWeight: "800", letterSpacing: -0.5,
+    // El color de ramo es fuerte; el texto encima necesita algo de sombra
+    // para no vibrar sobre los tonos más claros de la paleta.
+    textShadowColor: "rgba(0,0,0,0.18)", textShadowRadius: 2,
+  },
+
+  boton: {
+    borderRadius: radio.boton, paddingVertical: 15, paddingHorizontal: espacio.m,
+    alignItems: "center", justifyContent: "center",
+  },
   botonPrimario: { backgroundColor: color.marca },
-  botonSuave: { borderWidth: 1, borderColor: color.borde },
-  botonTexto: { fontSize: 15, fontWeight: "600", color: color.sobreMarca },
+  botonPresionado: { backgroundColor: color.marcaOscura },
+  botonSuave: { borderWidth: FILETE, borderColor: color.bordeFuerte, backgroundColor: color.papel },
+  botonSuavePresionado: { backgroundColor: color.elemento },
+  botonTexto: { fontSize: 15.5, fontWeight: "700", letterSpacing: -0.2, color: color.sobreMarca },
+
   campo: {
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.campo,
-    padding: 13, fontSize: 15, backgroundColor: "#F7F8FA", color: color.texto,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.campo,
+    paddingHorizontal: 14, paddingVertical: 13,
+    fontSize: 16, backgroundColor: color.papel, color: color.texto,
   },
-  pastilla: { borderRadius: radio.pastilla, paddingHorizontal: 8, paddingVertical: 3 },
-  pastillaTexto: { fontSize: 10.5, fontWeight: "700", letterSpacing: 0.3 },
+
+  pastilla: { borderRadius: radio.pastilla, paddingHorizontal: 9, paddingVertical: 4 },
+  pastillaTexto: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.4 },
+
+  // Las filas son papel sobre el fondo, y el filete va arriba: así la
+  // primera marca dónde empieza la lista y la última no deja una raya
+  // suelta contra el fondo.
   fila: {
-    flexDirection: "row", alignItems: "center", gap: 11,
-    paddingHorizontal: espacio.m, paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: 15,
+    backgroundColor: color.papel,
+    borderTopWidth: FILETE, borderTopColor: color.borde,
   },
-  filaTitulo: { ...tipo.fila, color: color.texto, lineHeight: 19 },
+  filaTitulo: { ...tipo.fila, lineHeight: 21 },
   filaDetalle: { ...tipo.detalle, marginTop: 2 },
-  punto: { width: 8, height: 8, borderRadius: 4 },
-  centro: { padding: espacio.xl, alignItems: "center", gap: espacio.m },
-  vacioTexto: { ...tipo.cuerpo, color: color.textoSuave, textAlign: "center", lineHeight: 21 },
+
+  punto: { width: 9, height: 9, borderRadius: 5 },
+
+  centro: { flex: 1, padding: espacio.xl, alignItems: "center", justifyContent: "center", gap: espacio.m },
+  vacioTexto: { ...tipo.cuerpo, color: color.textoSuave, textAlign: "center", lineHeight: 22 },
+
+  modalFondo: { flex: 1, backgroundColor: color.fondo },
+  modalBarra: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: espacio.m, paddingVertical: 14,
+    backgroundColor: color.papel,
+    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+  },
+  modalTitulo: { ...tipo.subtitulo },
+  modalHoja: { padding: espacio.l, gap: espacio.m },
 });

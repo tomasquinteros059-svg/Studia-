@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Icono } from "../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../ui/tema.ts";
+import { FILETE, color, espacio, radio, tenue, tipo } from "../ui/tema.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { PERFILES_DEMO, entrarComo, type PerfilDemo } from "../lib/perfiles-demo.ts";
 
@@ -87,7 +87,7 @@ export default function Perfiles() {
 const e = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: color.fondo },
   hoja: { padding: espacio.l, paddingTop: espacio.xl, gap: espacio.s, width: "100%", alignSelf: "center" },
-  titulo: { ...tipo.titulo, color: color.texto, marginTop: 2 },
+  titulo: { ...tipo.portada, marginTop: 2 },
   bajada: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 21, marginBottom: espacio.m },
 
   grilla: { gap: espacio.s },
@@ -96,24 +96,24 @@ const e = StyleSheet.create({
   tarjeta: {
     flexDirection: "row", gap: espacio.m, alignItems: "flex-start",
     padding: espacio.m,
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta,
-    backgroundColor: color.fondo,
+    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.tarjeta,
+    backgroundColor: color.papel,
   },
   tarjetaAncha: { flexBasis: "48%", flexGrow: 1 },
   apretada: { backgroundColor: color.elemento },
 
   marca: {
-    width: 40, height: 40, borderRadius: radio.pastilla,
+    width: 46, height: 46, borderRadius: radio.campo,
     alignItems: "center", justifyContent: "center",
   },
-  encabezado: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  nombre: { fontSize: 16, fontWeight: "600", color: color.texto },
-  pastilla: { borderRadius: radio.pastilla, paddingHorizontal: 8, paddingVertical: 2 },
-  pastillaTexto: { fontSize: 11, fontWeight: "700", letterSpacing: 0.3 },
-  descripcion: { ...tipo.detalle, lineHeight: 18 },
+  encabezado: { flexDirection: "row", alignItems: "center", gap: espacio.s, flexWrap: "wrap" },
+  nombre: { ...tipo.subtitulo, fontSize: 17 },
+  pastilla: { borderRadius: radio.pastilla, paddingHorizontal: espacio.s, paddingVertical: 3 },
+  pastillaTexto: { fontSize: 11.5, fontWeight: "700", letterSpacing: 0.3 },
+  descripcion: { ...tipo.detalle, lineHeight: 19 },
 
   nota: {
-    ...tipo.detalle, lineHeight: 18, marginTop: espacio.l,
+    ...tipo.detalle, lineHeight: 19, marginTop: espacio.l,
     padding: espacio.m, backgroundColor: color.elemento, borderRadius: radio.tarjeta,
   },
 });

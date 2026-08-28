@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Cargando, Error as ErrorUI } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
-import { color, espacio, radio, tipo } from "../ui/tema.ts";
+import { FILETE, cifras, color, colorDeRamo, espacio, radio, tipo } from "../ui/tema.ts";
 import { crearApunte, guardarApunte, lecturaPorId, marcarMaterial, misApuntes } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
@@ -12,7 +13,7 @@ import { usarLector } from "../lib/usarLector.ts";
 import { hayVoz } from "../lib/voz.ts";
 import {
   TAMANOS, VELOCIDADES, agruparEnParrafos, citar, estiloDeLectura,
-  minutosDeEscucha, paletaDeLectura, progreso, velocidadDe,
+  minutosDeEscucha, paletaDeLectura, progreso, resalteDeRamo, velocidadDe,
   type Fondo, type Interlineado,
 } from "../dominio/lectura.ts";
 import type { PropsPila } from "../lib/rutas.ts";
@@ -35,7 +36,15 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
   const [apuntesAbiertos, setApuntesAbiertos] = useState(false);
 
+  // La app dibuja de borde a borde: sin esto, los mandos del lector quedan
+  // debajo de la barra de gestos del sistema.
+  const margenes = useSafeAreaInsets();
+
   const paleta = paletaDeLectura(preferencias.fondo);
+  // Todo el color de esta pantalla sale del ramo: lo que se resalta, la
+  // barra que avanza y el botón de escuchar.
+  const tono = colorDeRamo(datos?.asignatura_id ?? "", datos?.asignatura_color);
+  const resalte = resalteDeRamo(preferencias.fondo, tono);
   const estilo = estiloDeLectura(preferencias);
   const velocidad = velocidadDe(preferencias);
   const fraseActual = frases[indice] ?? null;
@@ -134,10 +143,13 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
       style={{ flex: 1, backgroundColor: paleta.fondo }}
       contentContainerStyle={[e.hoja, { maxWidth: estilo.anchoMaximo }]}
     >
-      <Text style={[e.encabezado, { color: paleta.texto, fontSize: estilo.fontSize + 6 }]}>
+      <Text style={[e.ramo, { color: tono }]} numberOfLines={1}>
+        {datos.asignatura_nombre}
+      </Text>
+      <Text style={[e.encabezado, { color: paleta.texto, fontSize: estilo.fontSize + 11 }]}>
         {datos.titulo}
       </Text>
-      <Text style={[e.ramo, { color: paleta.atenuado }]}>{datos.asignatura_nombre}</Text>
+      <View style={[e.hilo, { backgroundColor: tono }]} />
 
       {/*
         El toque va en el párrafo y no en cada frase. Es a propósito: un Text
@@ -164,7 +176,7 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
                   color: esActual
                     ? paleta.texto
                     : preferencias.foco ? paleta.atenuado : paleta.texto,
-                  backgroundColor: esActual ? paleta.resalte : "transparent",
+                  backgroundColor: esActual ? resalte : "transparent",
                 }}
               >
                 {f.texto}{" "}
@@ -179,9 +191,14 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
   );
 
   const barra = (
-    <View style={[e.barra, { backgroundColor: paleta.fondo, borderTopColor: paleta.borde }]}>
+    <View style={[e.barra, {
+      backgroundColor: paleta.fondo, borderTopColor: paleta.borde,
+      paddingBottom: espacio.s + margenes.bottom,
+    }]}>
       <View style={[e.riel, { backgroundColor: paleta.borde }]}>
-        <View style={[e.avance, { width: `${progreso(indice, frases.length) * 100}%` }]} />
+        <View style={[e.avance, {
+          width: `${progreso(indice, frases.length) * 100}%`, backgroundColor: tono,
+        }]} />
       </View>
 
       {aviso ? <Text style={e.aviso}>{aviso}</Text> : null}
@@ -193,18 +210,19 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
           accessibilityRole="button"
           accessibilityLabel={sonando ? "Pausar" : termino ? "Volver a empezar" : "Escuchar"}
           onPress={termino ? reiniciar : alternar}
-          style={e.play}
+          style={({ pressed }) => [e.play, { backgroundColor: tono }, pressed && { opacity: 0.85 }]}
         >
           <Icono
             nombre={sonando ? "pausar" : termino ? "fraseAtras" : "reproducir"}
-            tamano={22}
+            tamano={26}
             tono={color.sobreMarca}
           />
         </Pressable>
 
         <Boton icono="fraseAdelante" etiqueta="Frase siguiente" onPress={adelante} tono={paleta.texto} />
 
-        <Pressable accessibilityRole="button" onPress={() => setAjustesAbiertos(true)}
+        <Pressable accessibilityRole="button" accessibilityLabel={`Velocidad ${velocidad}, tocar para cambiarla`}
+          onPress={() => setAjustesAbiertos(true)}
           style={[e.pastilla, { borderColor: paleta.borde }]}>
           <Text style={[e.pastillaTexto, { color: paleta.texto }]}>{velocidad}×</Text>
         </Pressable>
@@ -221,17 +239,29 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
 
       <View style={e.acciones}>
         <Pressable accessibilityRole="button" accessibilityLabel="Anotar esta frase"
-          onPress={anotarFrase} style={e.accion} disabled={!fraseActual}>
-          <Icono nombre="lapiz" tamano={15} tono={color.marca} />
-          <Text style={e.accionTexto}>Anotar esta frase</Text>
+          onPress={anotarFrase} disabled={!fraseActual}
+          style={({ pressed }) => [
+            e.accion, { borderColor: paleta.borde },
+            pressed && { backgroundColor: resalte },
+            !fraseActual && { opacity: 0.4 },
+          ]}>
+          <Icono nombre="lapiz" tamano={16} tono={tono} />
+          <Text style={[e.accionTexto, { color: paleta.texto }]}>Anotar esta frase</Text>
         </Pressable>
 
         {!dosPaneles ? (
           <Pressable accessibilityRole="button"
             accessibilityLabel={apuntesAbiertos ? "Cerrar apuntes" : "Mis apuntes"}
-            onPress={() => setApuntesAbiertos((v) => !v)} style={e.accion}>
-            <Icono nombre="documento" tamano={15} tono={color.marca} />
-            <Text style={e.accionTexto}>{apuntesAbiertos ? "Cerrar apuntes" : "Mis apuntes"}</Text>
+            onPress={() => setApuntesAbiertos((v) => !v)}
+            style={({ pressed }) => [
+              e.accion, { borderColor: paleta.borde },
+              apuntesAbiertos && { backgroundColor: resalte, borderColor: tono },
+              pressed && { backgroundColor: resalte },
+            ]}>
+            <Icono nombre="documento" tamano={16} tono={tono} />
+            <Text style={[e.accionTexto, { color: paleta.texto }]}>
+              {apuntesAbiertos ? "Cerrar apuntes" : "Mis apuntes"}
+            </Text>
           </Pressable>
         ) : null}
       </View>
@@ -248,7 +278,7 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
   const columnaApuntes = (
     <View style={[e.apuntes, dosPaneles ? e.apuntesLado : e.apuntesAbajo]}>
       <View style={e.tituloApuntes}>
-        <Icono nombre="lapiz" tamano={15} tono={color.marca} />
+        <Icono nombre="lapiz" tamano={16} tono={tono} />
         <Text style={e.tituloApuntesTexto}>Mis apuntes</Text>
         <Text style={tipo.detalle}>
           {guardado === "limpio" ? "· guardado" : guardado === "guardando" ? "· guardando…" : "· sin guardar"}
@@ -290,6 +320,8 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
         cerrar={() => setAjustesAbiertos(false)}
         preferencias={preferencias}
         ajustar={ajustar}
+        tono={tono}
+        margenAbajo={margenes.bottom}
       />
     </View>
   );
@@ -326,17 +358,20 @@ const FONDOS: { id: Fondo; texto: string }[] = [
 ];
 
 function Ajustes({
-  abierto, cerrar, preferencias, ajustar,
+  abierto, cerrar, preferencias, ajustar, tono, margenAbajo,
 }: {
   abierto: boolean;
   cerrar: () => void;
   preferencias: ReturnType<typeof usarLector>["preferencias"];
   ajustar: ReturnType<typeof usarLector>["ajustar"];
+  tono: string;
+  margenAbajo: number;
 }) {
   return (
-    <Modal visible={abierto} transparent animationType="slide" onRequestClose={cerrar}>
+    <Modal visible={abierto} transparent animationType="slide" onRequestClose={cerrar}
+      statusBarTranslucent>
       <Pressable style={a.velo} onPress={cerrar} accessibilityLabel="Cerrar ajustes" />
-      <View style={a.hoja}>
+      <View style={[a.hoja, { paddingBottom: espacio.l + margenAbajo }]}>
         <View style={a.asa} />
 
         <Text style={tipo.etiqueta}>Tamaño de la letra</Text>
@@ -348,7 +383,7 @@ function Ajustes({
           </Pressable>
           <View style={a.escala}>
             {TAMANOS.map((_, i) => (
-              <View key={i} style={[a.paso, i <= preferencias.tamano ? a.pasoLleno : null]} />
+              <View key={i} style={[a.paso, i <= preferencias.tamano && { backgroundColor: tono }]} />
             ))}
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Letra más grande"
@@ -361,7 +396,7 @@ function Ajustes({
         <Text style={tipo.etiqueta}>Separación entre líneas</Text>
         <View style={a.fila}>
           {INTERLINEADOS.map((x) => (
-            <Chip key={x.id} texto={x.texto} activo={preferencias.interlineado === x.id}
+            <Chip key={x.id} texto={x.texto} tono={tono} activo={preferencias.interlineado === x.id}
               onPress={() => ajustar({ interlineado: x.id })} />
           ))}
         </View>
@@ -369,7 +404,7 @@ function Ajustes({
         <Text style={tipo.etiqueta}>Fondo</Text>
         <View style={a.fila}>
           {FONDOS.map((x) => (
-            <Chip key={x.id} texto={x.texto} activo={preferencias.fondo === x.id}
+            <Chip key={x.id} texto={x.texto} tono={tono} activo={preferencias.fondo === x.id}
               onPress={() => ajustar({ fondo: x.id })} />
           ))}
         </View>
@@ -377,7 +412,7 @@ function Ajustes({
         <Text style={tipo.etiqueta}>Velocidad de la voz</Text>
         <View style={a.fila}>
           {VELOCIDADES.map((v, i) => (
-            <Chip key={v} texto={`${v}×`} activo={preferencias.velocidad === i}
+            <Chip key={v} texto={`${v}×`} tono={tono} activo={preferencias.velocidad === i}
               onPress={() => ajustar({ velocidad: i })} />
           ))}
         </View>
@@ -392,6 +427,7 @@ function Ajustes({
           <Switch
             value={preferencias.foco}
             onValueChange={(v) => ajustar({ foco: v })}
+            trackColor={{ false: color.bordeFuerte, true: tono }}
             accessibilityLabel="Foco de línea"
           />
         </View>
@@ -404,10 +440,13 @@ function Ajustes({
   );
 }
 
-function Chip({ texto, activo, onPress }: { texto: string; activo: boolean; onPress: () => void }) {
+function Chip({
+  texto, activo, onPress, tono,
+}: { texto: string; activo: boolean; onPress: () => void; tono: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected: activo }}
-      onPress={onPress} style={[a.chip, activo ? a.chipActivo : null]}>
+      onPress={onPress}
+      style={[a.chip, activo && { backgroundColor: tono, borderColor: tono }]}>
       <Text style={[a.chipTexto, activo ? a.chipTextoActivo : null]}>{texto}</Text>
     </Pressable>
   );
@@ -415,55 +454,68 @@ function Chip({ texto, activo, onPress }: { texto: string; activo: boolean; onPr
 
 const e = StyleSheet.create({
   hoja: { padding: espacio.l, paddingTop: espacio.xl, width: "100%", alignSelf: "center" },
-  encabezado: { fontWeight: "600", marginBottom: 2 },
-  ramo: { fontSize: 13, marginBottom: espacio.l },
+  // El nombre del ramo va arriba y con su color: es lo primero que ubica
+  // la lectura, antes incluso de leer de qué se trata.
+  ramo: { fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  encabezado: { fontWeight: "700", letterSpacing: -0.6, marginTop: espacio.s },
+  hilo: { width: 46, height: 3, borderRadius: 2, marginTop: espacio.m, marginBottom: espacio.xl },
 
-  barra: { borderTopWidth: StyleSheet.hairlineWidth, paddingBottom: Platform.OS === "ios" ? 22 : 10 },
-  riel: { height: 3 },
-  avance: { height: 3, backgroundColor: color.marca },
+  barra: { borderTopWidth: FILETE },
+  riel: { height: 4 },
+  avance: { height: 4 },
   mandos: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
     paddingHorizontal: espacio.m, paddingTop: espacio.m,
   },
-  mando: { padding: 2 },
+  mando: { padding: espacio.xs },
   play: {
-    width: 46, height: 46, borderRadius: radio.pastilla, backgroundColor: color.marca,
+    width: 58, height: 58, borderRadius: radio.pastilla,
     alignItems: "center", justifyContent: "center",
   },
-  pastilla: { borderWidth: 1, borderRadius: radio.pastilla, paddingHorizontal: 10, paddingVertical: 4 },
-  pastillaTexto: { fontSize: 12.5, fontWeight: "600" },
-  restante: { fontSize: 12.5, fontVariant: ["tabular-nums"] },
+  pastilla: {
+    borderWidth: FILETE, borderRadius: radio.pastilla,
+    paddingHorizontal: espacio.m, paddingVertical: 7,
+  },
+  pastillaTexto: { ...cifras, fontSize: 14, fontWeight: "700" },
+  restante: { ...cifras, fontSize: 13 },
 
-  acciones: { flexDirection: "row", gap: espacio.l, paddingHorizontal: espacio.m, paddingTop: espacio.s },
-  accion: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 6 },
-  accionTexto: { fontSize: 13, fontWeight: "600", color: color.marca },
+  acciones: {
+    flexDirection: "row", gap: espacio.s,
+    paddingHorizontal: espacio.m, paddingTop: espacio.m,
+  },
+  accion: {
+    flexDirection: "row", alignItems: "center", gap: 7,
+    borderWidth: FILETE, borderRadius: radio.pastilla,
+    paddingHorizontal: espacio.m, paddingVertical: 9,
+  },
+  accionTexto: { fontSize: 14, fontWeight: "600" },
 
   aviso: {
     ...tipo.detalle, color: color.ambar, paddingHorizontal: espacio.m, paddingTop: espacio.s,
   },
   sinVoz: { ...tipo.detalle, paddingHorizontal: espacio.m, paddingTop: 2, lineHeight: 16 },
 
-  apuntes: { backgroundColor: color.fondo },
-  apuntesLado: { flex: 2, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: color.borde },
-  apuntesAbajo: { height: 210, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.borde },
+  apuntes: { backgroundColor: color.papel },
+  apuntesLado: { flex: 2, borderLeftWidth: FILETE, borderLeftColor: color.borde },
+  apuntesAbajo: { height: 230, borderTopWidth: FILETE, borderTopColor: color.borde },
   tituloApuntes: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: espacio.m, paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
+    flexDirection: "row", alignItems: "center", gap: espacio.s,
+    paddingHorizontal: espacio.m, paddingVertical: espacio.m,
+    borderBottomWidth: FILETE, borderBottomColor: color.borde,
   },
-  tituloApuntesTexto: { fontSize: 13, fontWeight: "600", color: color.texto },
-  papel: { flex: 1, padding: espacio.m, fontSize: 15, lineHeight: 24, color: color.texto },
+  tituloApuntesTexto: { ...tipo.fila, flex: 1 },
+  papel: { flex: 1, padding: espacio.m, fontSize: 16, lineHeight: 26, color: color.texto },
 });
 
 const a = StyleSheet.create({
-  velo: { flex: 1, backgroundColor: "rgba(11,18,32,0.35)" },
+  velo: { flex: 1, backgroundColor: "rgba(25,26,31,0.4)" },
   hoja: {
-    backgroundColor: color.fondo, padding: espacio.l, gap: espacio.s,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: color.papel, padding: espacio.l, gap: espacio.s,
+    borderTopLeftRadius: radio.tarjeta, borderTopRightRadius: radio.tarjeta,
   },
   asa: {
-    width: 38, height: 4, borderRadius: 2, backgroundColor: color.borde,
-    alignSelf: "center", marginBottom: espacio.s,
+    width: 40, height: 4, borderRadius: 2, backgroundColor: color.bordeFuerte,
+    alignSelf: "center", marginBottom: espacio.m,
   },
   // Con seis velocidades no caben en una fila de 390 px: bajan solas.
   fila: {
@@ -472,32 +524,31 @@ const a = StyleSheet.create({
   },
 
   cuadro: {
-    width: 44, height: 40, borderRadius: radio.boton, borderWidth: 1, borderColor: color.borde,
+    width: 50, height: 46, borderRadius: radio.boton,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
     alignItems: "center", justifyContent: "center",
   },
-  muestra: { fontWeight: "600", color: color.texto },
+  muestra: { fontWeight: "700", color: color.texto },
   escala: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
-  paso: { flex: 1, height: 4, borderRadius: 2, backgroundColor: color.elemento },
-  pasoLleno: { backgroundColor: color.marca },
+  paso: { flex: 1, height: 5, borderRadius: 3, backgroundColor: color.elemento },
 
   chip: {
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.pastilla,
-    paddingHorizontal: 13, paddingVertical: 7,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.pastilla,
+    paddingHorizontal: espacio.m, paddingVertical: 9,
   },
-  chipActivo: { backgroundColor: color.marca, borderColor: color.marca },
-  chipTexto: { fontSize: 13, fontWeight: "600", color: color.textoSuave },
+  chipTexto: { ...cifras, fontSize: 14, fontWeight: "600", color: color.textoSuave },
   chipTextoActivo: { color: color.sobreMarca },
 
   interruptor: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
-    paddingVertical: espacio.s,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.borde,
+    paddingVertical: espacio.m,
+    borderTopWidth: FILETE, borderTopColor: color.borde,
   },
-  interruptorTitulo: { fontSize: 14, fontWeight: "600", color: color.texto },
+  interruptorTitulo: { ...tipo.fila },
 
   listo: {
     backgroundColor: color.marca, borderRadius: radio.boton,
-    paddingVertical: 13, alignItems: "center", marginTop: espacio.s,
+    paddingVertical: 15, alignItems: "center", marginTop: espacio.s,
   },
-  listoTexto: { color: color.sobreMarca, fontWeight: "600", fontSize: 15 },
+  listoTexto: { color: color.sobreMarca, fontWeight: "700", fontSize: 16 },
 });

@@ -10,6 +10,9 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./src/lib/supabase.ts";
 import { AVISO_DEMO, MODO_DEMO } from "./src/lib/config.ts";
 import { color } from "./src/ui/tema.ts";
+import {
+  OPCIONES_PESTANAS, OPCIONES_PILA, TEMA_NAVEGACION,
+} from "./src/ui/navegacion.ts";
 import type {
   RutasPestanas, RutasPestanasDocente, RutasPila, RutasPilaDocente,
 } from "./src/lib/rutas.ts";
@@ -55,13 +58,10 @@ function Principal() {
   return (
     <Pestanas.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: color.marca,
-        tabBarInactiveTintColor: color.textoSuave,
+        ...OPCIONES_PESTANAS,
         tabBarIcon: ({ color: tono, size }) => (
           <Icono nombre={ICONO_PESTANA[route.name]} tamano={size} tono={tono} />
         ),
-        tabBarLabelStyle: { fontSize: 10.5 },
       })}
     >
       <Pestanas.Screen name="Inicio" component={Inicio} />
@@ -82,13 +82,10 @@ function PrincipalDocente() {
   return (
     <PestanasDocente.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: color.marca,
-        tabBarInactiveTintColor: color.textoSuave,
+        ...OPCIONES_PESTANAS,
         tabBarIcon: ({ color: tono, size }) => (
           <Icono nombre={ICONO_DOCENTE[route.name]} tamano={size} tono={tono} />
         ),
-        tabBarLabelStyle: { fontSize: 10.5 },
       })}
     >
       <PestanasDocente.Screen name="Cursos" component={InicioDocente} />
@@ -101,12 +98,7 @@ function PrincipalDocente() {
 
 function AppDocente() {
   return (
-    <PilaDocente.Navigator
-      screenOptions={{
-        headerTintColor: color.marca,
-        headerTitleStyle: { color: color.texto, fontSize: 15 },
-      }}
-    >
+    <PilaDocente.Navigator screenOptions={OPCIONES_PILA}>
       <PilaDocente.Screen name="PrincipalDocente" component={PrincipalDocente}
         options={{ headerShown: false }} />
       <PilaDocente.Screen name="RamoDocente" component={RamoDocente} options={{ title: "Curso" }} />
@@ -149,7 +141,7 @@ export default function App() {
           <Text style={cinta.texto}>{AVISO_DEMO}</Text>
         </SafeAreaView>
       ) : null}
-      <NavigationContainer>
+      <NavigationContainer theme={TEMA_NAVEGACION}>
         {MODO_DEMO && !yo ? (
           <Perfiles />
         ) : !sesion && !MODO_DEMO ? (
@@ -161,12 +153,7 @@ export default function App() {
             <PilaDocente.Screen name="PrincipalDocente" component={PrincipalAdmin} />
           </PilaDocente.Navigator>
         ) : (
-          <Pila.Navigator
-            screenOptions={{
-              headerTintColor: color.marca,
-              headerTitleStyle: { color: color.texto, fontSize: 15 },
-            }}
-          >
+          <Pila.Navigator screenOptions={OPCIONES_PILA}>
             <Pila.Screen name="Principal" component={Principal} options={{ headerShown: false }} />
             <Pila.Screen name="Asignatura" component={Asignatura} />
             <Pila.Screen name="Notas" component={Notas} options={{ title: "Mis notas" }} />
@@ -198,13 +185,10 @@ function PrincipalAdmin() {
   return (
     <PestanasDocente.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: color.marca,
-        tabBarInactiveTintColor: color.textoSuave,
+        ...OPCIONES_PESTANAS,
         tabBarIcon: ({ color: tono, size }) => (
           <Icono nombre={ICONO_ADMIN[route.name]} tamano={size} tono={tono} />
         ),
-        tabBarLabelStyle: { fontSize: 10.5 },
       })}
     >
       <PestanasDocente.Screen name="Cursos" component={InicioAdmin} options={{ title: "Colegio" }} />

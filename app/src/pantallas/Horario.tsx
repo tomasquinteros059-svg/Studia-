@@ -1,8 +1,11 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error, Fila, Pantalla, Vacio } from "../ui/componentes.tsx";
-import { color, diaCorto, espacio, hora, radio, tipo } from "../ui/tema.ts";
+import {
+  FILETE, cifras, color, colorDeRamo, diaCorto, espacio, hora, radio, tipo,
+} from "../ui/tema.ts";
 import { miHorario, misAsignaturas } from "../lib/consultas.ts";
+import { porHora } from "../dominio/horario.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 
@@ -23,7 +26,7 @@ export default function Horario({ navigation }: Props) {
   if (error) return <Error mensaje={error} reintentar={recargar} />;
   if (!datos) return null;
 
-  const delDia = datos.bloques.filter((b) => b.dia === dia);
+  const delDia = porHora(datos.bloques.filter((b) => b.dia === dia));
 
   return (
     <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
@@ -51,9 +54,9 @@ export default function Horario({ navigation }: Props) {
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
                     <View style={e.horas}>
                       <Text style={e.horaInicio}>{hora(b.hora_inicio)}</Text>
-                      <Text style={tipo.detalle}>{hora(b.hora_fin)}</Text>
+                      <Text style={[tipo.detalle, cifras]}>{hora(b.hora_fin)}</Text>
                     </View>
-                    <View style={[e.barra, { backgroundColor: ramo.color }]} />
+                    <View style={[e.barra, { backgroundColor: colorDeRamo(ramo.id, ramo.color) }]} />
                   </View>
                 }
                 titulo={ramo.nombre}
@@ -67,10 +70,16 @@ export default function Horario({ navigation }: Props) {
 }
 
 const e = StyleSheet.create({
-  dias: { flexDirection: "row", gap: 6, padding: espacio.m },
-  dia: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: radio.campo, backgroundColor: color.elemento },
-  diaTexto: { fontSize: 13, fontWeight: "600", color: color.textoSuave, textTransform: "uppercase" },
-  horas: { width: 46 },
-  horaInicio: { fontSize: 13, fontWeight: "600", color: color.texto },
-  barra: { width: 3, height: 34, borderRadius: 2 },
+  dias: { flexDirection: "row", gap: espacio.s, padding: espacio.m },
+  dia: {
+    flex: 1, alignItems: "center", paddingVertical: 13, borderRadius: radio.campo,
+    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.borde,
+  },
+  diaTexto: {
+    fontSize: 14, fontWeight: "700", color: color.textoSuave,
+    textTransform: "uppercase", letterSpacing: 0.3,
+  },
+  horas: { width: 52 },
+  horaInicio: { ...cifras, fontSize: 16, fontWeight: "700", color: color.texto, letterSpacing: -0.3 },
+  barra: { width: 3, height: 38, borderRadius: 2 },
 });

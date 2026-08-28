@@ -43,3 +43,20 @@ export function anchoDeContenido(ancho: number): number {
 export function muestraBarraDeSecciones(ancho: number): boolean {
   return ancho >= CORTE_AMPLIO;
 }
+
+/** Lo que se deja de aire entre dos tarjetas, en porcentaje de la fila. */
+export const SEPARACION_TARJETAS = 3;
+
+/**
+ * El porcentaje de fila que ocupa cada tarjeta de una rejilla de `columnas`.
+ *
+ * Descuenta exactamente la separación que la rejilla deja entre tarjetas. Si
+ * descontara menos, la suma pasaría del 100% y las tarjetas se irían una
+ * debajo de la otra: una cuadrícula de una sola columna en una pantalla
+ * ancha, que es justo lo que la rejilla venía a evitar.
+ */
+export function anchoDeTarjeta(columnas: number): `${number}%` {
+  if (columnas <= 1) return "100%";
+  const huecos = SEPARACION_TARJETAS * (columnas - 1);
+  return `${(100 - huecos) / columnas}%`;
+}

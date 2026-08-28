@@ -2,11 +2,14 @@ import { useCallback } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error as ErrorUI, Vacio } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, diaCorto, espacio, hora, radio, tenue, tipo } from "../../ui/tema.ts";
+import {
+  color, colorDeRamo, diaCorto, espacio, hora, radio, tenue, tipo,
+} from "../../ui/tema.ts";
 import {
   claseEnVivo, clasesDe, cursoDe, entregasDe, evaluacionesDe, miHorario, misAsignaturas, misTareas, notasDe,
 } from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
+import { porHora } from "../../dominio/horario.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
 import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import { estadoDeTarea, porRevisar, sinPublicar } from "../../dominio/curso.ts";
@@ -55,7 +58,8 @@ export default function InicioDocente({ navigation }: PropsPestanaDocente<"Curso
   }
 
   const hoy = ((new Date().getDay() + 6) % 7) + 1;
-  const bloquesHoy = datos.horario.filter((b) => b.dia === hoy && dicta.includes(b.asignatura_id));
+  const bloquesHoy = porHora(
+    datos.horario.filter((b) => b.dia === hoy && dicta.includes(b.asignatura_id)));
   const totalPorRevisar = datos.ramos.reduce(
     (n, r) => n + r.tareas.reduce((m, t) => m + porRevisar(t.entregas).length, 0), 0);
   const totalPorPublicar = datos.ramos.reduce((n, r) => n + r.porPublicar, 0);
@@ -126,7 +130,7 @@ export default function InicioDocente({ navigation }: PropsPestanaDocente<"Curso
                 e.tarjeta, columnas > 1 ? e.tarjetaAncha : null,
                 pressed ? { backgroundColor: color.elemento } : null,
               ]}>
-              <View style={[e.franja, { backgroundColor: ramo.color }]} />
+              <View style={[e.franja, { backgroundColor: colorDeRamo(ramo.id, ramo.color) }]} />
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={e.codigo}>{ramo.codigo}</Text>
                 <Text style={e.nombre}>{ramo.nombre}</Text>

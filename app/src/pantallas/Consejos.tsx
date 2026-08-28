@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error, Pantalla, Vacio } from "../ui/componentes.tsx";
-import { color, espacio, radio, tipo } from "../ui/tema.ts";
+import { FILETE, color, espacio, radio, tipo } from "../ui/tema.ts";
 import {
   materiaDe, misApuntes, misAsignaturas, misTareas, todasLasEvaluaciones,
 } from "../lib/consultas.ts";
@@ -85,13 +85,14 @@ function Tarjeta({ consejo }: { consejo: Consejo }) {
 }
 
 const e = StyleSheet.create({
-  intro: { padding: espacio.m, gap: 6 },
-  titulo: { fontSize: 22, fontWeight: "600", color: color.texto },
+  intro: { padding: espacio.m, paddingTop: espacio.l, gap: espacio.s },
+  titulo: { ...tipo.titulo },
   tarjeta: {
-    marginHorizontal: espacio.m, marginBottom: 10, padding: espacio.m,
-    borderRadius: radio.tarjeta, borderWidth: 1, borderColor: color.borde,
-    borderLeftWidth: 3,
+    marginHorizontal: espacio.m, marginBottom: espacio.s, padding: espacio.m,
+    backgroundColor: color.papel,
+    borderRadius: radio.tarjeta, borderWidth: FILETE, borderColor: color.borde,
+    borderLeftWidth: 4,
   },
-  tarjetaTitulo: { fontSize: 15, fontWeight: "600", color: color.texto },
-  tarjetaDetalle: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 21, marginTop: 5 },
+  tarjetaTitulo: { ...tipo.subtitulo, fontSize: 16 },
+  tarjetaDetalle: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 22, marginTop: espacio.xs },
 });

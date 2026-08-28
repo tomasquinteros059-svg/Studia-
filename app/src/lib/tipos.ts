@@ -46,6 +46,8 @@ export type Lectura = {
   asignatura_id: string;
   /** Para volver al ramo y para el contexto del tutor. */
   asignatura_nombre: string;
+  /** El color del ramo, con el que el lector resalta lo que va leyendo. */
+  asignatura_color: string | null;
   texto: string;
 };
 

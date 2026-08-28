@@ -10,6 +10,7 @@ jest.mock("../../lib/archivos.ts", () => ({
   subir: jest.fn(),
 }));
 
+import { ConMargenes } from "../../../pruebas/dobles.tsx";
 import * as archivos from "../../lib/archivos.ts";
 import NuevoMaterial from "./NuevoMaterial.tsx";
 
@@ -19,7 +20,9 @@ const mock = archivos as jest.Mocked<typeof archivos>;
 // es el thenable y ninguna consulta existe.
 const abrir = async (guardar = jest.fn().mockResolvedValue(undefined)) => {
   const vista = await render(
-    <NuevoMaterial abierto cerrar={jest.fn()} guardar={guardar} />,
+    <ConMargenes>
+      <NuevoMaterial abierto cerrar={jest.fn()} guardar={guardar} />
+    </ConMargenes>,
   );
   return Object.assign(vista, { guardar });
 };

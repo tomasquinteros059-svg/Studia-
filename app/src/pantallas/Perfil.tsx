@@ -7,6 +7,7 @@ import { usarCarga } from "../lib/usarCarga.ts";
 import { supabase } from "../lib/supabase.ts";
 import { MODO_DEMO } from "../lib/config.ts";
 import { salir } from "../lib/perfiles-demo.ts";
+import { inicialesDePersona } from "../dominio/personas.ts";
 
 export default function Perfil() {
   const { datos, cargando, error, recargar } = usarCarga(miPerfil, []);
@@ -40,7 +41,7 @@ export default function Perfil() {
     <Pantalla>
       <View style={e.hero}>
         <View style={e.avatar}>
-          <Text style={e.iniciales}>{iniciales(datos.nombre)}</Text>
+          <Text style={e.iniciales}>{inicialesDePersona(datos.nombre)}</Text>
         </View>
         <Text style={e.nombre}>{datos.nombre}</Text>
         <Text style={tipo.detalle}>{datos.correo}</Text>
@@ -77,18 +78,13 @@ export default function Perfil() {
   );
 }
 
-function iniciales(nombre: string): string {
-  const partes = nombre.replace(/\./g, "").split(" ").filter(Boolean);
-  return `${partes[0]?.[0] ?? ""}${partes[1]?.[0] ?? ""}`.toUpperCase();
-}
-
 const e = StyleSheet.create({
-  hero: { alignItems: "center", paddingVertical: espacio.xl, gap: 6 },
+  hero: { alignItems: "center", paddingVertical: espacio.xl, gap: espacio.s },
   avatar: {
-    width: 72, height: 72, borderRadius: 36, backgroundColor: color.marca,
+    width: 84, height: 84, borderRadius: 28, backgroundColor: color.marca,
     alignItems: "center", justifyContent: "center",
   },
-  iniciales: { color: color.sobreMarca, fontSize: 26, fontWeight: "700" },
-  nombre: { fontSize: 20, fontWeight: "600", color: color.texto },
+  iniciales: { color: color.sobreMarca, fontSize: 30, fontWeight: "800", letterSpacing: -0.8 },
+  nombre: { ...tipo.titulo },
   pie: { ...tipo.detalle, textAlign: "center", padding: espacio.l, lineHeight: 19 },
 });

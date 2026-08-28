@@ -1,22 +1,30 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  Cargando, Encabezado, Error, Fila, Pantalla, Pastilla, Punto,
+  Baldosa, Boton, Cargando, Encabezado, Error, Hoja, Pantalla, Pastilla,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
-import { color, espacio, hora, nombreDia, radio, tipo } from "../ui/tema.ts";
+import {
+  FILETE, cifras, color, colorDeRamo, espacio, hora, inicialesDeRamo,
+  nombreDia, radio, tenue, tipo,
+} from "../ui/tema.ts";
 import { claseEnVivo, crearRamoPropio, miHorario, misAsignaturas, misNotificaciones, misTareas, todasLasEvaluaciones } from "../lib/consultas.ts";
 import NuevoRamo, { colorSugerido } from "./propio/NuevoRamo.tsx";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
+import { SEPARACION_TARJETAS, anchoDeTarjeta } from "../dominio/disposicion.ts";
+import { usarQuienSoy } from "../lib/quien-soy.ts";
+import { primerNombre } from "../dominio/personas.ts";
 import { formatearNota, notaDelRamo } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
+import { porHora } from "../dominio/horario.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 
 type Props = PropsPestana<"Inicio">;
 
 export default function Inicio({ navigation }: Props) {
   const { columnas } = usarDisposicion();
+  const { yo } = usarQuienSoy();
   const [creando, setCreando] = useState(false);
 
   const traer = useCallback(async () => {
@@ -43,16 +51,20 @@ export default function Inicio({ navigation }: Props) {
   const sinLeer = notificaciones.filter((n) => !n.leida).length;
 
   const hoy = ((new Date().getDay() + 6) % 7) + 1; // domingo = 7
-  const bloquesDeHoy = horario.filter((b) => b.dia === hoy);
+  const bloquesDeHoy = porHora(horario.filter((b) => b.dia === hoy));
   const proximas = ordenarTareas(tareas).filter((t) => estadoDeTarea(t) !== "entregada").slice(0, 3);
   const ramoEnVivo = vivo ? porId.get(vivo.asignatura_id) : null;
 
   return (
     <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
       <View style={e.saludo}>
-        <View style={{ flex: 1 }}>
-          <Text style={e.hola}>Hola</Text>
-          <Text style={e.fecha}>{nombreDia(hoy)}</Text>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={tipo.etiqueta}>{nombreDia(hoy)}</Text>
+          {/* Con nombre si se sabe; "Hola" a secas si todavía no llega,
+              que es mejor que un saludo que parpadea al completarse. */}
+          <Text style={e.hola} numberOfLines={1}>
+            {yo?.nombre ? `Hola, ${primerNombre(yo.nombre)}` : "Hola"}
+          </Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -77,9 +89,9 @@ export default function Inicio({ navigation }: Props) {
           onPress={() => navigation.navigate("Asignatura", { asignaturaId: ramoEnVivo.id, seccion: "clases" })}
           style={e.barraVivo}
         >
-          <View style={[e.puntoVivo]} />
-          <View style={{ flex: 1 }}>
-            <Text style={e.vivoEtiqueta}>EN VIVO AHORA</Text>
+          <View style={e.puntoVivo} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={e.vivoEtiqueta}>En vivo ahora</Text>
             <Text style={e.vivoRamo}>{ramoEnVivo.nombre}</Text>
             <Text style={e.vivoTema}>{vivo.titulo} · {ramoEnVivo.profesor}</Text>
           </View>
@@ -92,83 +104,145 @@ export default function Inicio({ navigation }: Props) {
         <Pressable onPress={() => navigation.navigate("Horario")}>
           <Text style={e.enlace}>Ver horario</Text>
         </Pressable>} />
-      {bloquesDeHoy.length === 0
-        ? <Text style={e.vacio}>No tienes clases hoy.</Text>
-        : bloquesDeHoy.map((b) => {
+      {bloquesDeHoy.length === 0 ? (
+        <Hoja><Text style={e.vacio}>No tienes clases hoy.</Text></Hoja>
+      ) : (
+        <Hoja ceñida>
+          {bloquesDeHoy.map((b, i) => {
             const ramo = porId.get(b.asignatura_id);
             if (!ramo) return null;
+            const tono = colorDeRamo(ramo.id, ramo.color);
             return (
-              <Fila key={b.id}
-                izquierda={<View style={[e.barraColor, { backgroundColor: ramo.color }]} />}
-                titulo={ramo.nombre}
-                detalle={`${hora(b.hora_inicio)}–${hora(b.hora_fin)} · ${b.tipo} · ${b.sala}`}
+              <Pressable key={b.id} accessibilityRole="button"
+                accessibilityLabel={`Abrir ${ramo.nombre}`}
                 onPress={() => navigation.navigate("Asignatura", { asignaturaId: ramo.id })}
-              />
+                style={({ pressed }) => [
+                  e.filaHoy, i > 0 ? e.conFilete : null,
+                  pressed ? { backgroundColor: color.elemento } : null,
+                ]}>
+                <Text style={[e.horaGrande, { color: tono }]}>{hora(b.hora_inicio)}</Text>
+                <View style={[e.hilo, { backgroundColor: tono }]} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={tipo.fila} numberOfLines={1}>{ramo.nombre}</Text>
+                  <Text style={tipo.detalle}>
+                    {b.tipo} · {b.sala} · hasta {hora(b.hora_fin)}
+                  </Text>
+                </View>
+              </Pressable>
             );
           })}
+        </Hoja>
+      )}
 
       <Encabezado texto="Próximas entregas" accion={
         <Pressable onPress={() => navigation.navigate("Tareas")}>
           <Text style={e.enlace}>Ver todas</Text>
         </Pressable>} />
-      {proximas.length === 0
-        ? <Text style={e.vacio}>Estás al día. Nada por entregar.</Text>
-        : proximas.map((t) => {
+      {proximas.length === 0 ? (
+        <Hoja><Text style={e.vacio}>Estás al día. Nada por entregar.</Text></Hoja>
+      ) : (
+        <Hoja ceñida>
+          {proximas.map((t, i) => {
             const ramo = porId.get(t.asignatura_id);
+            const atrasada = estadoDeTarea(t) === "atrasada";
             return (
-              <Fila key={t.id}
-                izquierda={<Punto tono={ramo?.color ?? color.marca} />}
-                titulo={t.titulo}
-                detalle={`${ramo?.nombre ?? ""} · ${cuandoVence(t)}`}
-                derecha={<Pastilla
-                  texto={estadoDeTarea(t) === "atrasada" ? "ATRASADA" : "PENDIENTE"}
-                  tono={estadoDeTarea(t) === "atrasada" ? "atrasada" : "pendiente"} />}
+              <Pressable key={t.id} accessibilityRole="button"
+                accessibilityLabel={`Abrir ${t.titulo}`}
                 onPress={() => navigation.navigate("Tarea", { tareaId: t.id })}
-              />
+                style={({ pressed }) => [
+                  e.filaTarea, i > 0 ? e.conFilete : null,
+                  pressed ? { backgroundColor: color.elemento } : null,
+                ]}>
+                <View style={[e.hilo, {
+                  backgroundColor: ramo ? colorDeRamo(ramo.id, ramo.color) : color.bordeFuerte,
+                }]} />
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={tipo.fila} numberOfLines={2}>{t.titulo}</Text>
+                  <Text style={[tipo.detalle, cifras, atrasada ? { color: color.vivo } : null]}>
+                    {ramo?.nombre ?? ""} · {cuandoVence(t)}
+                  </Text>
+                </View>
+                <Pastilla
+                  texto={atrasada ? "ATRASADA" : "PENDIENTE"}
+                  tono={atrasada ? "atrasada" : "pendiente"} />
+              </Pressable>
             );
           })}
+        </Hoja>
+      )}
 
-      <Encabezado texto="Cómo vas estudiando" accion={
-        <Pressable onPress={() => navigation.navigate("Consejos")}>
-          <Text style={e.enlace}>Ver consejos</Text>
-        </Pressable>} />
-      <Text style={e.pistaConsejos}>
-        Salen de tus entregas, tu avance y tus apuntes.
-      </Text>
 
       <Encabezado texto="Mis asignaturas" accion={
         <Pressable onPress={() => navigation.navigate("Notas")}>
           <Text style={e.enlace}>Ver notas</Text>
         </Pressable>} />
-      <View style={[e.rejilla, { paddingHorizontal: espacio.m }]}>
-        {delColegio.map((a) => {
-          const { nota } = notaDelRamo(evaluaciones.get(a.id) ?? []);
-          const pendientes = tareas.filter(
-            (t) => t.asignatura_id === a.id && estadoDeTarea(t) !== "entregada").length;
-          return (
-            <Pressable key={a.id} accessibilityRole="button"
-              style={[e.tarjeta, { width: anchoTarjeta(columnas) }]}
-              onPress={() => navigation.navigate("Asignatura", { asignaturaId: a.id })}>
-              <View style={[e.franja, { backgroundColor: a.color }]}>
-                <Text style={e.codigo}>{a.codigo}</Text>
-              </View>
-              <View style={{ padding: 12 }}>
-                <Text style={e.tarjetaNombre}>{a.nombre}</Text>
-                <Text style={e.tarjetaProfe}>{a.profesor}</Text>
-                <View style={e.tarjetaPie}>
-                  <Text style={tipo.detalle}>
-                    {pendientes === 0 ? "Sin pendientes"
-                      : `${pendientes} ${pendientes === 1 ? "tarea pendiente" : "tareas pendientes"}`}
-                  </Text>
-                  <Text style={[e.tarjetaNota, nota !== null && nota < 4 && { color: color.vivo }]}>
-                    Nota {formatearNota(nota)}
+      {/*
+        En un teléfono los ramos van en lista y no en cuadrícula: una
+        cuadrícula de una sola columna son seis tarjetas altas, seis pantallas
+        de scroll para ver seis nombres. Con ancho de sobra sí valen la pena.
+      */}
+      {columnas <= 1 ? (
+        <Hoja ceñida>
+          {delColegio.map((a, i) => {
+            const { nota } = notaDelRamo(evaluaciones.get(a.id) ?? []);
+            const pendientes = tareas.filter(
+              (t) => t.asignatura_id === a.id && estadoDeTarea(t) !== "entregada").length;
+            return (
+              <Pressable key={a.id} accessibilityRole="button"
+                accessibilityLabel={`Abrir ${a.nombre}`}
+                onPress={() => navigation.navigate("Asignatura", { asignaturaId: a.id })}
+                style={({ pressed }) => [
+                  e.filaRamo, i > 0 ? e.conFilete : null,
+                  pressed ? { backgroundColor: color.elemento } : null,
+                ]}>
+                <Baldosa tono={colorDeRamo(a.id, a.color)} texto={inicialesDeRamo(a.nombre)} tamano={44} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={tipo.fila} numberOfLines={1}>{a.nombre}</Text>
+                  <Text style={[tipo.detalle, pendientes > 0 ? { color: color.ambar, fontWeight: "600" } : null]}>
+                    {pendientes === 0 ? "Al día"
+                      : `${pendientes} ${pendientes === 1 ? "tarea" : "tareas"}`}
                   </Text>
                 </View>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+                <Text style={[e.tarjetaNota, nota !== null && nota < 4 ? { color: color.vivo } : null]}>
+                  {formatearNota(nota)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </Hoja>
+      ) : (
+        <View style={[e.rejilla, { paddingHorizontal: espacio.m }]}>
+          {delColegio.map((a) => {
+            const { nota } = notaDelRamo(evaluaciones.get(a.id) ?? []);
+            const pendientes = tareas.filter(
+              (t) => t.asignatura_id === a.id && estadoDeTarea(t) !== "entregada").length;
+            return (
+              <Pressable key={a.id} accessibilityRole="button"
+                accessibilityLabel={`Abrir ${a.nombre}`}
+                style={({ pressed }) => [
+                  e.tarjeta, { width: anchoDeTarjeta(columnas) },
+                  pressed ? { backgroundColor: color.elemento } : null,
+                ]}
+                onPress={() => navigation.navigate("Asignatura", { asignaturaId: a.id })}>
+                <Baldosa tono={colorDeRamo(a.id, a.color)} texto={inicialesDeRamo(a.nombre)} tamano={44} />
+                <View style={{ gap: 3, marginTop: espacio.s + 2 }}>
+                  <Text style={e.tarjetaNombre} numberOfLines={2}>{a.nombre}</Text>
+                  <Text style={[tipo.detalle, cifras]}>{a.codigo}</Text>
+                </View>
+                <View style={e.tarjetaPie}>
+                  <Text style={[tipo.detalle, pendientes > 0 ? { color: color.ambar, fontWeight: "600" } : null]}>
+                    {pendientes === 0 ? "Al día"
+                      : `${pendientes} ${pendientes === 1 ? "tarea" : "tareas"}`}
+                  </Text>
+                  <Text style={[e.tarjetaNota, nota !== null && nota < 4 ? { color: color.vivo } : null]}>
+                    {formatearNota(nota)}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
       </> : null}
 
       <Encabezado texto="Lo mío" accion={
@@ -177,20 +251,34 @@ export default function Inicio({ navigation }: Props) {
           <Text style={e.enlace}>Nuevo ramo</Text>
         </Pressable>} />
       {mios.length === 0 ? (
-        <Text style={e.pistaConsejos}>
-          {hayColegio
-            ? "Acá puedes armar tus propios ramos, con lo que quieras estudiar aparte."
-            : "Empieza por acá: crea un ramo, pega o escribe el texto que quieras estudiar y escúchalo con el lector."}
-        </Text>
+        <Hoja>
+          <Text style={e.vacio}>
+            {hayColegio
+              ? "Acá puedes armar tus propios ramos, con lo que quieras estudiar aparte."
+              : "Todavía no tienes nada. Crea un ramo, pega o escribe el texto que quieras estudiar y escúchalo con el lector mientras tomas apuntes."}
+          </Text>
+          {hayColegio ? null : (
+            <Boton texto="Crear mi primer ramo" onPress={() => setCreando(true)} />
+          )}
+        </Hoja>
       ) : (
-        mios.map((a) => (
-          <Fila key={a.id}
-            izquierda={<View style={[e.barraColor, { backgroundColor: a.color }]} />}
-            titulo={a.nombre}
-            detalle={a.codigo}
-            onPress={() => navigation.navigate("Asignatura", { asignaturaId: a.id })}
-          />
-        ))
+        <Hoja ceñida>
+          {mios.map((a, i) => (
+            <Pressable key={a.id} accessibilityRole="button"
+              accessibilityLabel={`Abrir ${a.nombre}`}
+              onPress={() => navigation.navigate("Asignatura", { asignaturaId: a.id })}
+              style={({ pressed }) => [
+                e.filaMio, i > 0 ? e.conFilete : null,
+                pressed ? { backgroundColor: color.elemento } : null,
+              ]}>
+              <Baldosa tono={colorDeRamo(a.id, a.color)} texto={inicialesDeRamo(a.nombre)} tamano={40} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={tipo.fila} numberOfLines={1}>{a.nombre}</Text>
+                <Text style={[tipo.detalle, cifras]}>{a.codigo}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </Hoja>
       )}
 
       <NuevoRamo
@@ -206,46 +294,69 @@ export default function Inicio({ navigation }: Props) {
   );
 }
 
-/** El porcentaje de fila que ocupa cada tarjeta, dejando aire entre ellas. */
-function anchoTarjeta(columnas: number): `${number}%` {
-  if (columnas <= 1) return "100%";
-  // 2% de separación repartido entre los huecos de la fila.
-  const hueco = 2 * (columnas - 1);
-  return `${(100 - hueco) / columnas}%`;
-}
-
 const e = StyleSheet.create({
-  saludo: { flexDirection: "row", alignItems: "flex-start", padding: espacio.m, paddingTop: espacio.l },
-  hola: { fontSize: 22, fontWeight: "600", color: color.texto },
-  fecha: { ...tipo.detalle, marginTop: 2, textTransform: "capitalize" },
-  campana: { padding: 5 },
+  saludo: {
+    flexDirection: "row", alignItems: "flex-start",
+    paddingHorizontal: espacio.m, paddingTop: espacio.l, paddingBottom: espacio.s,
+  },
+  hola: { ...tipo.portada },
+  campana: { padding: 7 },
   globo: {
-    position: "absolute", top: -1, right: -1, minWidth: 17, height: 17, borderRadius: 9,
+    position: "absolute", top: 1, right: 1, minWidth: 18, height: 18, borderRadius: 9,
     backgroundColor: color.vivo, alignItems: "center", justifyContent: "center",
     paddingHorizontal: 4, borderWidth: 2, borderColor: color.fondo,
   },
-  globoTexto: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  globoTexto: { color: "#fff", fontSize: 10, fontWeight: "800" },
+
   barraVivo: {
-    flexDirection: "row", alignItems: "center", gap: 11,
-    marginHorizontal: espacio.m, padding: 13, borderRadius: radio.tarjeta,
-    borderWidth: 1, borderColor: "rgba(217,59,59,0.28)", backgroundColor: "rgba(217,59,59,0.06)",
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    marginHorizontal: espacio.m, padding: espacio.m,
+    borderRadius: radio.tarjeta,
+    backgroundColor: tenue(color.vivo),
+    borderWidth: FILETE, borderColor: `${color.vivo}33`,
   },
-  puntoVivo: { width: 9, height: 9, borderRadius: 5, backgroundColor: color.vivo },
-  vivoEtiqueta: { fontSize: 11, fontWeight: "700", color: color.vivo, letterSpacing: 0.6 },
-  vivoRamo: { fontSize: 14, fontWeight: "600", color: color.texto, marginTop: 1 },
-  vivoTema: { ...tipo.detalle, marginTop: 1 },
-  barraColor: { width: 3, height: 34, borderRadius: 2 },
-  enlace: { color: color.marca, fontWeight: "600", fontSize: 12.5 },
-  vacio: { ...tipo.detalle, paddingHorizontal: espacio.m, paddingVertical: espacio.m },
-  pistaConsejos: { ...tipo.detalle, paddingHorizontal: espacio.m, lineHeight: 19 },
-  rejilla: { flexDirection: "row", flexWrap: "wrap", gap: "2%", rowGap: 10 },
+  puntoVivo: { width: 10, height: 10, borderRadius: 5, backgroundColor: color.vivo },
+  vivoEtiqueta: { ...tipo.etiqueta, color: color.vivo },
+  vivoRamo: { ...tipo.fila },
+  vivoTema: { ...tipo.detalle },
+
+  conFilete: { borderTopWidth: FILETE, borderTopColor: color.borde },
+  hilo: { width: 3, alignSelf: "stretch", borderRadius: 2 },
+
+  filaHoy: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: 14,
+  },
+  horaGrande: { ...cifras, fontSize: 15, fontWeight: "800", width: 46 },
+
+  filaTarea: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: 14,
+  },
+  filaMio: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: 12,
+  },
+  filaRamo: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: 12,
+  },
+
+  enlace: { color: color.texto, fontWeight: "700", fontSize: 13 },
+  vacio: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 22 },
+
+  rejilla: { flexDirection: "row", flexWrap: "wrap", gap: `${SEPARACION_TARJETAS}%`, rowGap: espacio.m },
   tarjeta: {
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta, overflow: "hidden",
+    backgroundColor: color.papel,
+    borderWidth: FILETE, borderColor: color.borde,
+    borderRadius: radio.tarjeta,
+    padding: espacio.m,
   },
-  franja: { height: 34, justifyContent: "center", paddingHorizontal: 12 },
-  codigo: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 0.5, opacity: 0.92 },
-  tarjetaNombre: { fontSize: 15, fontWeight: "600", color: color.texto },
-  tarjetaProfe: { ...tipo.detalle, marginTop: 2 },
-  tarjetaPie: { flexDirection: "row", justifyContent: "space-between", marginTop: 9 },
-  tarjetaNota: { fontSize: 12, fontWeight: "600", color: color.textoSuave },
+  tarjetaNombre: { ...tipo.fila, lineHeight: 21 },
+  tarjetaPie: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "baseline",
+    marginTop: espacio.m,
+    borderTopWidth: FILETE, borderTopColor: color.borde, paddingTop: espacio.s,
+  },
+  tarjetaNota: { ...cifras, fontSize: 17, fontWeight: "800", color: color.texto },
 });

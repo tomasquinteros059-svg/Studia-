@@ -5,7 +5,9 @@ import {
 } from "react-native";
 import { Campo, Cargando, Error, Vacio } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
-import { color, espacio, fechaCorta, radio, tenue, tipo } from "../ui/tema.ts";
+import {
+  FILETE, color, colorDeRamo, espacio, fechaCorta, radio, tenue, tipo,
+} from "../ui/tema.ts";
 import { crearApunte, fijarApunte, misApuntes, misAsignaturas } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { filtrarApuntes, ordenarTablero, vistaPrevia } from "../dominio/tablero.ts";
@@ -102,7 +104,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
                       onPress={() => navigation.navigate("Apunte", { apunteId: a.id })}
                       style={({ pressed }) => [
                         e.tarjeta,
-                        { borderTopColor: ramo?.color ?? color.marca },
+                        { borderTopColor: ramo ? colorDeRamo(ramo.id, ramo.color) : color.bordeFuerte },
                         pressed && { backgroundColor: color.elemento },
                       ]}
                     >
@@ -128,8 +130,12 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
 
                       <View style={e.tarjetaPie}>
                         {ramo ? (
-                          <View style={[e.etiquetaRamo, { backgroundColor: tenue(ramo.color) }]}>
-                            <Text style={[e.etiquetaTexto, { color: ramo.color }]} numberOfLines={1}>
+                          <View style={[e.etiquetaRamo, {
+                            backgroundColor: tenue(colorDeRamo(ramo.id, ramo.color)),
+                          }]}>
+                            <Text style={[e.etiquetaTexto, {
+                              color: colorDeRamo(ramo.id, ramo.color),
+                            }]} numberOfLines={1}>
                               {ramo.nombre}
                             </Text>
                           </View>
@@ -161,7 +167,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
           {datos.asignaturas.map((a) => (
             <Pressable key={a.id} accessibilityRole="button" onPress={() => void nuevo(a)}
               style={({ pressed }) => [e.opcion, pressed && { backgroundColor: color.elemento }]}>
-              <View style={[e.puntoRamo, { backgroundColor: a.color }]} />
+              <View style={[e.puntoRamo, { backgroundColor: colorDeRamo(a.id, a.color) }]} />
               <Text style={e.opcionTexto}>{a.nombre}</Text>
             </Pressable>
           ))}
@@ -182,33 +188,44 @@ const e = StyleSheet.create({
   muro: { padding: espacio.s, paddingBottom: 100 },
   columnas: { flexDirection: "row", gap: espacio.s },
   columna: { flex: 1, gap: espacio.s },
+  // El apunte es un papelito: fondo blanco y, arriba, la franja del ramo
+  // al que pertenece. Es lo único que lleva color en el muro.
   tarjeta: {
-    borderWidth: 1, borderColor: color.borde, borderTopWidth: 3,
-    borderRadius: radio.tarjeta, padding: 12, gap: 7,
+    backgroundColor: color.papel,
+    borderWidth: FILETE, borderColor: color.borde, borderTopWidth: 4,
+    borderRadius: radio.tarjeta, padding: espacio.m, gap: espacio.s,
   },
-  tarjetaCabecera: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  tarjetaTitulo: { flex: 1, fontSize: 14.5, fontWeight: "600", color: color.texto, lineHeight: 19 },
-  tarjetaCuerpo: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 20 },
+  tarjetaCabecera: { flexDirection: "row", alignItems: "flex-start", gap: espacio.s },
+  tarjetaTitulo: { ...tipo.fila, flex: 1, lineHeight: 21 },
+  tarjetaCuerpo: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 21 },
   tarjetaVacia: { ...tipo.detalle, fontStyle: "italic" },
-  tarjetaPie: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  etiquetaRamo: {
-    flexShrink: 1, borderRadius: radio.pastilla, paddingHorizontal: 8, paddingVertical: 3,
+  tarjetaPie: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    gap: espacio.s,
   },
-  etiquetaTexto: { fontSize: 10.5, fontWeight: "700" },
+  etiquetaRamo: {
+    flexShrink: 1, borderRadius: radio.pastilla,
+    paddingHorizontal: espacio.s, paddingVertical: 4,
+  },
+  etiquetaTexto: { fontSize: 11.5, fontWeight: "700" },
   flotante: {
     position: "absolute", right: espacio.l, bottom: espacio.l,
-    flexDirection: "row", alignItems: "center", gap: 7,
-    backgroundColor: color.marca, paddingHorizontal: 16, paddingVertical: 13,
+    flexDirection: "row", alignItems: "center", gap: espacio.s,
+    backgroundColor: color.marca, paddingHorizontal: espacio.l, paddingVertical: 15,
     borderRadius: radio.pastilla,
   },
-  flotanteTexto: { color: color.sobreMarca, fontWeight: "600", fontSize: 14 },
-  fondoModal: { flex: 1, backgroundColor: "rgba(14,23,38,0.45)" },
+  flotanteTexto: { color: color.sobreMarca, fontWeight: "700", fontSize: 15 },
+  fondoModal: { flex: 1, backgroundColor: "rgba(25,26,31,0.4)" },
   hoja: {
-    backgroundColor: color.fondo, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: color.papel,
+    borderTopLeftRadius: radio.tarjeta, borderTopRightRadius: radio.tarjeta,
     paddingHorizontal: espacio.l, paddingBottom: espacio.xl,
   },
-  asa: { width: 38, height: 4, borderRadius: 2, backgroundColor: color.borde, alignSelf: "center", marginVertical: 9 },
-  opcion: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 13 },
+  asa: {
+    width: 40, height: 4, borderRadius: 2, backgroundColor: color.bordeFuerte,
+    alignSelf: "center", marginVertical: espacio.m,
+  },
+  opcion: { flexDirection: "row", alignItems: "center", gap: espacio.m, paddingVertical: espacio.m },
   puntoRamo: { width: 10, height: 10, borderRadius: 5 },
-  opcionTexto: { fontSize: 14.5, fontWeight: "600", color: color.texto },
+  opcionTexto: { ...tipo.fila },
 });

@@ -1,9 +1,6 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View,
-} from "react-native";
-import { Boton, Campo } from "../../ui/componentes.tsx";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Boton, Campo, HojaModal } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import {
@@ -104,76 +101,63 @@ export default function NuevoMaterial({
   };
 
   return (
-    <Modal visible={abierto} animationType="slide" onRequestClose={cerrar}>
-      <KeyboardAvoidingView style={e.pantalla}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={cerrar} hitSlop={10}>
-            <Icono nombre="cerrar" tamano={22} tono={color.marca} />
-          </Pressable>
-          <Text style={e.barraTitulo}>Agregar material</Text>
-          <View style={{ width: 22 }} />
-        </View>
+    <HojaModal abierto={abierto} cerrar={cerrar} titulo="Agregar material">
+        <Campo placeholder="¿Cómo se llama?" value={titulo} onChangeText={setTitulo}
+          autoCapitalize="sentences" accessibilityLabel="Título del material" />
 
-        <ScrollView contentContainerStyle={e.hoja}>
-          <Campo placeholder="¿Cómo se llama?" value={titulo} onChangeText={setTitulo}
-            autoCapitalize="sentences" accessibilityLabel="Título del material" />
-
-          {/* El botón de adjuntar existe aunque el almacenamiento no. */}
-          <Pressable accessibilityRole="button" accessibilityLabel="Adjuntar un archivo"
-            onPress={() => void elegir()} disabled={!sePuedeElegirArchivo}
-            style={({ pressed }) => [
-              e.adjuntar, pressed ? { backgroundColor: color.elemento } : null,
-              !sePuedeElegirArchivo ? e.apagado : null,
-            ]}>
-            <Icono nombre="descargar" tamano={20} tono={color.marca} />
-            <View style={{ flex: 1 }}>
-              <Text style={e.adjuntarTitulo}>
-                {adjunto ? adjunto.nombre : "Adjuntar un archivo"}
-              </Text>
-              <Text style={tipo.detalle}>
-                {adjunto ? detalleDe(adjunto) : "PDF, Word, imágenes, audio o video"}
-              </Text>
-            </View>
-            {adjunto ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Quitar el archivo"
-                onPress={() => { setAdjunto(null); setAviso(null); }} hitSlop={10}>
-                <Icono nombre="cerrar" tamano={18} />
-              </Pressable>
-            ) : null}
-          </Pressable>
-
-          {aviso ? (
-            <View style={e.nota}>
-              <Text style={e.notaTexto}>{aviso}</Text>
-            </View>
-          ) : null}
-
-          <Text style={tipo.etiqueta}>O escribe el texto</Text>
-          <TextInput
-            style={e.papel}
-            value={texto}
-            onChangeText={setTexto}
-            multiline
-            textAlignVertical="top"
-            placeholder={"Pega o escribe acá lo que quieras estudiar.\n\nEl lector lo va a leer en voz alta, resaltando cada frase."}
-            placeholderTextColor="#9AA0A6"
-            accessibilityLabel="Texto del material"
-          />
-          {hayTexto ? (
-            <Text style={tipo.detalle}>
-              {minutosDeLectura(texto)} min de lectura en voz alta.
+        {/* El botón de adjuntar existe aunque el almacenamiento no. */}
+        <Pressable accessibilityRole="button" accessibilityLabel="Adjuntar un archivo"
+          onPress={() => void elegir()} disabled={!sePuedeElegirArchivo}
+          style={({ pressed }) => [
+            e.adjuntar, pressed ? { backgroundColor: color.elemento } : null,
+            !sePuedeElegirArchivo ? e.apagado : null,
+          ]}>
+          <Icono nombre="descargar" tamano={20} tono={color.marca} />
+          <View style={{ flex: 1 }}>
+            <Text style={e.adjuntarTitulo}>
+              {adjunto ? adjunto.nombre : "Adjuntar un archivo"}
             </Text>
+            <Text style={tipo.detalle}>
+              {adjunto ? detalleDe(adjunto) : "PDF, Word, imágenes, audio o video"}
+            </Text>
+          </View>
+          {adjunto ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Quitar el archivo"
+              onPress={() => { setAdjunto(null); setAviso(null); }} hitSlop={10}>
+              <Icono nombre="cerrar" tamano={18} />
+            </Pressable>
           ) : null}
+        </Pressable>
 
-          <Boton
-            texto={ocupado ? "Guardando…" : "Guardar"}
-            onPress={() => void enviar()}
-            deshabilitado={!sePuedeGuardar || ocupado}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+        {aviso ? (
+          <View style={e.nota}>
+            <Text style={e.notaTexto}>{aviso}</Text>
+          </View>
+        ) : null}
+
+        <Text style={tipo.etiqueta}>O escribe el texto</Text>
+        <TextInput
+          style={e.papel}
+          value={texto}
+          onChangeText={setTexto}
+          multiline
+          textAlignVertical="top"
+          placeholder={"Pega o escribe acá lo que quieras estudiar.\n\nEl lector lo va a leer en voz alta, resaltando cada frase."}
+          placeholderTextColor="#9AA0A6"
+          accessibilityLabel="Texto del material"
+        />
+        {hayTexto ? (
+          <Text style={tipo.detalle}>
+            {minutosDeLectura(texto)} min de lectura en voz alta.
+          </Text>
+        ) : null}
+
+        <Boton
+          texto={ocupado ? "Guardando…" : "Guardar"}
+          onPress={() => void enviar()}
+          deshabilitado={!sePuedeGuardar || ocupado}
+        />
+    </HojaModal>
   );
 }
 

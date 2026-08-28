@@ -1,6 +1,7 @@
 import { act, fireEvent, waitFor } from "@testing-library/react-native";
 import {
-  BLOQUE, CLASE_VIVA, EVALUACIONES, NOTIFICACION, RAMO, RAMO_2, RAMO_PROPIO,
+  BLOQUE, BLOQUE_TEMPRANO, CLASE_VIVA, EVALUACIONES, NOTIFICACION, RAMO, RAMO_2,
+  RAMO_PROPIO,
   TAREA_ATRASADA, TAREA_ENTREGADA, TAREA_PENDIENTE, renderPantalla,
 } from "../../pruebas/dobles.tsx";
 
@@ -42,14 +43,24 @@ describe("Inicio", () => {
     expect(t.getByText("Hola")).toBeTruthy();
     expect(t.getByText("Física I")).toBeTruthy();
     // 30% con 6,2 y el resto sin rendir → la nota parcial es 6,2.
-    expect(t.getAllByText("Nota 6,2").length).toBe(2);
+    expect(t.getAllByText("6,2").length).toBe(2);
+  });
+
+  test("el día se lee de la primera clase a la última, no como venga", async () => {
+    conDatos();
+    // La base los devuelve al revés: primero el de las 08:30.
+    mock.miHorario.mockResolvedValue([BLOQUE, BLOQUE_TEMPRANO] as never);
+    const t = await renderPantalla(Inicio);
+    await waitFor(() => expect(t.getByText("07:00")).toBeTruthy());
+    const horas = t.getAllByText(/^\d\d:\d\d$/).map((n) => n.props.children);
+    expect(horas).toEqual(["07:00", "08:30"]);
   });
 
   test("anuncia la clase en vivo y lleva a su asignatura", async () => {
     conDatos();
     const t = await renderPantalla(Inicio);
-    await waitFor(() => expect(t.getByText("EN VIVO AHORA")).toBeTruthy());
-    fireEvent.press(t.getByText("EN VIVO AHORA"));
+    await waitFor(() => expect(t.getByText("En vivo ahora")).toBeTruthy());
+    fireEvent.press(t.getByText("En vivo ahora"));
     expect(t.navigation.navigate).toHaveBeenCalledWith(
       "Asignatura", expect.objectContaining({ asignaturaId: RAMO.id, seccion: "clases" }),
     );
@@ -89,7 +100,7 @@ describe("Inicio", () => {
     mock.claseEnVivo.mockResolvedValue(null as never);
     const t = await renderPantalla(Inicio);
     await waitFor(() => expect(t.getAllByText("Cálculo I").length).toBeGreaterThan(0));
-    expect(t.queryByText("EN VIVO AHORA")).toBeNull();
+    expect(t.queryByText("En vivo ahora")).toBeNull();
   });
 
   test("si una consulta falla, lo dice y ofrece reintentar", async () => {
@@ -117,7 +128,7 @@ describe("Inicio · lo que la persona arma por su cuenta", () => {
     await waitFor(() => expect(t.getByText("Lo mío")).toBeTruthy());
     expect(t.getByText("Inglés")).toBeTruthy();
     // Y no se cuela entre las tarjetas del colegio, que llevan nota: son dos.
-    expect(t.getAllByText(/^Nota /)).toHaveLength(2);
+    expect(t.getAllByText("6,2")).toHaveLength(2);
   });
 
   test("quien no tiene institución no ve horario, ni entregas, ni notas", async () => {
@@ -134,8 +145,9 @@ describe("Inicio · lo que la persona arma por su cuenta", () => {
     expect(t.queryByText("Hoy")).toBeNull();
     expect(t.queryByText("Próximas entregas")).toBeNull();
     expect(t.queryByText("Mis asignaturas")).toBeNull();
-    // En vez de secciones vacías, le dice por dónde empezar.
-    expect(t.getByText(/Empieza por acá/)).toBeTruthy();
+    // En vez de secciones vacías, le dice por dónde empezar y le da el botón.
+    expect(t.getByText(/Todavía no tienes nada/)).toBeTruthy();
+    expect(t.getByRole("button", { name: "Crear mi primer ramo" })).toBeTruthy();
   });
 
   test("crear un ramo lo guarda y vuelve a cargar la lista", async () => {
