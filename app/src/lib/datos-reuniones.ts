@@ -20,6 +20,7 @@ import {
 const ahora = Date.now();
 const enDias = (d: number) => new Date(ahora + d * 86_400_000).toISOString();
 const dia = (d: number) => enDias(d).slice(0, 10);
+const haceHoras = (h: number) => new Date(ahora - h * 3_600_000).toISOString();
 
 type Semilla = Omit<ReunionCompleta, "mia" | "puedo_editar">;
 
@@ -44,9 +45,9 @@ const SEMILLAS: Semilla[] = [
     duracion_seg: 4920,
     participantes: ["Marta Vega (administración)", "Luis Pinto (comité)", "Sonia Cerda (comité)", "18 copropietarios"],
     tabla: ["Mantención de ascensores", "Gastos comunes de marzo", "Morosidad", "Renovación del seguro"],
-    // Esta nace con la sala abierta y gente adentro: es el caso que hay que
-    // poder ver sin tener que armarlo a mano.
-    codigo: "KRD497", sala_abierta: true, sala_abierta_en: enDias(-2),
+    // La asamblea fue hace dos días: su sala ya caducó, con tres personas
+    // adentro. Es el estado en que queda una sala la mayor parte del tiempo.
+    codigo: "KRD497", sala_abierta: false, sala_abierta_en: null,
     sala: [
       { id: "p-luis", nombre: "Luis Pinto", puede_editar: true },
       { id: "p-sonia", nombre: "Sonia Cerda", puede_editar: false },
@@ -86,11 +87,14 @@ const SEMILLAS: Semilla[] = [
     titulo: "Reunión de obra semanal · Edificio Los Robles",
     rubro: "obras",
     estado: "listo",
-    ocurrio_en: enDias(-1),
+    ocurrio_en: haceHoras(3),
     duracion_seg: 3480,
     participantes: ["Rodrigo Salas (ITO)", "Carla Núñez (jefa de obra)", "Pedro Lagos (clima)", "Fernanda Díaz (eléctrica)"],
     tabla: ["Avance de la semana", "Interferencias", "RDI abiertas", "Estados de pago", "Seguridad"],
-    codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
+    // Esta es de hace un rato y su sala sigue abierta: es el único estado en
+    // que se puede recorrer el flujo entero sin tener que armarlo a mano.
+    codigo: "TWQ863", sala_abierta: true, sala_abierta_en: haceHoras(3),
+    sala: [{ id: "p-pedro", nombre: "Pedro Lagos", puede_editar: false }],
     documento: null,
     transcripcion: null,
     resumen:

@@ -54,7 +54,10 @@ test("las confusiones de siempre se corrigen en vez de rechazarse", () => {
   assert.equal(normalizarCodigo("O99999"), "Q99999");
   assert.equal(normalizarCodigo("099999"), "Q99999");
   assert.equal(normalizarCodigo("S99999"), "999999");
-  assert.equal(normalizarCodigo("B66666"), "666666");
+  // La B no está y el 8 sí: la B se va al 8, y un 8 bien escrito se queda.
+  assert.equal(normalizarCodigo("B99999"), "899999");
+  assert.equal(normalizarCodigo("899999"), "899999");
+  assert.equal(normalizarCodigo("Z99999"), "299999");
   assert.equal(normalizarCodigo("U99999"), "W99999");
 });
 
@@ -72,6 +75,21 @@ test("algo que no es un código no pasa", () => {
 test("normalizar dos veces da lo mismo que normalizar una", () => {
   const una = normalizarCodigo("io-1s0u")!;
   assert.equal(normalizarCodigo(una), una);
+});
+
+test("ninguna corrección saca una letra del alfabeto", () => {
+  // Si una sustitución apuntara a una letra que no está, corregir el código
+  // lo rompería en vez de arreglarlo.
+  for (const escrito of ["OOOOOO", "000000", "IIIIII", "LLLLLL", "111111",
+                         "SSSSSS", "555555", "BBBBBB", "ZZZZZZ", "UUUUUU", "VVVVVV"]) {
+    assert.notEqual(normalizarCodigo(escrito), null, escrito);
+  }
+});
+
+test("una letra que ya está en el alfabeto se queda como está", () => {
+  for (const letra of ALFABETO) {
+    assert.equal(normalizarCodigo(letra.repeat(LARGO)), letra.repeat(LARGO), letra);
+  }
 });
 
 test("se muestra partido por la mitad, que es como se dicta", () => {

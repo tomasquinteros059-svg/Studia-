@@ -42,13 +42,17 @@ export function nuevoCodigo(azar: () => number = Math.random): string {
  * Devuelve null si, después de todo eso, no es un código.
  */
 export function normalizarCodigo(escrito: string): string | null {
+  // Cada línea manda una letra que NO está en el alfabeto a la que sí está y
+  // más se le parece. El 8 y el 2 sí están, así que no se tocan: la B se va
+  // al 8 y la Z al 2, no al revés.
   const limpio = escrito
     .toUpperCase()
     .replace(/[\s\-_.]/g, "")
-    .replace(/[O]/g, "0").replace(/0/g, "Q")   // O y 0 no están: el más parecido es Q
+    .replace(/[O0]/g, "Q")
     .replace(/[IL1]/g, "J")
     .replace(/[S5]/g, "9")
-    .replace(/[BZ8]/g, "6")
+    .replace(/B/g, "8")
+    .replace(/Z/g, "2")
     .replace(/[UV]/g, "W");
 
   if (limpio.length !== LARGO) return null;

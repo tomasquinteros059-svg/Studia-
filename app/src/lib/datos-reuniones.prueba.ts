@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import * as datos from "./datos-reuniones.ts";
 import { EQUIPOS } from "../dominio/rubros.ts";
 import { huecos, misTareas } from "../dominio/acta.ts";
+import { comoSeMuestra, sePuedeEntrar } from "../dominio/sala.ts";
+import { comoSala } from "./tipos-reunion.ts";
 
 beforeEach(() => datos.reiniciarReuniones());
 
@@ -164,4 +166,50 @@ test("una transcripción muy corta no inventa un resumen", async () => {
 
 test("analizar una reunión que ya no existe avisa", async () => {
   await assert.rejects(() => datos.analizarReunion("no-existe", "algo que se dijo"));
+});
+
+test("hay una sala abierta en los datos de ejemplo, si no el flujo no se puede ver", async () => {
+  const rs = await datos.misReuniones();
+  const abiertas = rs.filter((r) => sePuedeEntrar(comoSala(r)));
+  assert.equal(abiertas.length >= 1, true, "ninguna sala de ejemplo está abierta");
+  assert.ok(abiertas[0]!.codigo, "la sala abierta no tiene código");
+});
+
+test("el código de ejemplo se puede escribir como se dicta", async () => {
+  const abierta = (await datos.misReuniones()).find((r) => sePuedeEntrar(comoSala(r)))!;
+  const id = await datos.entrarConCodigo(comoSeMuestra(abierta.codigo!).toLowerCase());
+  assert.equal(id, abierta.id);
+});
+
+test("un código de una sala cerrada no entra", async () => {
+  const cerrada = (await datos.misReuniones()).find(
+    (r) => r.codigo !== null && !sePuedeEntrar(comoSala(r)));
+  assert.ok(cerrada, "no hay ninguna sala cerrada de ejemplo");
+  assert.equal(await datos.entrarConCodigo(cerrada.codigo!), null);
+});
+
+test("abrir una sala le pone un código nuevo y la deja abierta", async () => {
+  const r = await datos.crearReunion({
+    titulo: "Nueva", rubro: "gerencia", participantes: [], tabla: [],
+  });
+  const codigo = await datos.abrirSala(r.id);
+
+  const c = await datos.reunionPorId(r.id);
+  assert.equal(c!.codigo, codigo);
+  assert.equal(sePuedeEntrar(comoSala(c!)), true);
+  assert.equal(await datos.entrarConCodigo(codigo), r.id);
+});
+
+test("cerrar la sala deja el código sin efecto", async () => {
+  const r = await datos.crearReunion({
+    titulo: "Nueva", rubro: "gerencia", participantes: [], tabla: [],
+  });
+  const codigo = await datos.abrirSala(r.id);
+  await datos.cerrarSala(r.id);
+  assert.equal(await datos.entrarConCodigo(codigo), null);
+});
+
+test("un código inventado no entra a ninguna parte", async () => {
+  assert.equal(await datos.entrarConCodigo("XXXXXX"), null);
+  assert.equal(await datos.entrarConCodigo("no es un código"), null);
 });
