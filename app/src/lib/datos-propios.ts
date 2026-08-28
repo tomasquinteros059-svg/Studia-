@@ -7,11 +7,15 @@
 // y esto no se usa.
 
 import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
+import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
 import type { MaterialNuevo } from "./consultas-supabase.ts";
-import type { Asignatura, Lectura, Modulo } from "./tipos.ts";
+import type { Asignatura, BloqueHorario, Lectura, Modulo } from "./tipos.ts";
+import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 
 export const RAMOS_PROPIOS: Asignatura[] = [];
 export const MODULOS_PROPIOS: Record<string, Modulo[]> = {};
+/** Las horas de los ramos propios. Los del colegio van por otro lado. */
+export const HORARIO_PROPIO: BloqueHorario[] = [];
 
 /** El texto que se escribió a mano, para que el lector lo pueda leer. */
 const TEXTOS: Record<string, string> = {};
@@ -23,8 +27,16 @@ const copiar = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 
 export async function crearRamoPropio(nombre: string, color: string): Promise<Asignatura> {
   await dormir();
+  const ramo = armarRamo(nombre, color);
+  RAMOS_PROPIOS.push(ramo);
+  MODULOS_PROPIOS[ramo.id] = [];
+  return copiar(ramo);
+}
+
+/** El molde de un ramo propio, uno solo para las dos maneras de crearlo. */
+function armarRamo(nombre: string, color: string): Asignatura {
   const limpio = normalizar(nombre);
-  const ramo: Asignatura = {
+  return {
     id: nuevoId("propio"),
     codigo: codigoDe(limpio),
     nombre: limpio,
@@ -38,14 +50,54 @@ export async function crearRamoPropio(nombre: string, color: string): Promise<As
     intro_tutor: introDe(limpio),
     propio: true,
   };
-  RAMOS_PROPIOS.push(ramo);
-  MODULOS_PROPIOS[ramo.id] = [];
-  return copiar(ramo);
+}
+
+/**
+ * Crea de una vez los ramos de un horario escrito, con sus bloques.
+ *
+ * Es la diferencia entre poner un semestre en un minuto y pasar por el mismo
+ * formulario seis veces. Los colores se reparten por orden de llegada para
+ * que dos ramos seguidos no salgan iguales.
+ */
+export async function crearHorarioPropio(
+  ramos: RamoEscrito[], desde: number,
+): Promise<Asignatura[]> {
+  await dormir();
+  const creados: Asignatura[] = [];
+
+  for (const [i, escrito] of ramos.entries()) {
+    const color = colorDeLaCarga(i, desde, COLORES_DE_RAMO);
+    const ramo = armarRamo(escrito.nombre, color);
+    RAMOS_PROPIOS.push(ramo);
+    MODULOS_PROPIOS[ramo.id] = [];
+
+    for (const b of escrito.bloques) {
+      HORARIO_PROPIO.push({
+        id: nuevoId("bloque"),
+        asignatura_id: ramo.id,
+        dia: b.dia,
+        hora_inicio: b.inicio,
+        hora_fin: b.fin,
+        sala: b.sala,
+        tipo: b.tipo,
+      });
+    }
+    creados.push(ramo);
+  }
+  return copiar(creados);
+}
+
+/** Los bloques de los ramos propios, para sumarlos al horario que se ve. */
+export function horarioPropio(): BloqueHorario[] {
+  return copiar(HORARIO_PROPIO);
 }
 
 export async function borrarRamoPropio(asignaturaId: string): Promise<void> {
   const i = RAMOS_PROPIOS.findIndex((r) => r.id === asignaturaId);
   if (i >= 0) RAMOS_PROPIOS.splice(i, 1);
+  for (let j = HORARIO_PROPIO.length - 1; j >= 0; j--) {
+    if (HORARIO_PROPIO[j]!.asignatura_id === asignaturaId) HORARIO_PROPIO.splice(j, 1);
+  }
   for (const m of MODULOS_PROPIOS[asignaturaId] ?? []) {
     for (const x of m.materiales) delete TEXTOS[x.id];
   }
@@ -124,6 +176,7 @@ export function lecturaPropiaDe(materialId: string): Lectura | null {
 /** Solo para las pruebas: deja el espacio como recién instalado. */
 export function vaciarEspacioPropio(): void {
   RAMOS_PROPIOS.length = 0;
+  HORARIO_PROPIO.length = 0;
   for (const k of Object.keys(MODULOS_PROPIOS)) delete MODULOS_PROPIOS[k];
   for (const k of Object.keys(TEXTOS)) delete TEXTOS[k];
   siguiente = 1;

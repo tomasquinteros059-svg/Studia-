@@ -18,6 +18,7 @@ import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
+import { unir } from "../dominio/horario-escrito.ts";
 import { inicialesDePersona } from "../dominio/personas.ts";
 import { type PropsPila } from "../lib/rutas.ts";
 
@@ -340,7 +341,11 @@ export default function Asignatura({ route, navigation }: Props) {
             <Fila key={b.id}
               izquierda={<View style={[e.barraColor, { backgroundColor: tono }]} />}
               titulo={b.tipo}
-              detalle={`${nombreDia(b.dia)} · ${hora(b.hora_inicio)}–${hora(b.hora_fin)} · ${b.sala}`}
+              detalle={unir([
+                nombreDia(b.dia),
+                `${hora(b.hora_inicio)}–${hora(b.hora_fin)}`,
+                b.sala,
+              ])}
             />
           ))
         ) : null}

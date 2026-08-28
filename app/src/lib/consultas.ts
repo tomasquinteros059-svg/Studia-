@@ -52,6 +52,7 @@ export const publicarNotas = fuente.publicarNotas;
 
 /* El espacio de quien llega por su cuenta. */
 export const crearRamoPropio = fuente.crearRamoPropio;
+export const crearHorarioPropio = fuente.crearHorarioPropio;
 export const borrarRamoPropio = fuente.borrarRamoPropio;
 export const crearModulo = fuente.crearModulo;
 export const crearMaterial = fuente.crearMaterial;

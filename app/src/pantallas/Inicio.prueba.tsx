@@ -7,6 +7,7 @@ import {
 
 jest.mock("../lib/consultas.ts", () => ({
   misAsignaturas: jest.fn(),
+  crearHorarioPropio: jest.fn(),
   misTareas: jest.fn(),
   miHorario: jest.fn(),
   claseEnVivo: jest.fn(),
@@ -145,9 +146,86 @@ describe("Inicio · lo que la persona arma por su cuenta", () => {
     expect(t.queryByText("Hoy")).toBeNull();
     expect(t.queryByText("Próximas entregas")).toBeNull();
     expect(t.queryByText("Mis asignaturas")).toBeNull();
-    // En vez de secciones vacías, le dice por dónde empezar y le da el botón.
+    // En vez de secciones vacías, le dice por dónde empezar y le da los dos
+    // caminos: el horario entero de una vez, o un ramo suelto.
     expect(t.getByText(/Todavía no tienes nada/)).toBeTruthy();
-    expect(t.getByRole("button", { name: "Crear mi primer ramo" })).toBeTruthy();
+    expect(t.getByRole("button", { name: "Cargar mi horario" })).toBeTruthy();
+    expect(t.getByRole("button", { name: "Crear un ramo" })).toBeTruthy();
+  });
+
+  test("con horario propio sí ve su día, aunque no tenga institución", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([RAMO_PROPIO] as never);
+    mock.misTareas.mockResolvedValue([] as never);
+    mock.claseEnVivo.mockResolvedValue(null as never);
+    mock.todasLasEvaluaciones.mockResolvedValue(new Map() as never);
+    mock.miHorario.mockResolvedValue([
+      { ...BLOQUE, asignatura_id: RAMO_PROPIO.id },
+    ] as never);
+
+    const t = await renderPantalla(Inicio);
+    await waitFor(() => expect(t.getByText("Hoy")).toBeTruthy());
+    expect(t.getByText("08:30")).toBeTruthy();
+    // Sigue sin institución: nada de entregas ni de notas.
+    expect(t.queryByText("Próximas entregas")).toBeNull();
+    expect(t.queryByText("Mis asignaturas")).toBeNull();
+  });
+
+  test("cargar el horario crea todos los ramos de una vez", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([] as never);
+    mock.miHorario.mockResolvedValue([] as never);
+    mock.claseEnVivo.mockResolvedValue(null as never);
+    mock.crearHorarioPropio.mockResolvedValue([] as never);
+    const t = await renderPantalla(Inicio);
+
+    const abrir = () => t.getByRole("button", { name: "Cargar mi horario" });
+    await waitFor(() => expect(abrir()).toBeTruthy());
+    await act(async () => { fireEvent.press(abrir()); });
+
+    await act(async () => {
+      fireEvent.changeText(
+        t.getByLabelText("Tu horario"),
+        "Cálculo I\nlunes 8:30 a 10:00\nFísica I, martes 14:00-16:00",
+      );
+    });
+
+    // Antes de crear nada muestra lo que va a crear.
+    expect(t.getByText("Se van a crear 2 ramos · 2 bloques")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Crear mis ramos" }));
+    });
+
+    expect(mock.crearHorarioPropio).toHaveBeenCalledWith([
+      { nombre: "Cálculo I", bloques: [
+        { dia: 1, inicio: "08:30", fin: "10:00", sala: "", tipo: "Clase" }] },
+      { nombre: "Física I", bloques: [
+        { dia: 2, inicio: "14:00", fin: "16:00", sala: "", tipo: "Clase" }] },
+    ], 0);
+  });
+
+  test("una línea que no se entiende se avisa y no impide crear el resto", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([] as never);
+    mock.miHorario.mockResolvedValue([] as never);
+    mock.claseEnVivo.mockResolvedValue(null as never);
+    const t = await renderPantalla(Inicio);
+
+    const abrir = () => t.getByRole("button", { name: "Cargar mi horario" });
+    await waitFor(() => expect(abrir()).toBeTruthy());
+    await act(async () => { fireEvent.press(abrir()); });
+    await act(async () => {
+      fireEvent.changeText(
+        t.getByLabelText("Tu horario"),
+        "Cálculo I\nlunes 8:30 a 10:00\nlunes 14:00 a 10:00",
+      );
+    });
+
+    expect(t.getByText("Hay una línea que no entendí")).toBeTruthy();
+    expect(t.getByText(/Línea 3/)).toBeTruthy();
+    // El ramo bueno sigue en pie y el botón sigue habilitado.
+    expect(t.getByText("Se va a crear · 1 bloque")).toBeTruthy();
   });
 
   test("crear un ramo lo guarda y vuelve a cargar la lista", async () => {
@@ -156,8 +234,10 @@ describe("Inicio · lo que la persona arma por su cuenta", () => {
     mock.crearRamoPropio.mockResolvedValue(RAMO_PROPIO as never);
     const t = await renderPantalla(Inicio);
 
-    await waitFor(() => expect(t.getByLabelText("Nuevo ramo")).toBeTruthy());
-    await act(async () => { fireEvent.press(t.getByLabelText("Nuevo ramo")); });
+    // Sin ramos todavía, el acceso está en la tarjeta vacía, no en la cabecera.
+    const abrir = () => t.getByRole("button", { name: "Crear un ramo" });
+    await waitFor(() => expect(abrir()).toBeTruthy());
+    await act(async () => { fireEvent.press(abrir()); });
 
     await act(async () => {
       fireEvent.changeText(t.getByLabelText("Nombre del ramo"), "Inglés");
@@ -177,8 +257,10 @@ describe("Inicio · lo que la persona arma por su cuenta", () => {
     mock.misAsignaturas.mockResolvedValue([] as never);
     const t = await renderPantalla(Inicio);
 
-    await waitFor(() => expect(t.getByLabelText("Nuevo ramo")).toBeTruthy());
-    await act(async () => { fireEvent.press(t.getByLabelText("Nuevo ramo")); });
+    // Sin ramos todavía, el acceso está en la tarjeta vacía, no en la cabecera.
+    const abrir = () => t.getByRole("button", { name: "Crear un ramo" });
+    await waitFor(() => expect(abrir()).toBeTruthy());
+    await act(async () => { fireEvent.press(abrir()); });
 
     expect(t.getByRole("button", { name: "Crear ramo" })).toBeDisabled();
   });

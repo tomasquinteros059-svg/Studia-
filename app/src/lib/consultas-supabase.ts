@@ -11,6 +11,8 @@ import type {
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
+import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
+import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
   if (error) throw new Error(`${contexto}: ${error.message}`);
@@ -633,6 +635,42 @@ export async function crearRamoPropio(nombre: string, color: string): Promise<As
   reventar("Creé el ramo pero no pude inscribirte", errorInscripcion);
 
   return data as Asignatura;
+}
+
+/**
+ * Crea de una vez los ramos de un horario escrito, con sus bloques.
+ *
+ * Va ramo por ramo a propósito, y no en un solo insert: si algo falla en el
+ * cuarto, los tres primeros ya están creados y sirven. Perder el semestre
+ * entero porque una línea traía una hora rara sería mucho peor que quedarse
+ * a medias y poder seguir escribiendo el resto.
+ */
+export async function crearHorarioPropio(
+  ramos: RamoEscrito[], desde: number,
+): Promise<Asignatura[]> {
+  const creados: Asignatura[] = [];
+
+  for (const [i, escrito] of ramos.entries()) {
+    // `desde` son los ramos propios que ya tenía. Va en la cuenta para que
+    // el color siga donde quedó y para que la vista previa haya mostrado
+    // exactamente estos colores.
+    const ramo = await crearRamoPropio(escrito.nombre, colorDeLaCarga(i, desde, COLORES_DE_RAMO));
+    creados.push(ramo);
+    if (escrito.bloques.length === 0) continue;
+
+    const { error } = await supabase.from("bloques_horario").insert(
+      escrito.bloques.map((b) => ({
+        asignatura_id: ramo.id,
+        dia: b.dia,
+        hora_inicio: b.inicio,
+        hora_fin: b.fin,
+        sala: b.sala,
+        tipo: b.tipo,
+      })),
+    );
+    reventar(`Creé ${ramo.nombre} pero no pude guardarle las horas`, error);
+  }
+  return creados;
 }
 
 export async function borrarRamoPropio(asignaturaId: string): Promise<void> {

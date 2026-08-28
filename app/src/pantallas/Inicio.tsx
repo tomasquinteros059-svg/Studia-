@@ -8,8 +8,12 @@ import {
   FILETE, cifras, color, colorDeRamo, espacio, hora, inicialesDeRamo,
   nombreDia, radio, tenue, tipo,
 } from "../ui/tema.ts";
-import { claseEnVivo, crearRamoPropio, miHorario, misAsignaturas, misNotificaciones, misTareas, todasLasEvaluaciones } from "../lib/consultas.ts";
+import {
+  claseEnVivo, crearHorarioPropio, crearRamoPropio, miHorario, misAsignaturas,
+  misNotificaciones, misTareas, todasLasEvaluaciones,
+} from "../lib/consultas.ts";
 import NuevoRamo, { colorSugerido } from "./propio/NuevoRamo.tsx";
+import CargarHorario from "./propio/CargarHorario.tsx";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { SEPARACION_TARJETAS, anchoDeTarjeta } from "../dominio/disposicion.ts";
@@ -18,6 +22,7 @@ import { primerNombre } from "../dominio/personas.ts";
 import { formatearNota, notaDelRamo } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
 import { porHora } from "../dominio/horario.ts";
+import { unir } from "../dominio/horario-escrito.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 
 type Props = PropsPestana<"Inicio">;
@@ -26,6 +31,7 @@ export default function Inicio({ navigation }: Props) {
   const { columnas } = usarDisposicion();
   const { yo } = usarQuienSoy();
   const [creando, setCreando] = useState(false);
+  const [cargandoHorario, setCargando] = useState(false);
 
   const traer = useCallback(async () => {
     const [asignaturas, tareas, horario, vivo, notificaciones, evaluaciones] = await Promise.all([
@@ -99,7 +105,9 @@ export default function Inicio({ navigation }: Props) {
         </Pressable>
       ) : null}
 
-      {hayColegio ? <>
+      {/* El día de hoy sale de que haya horario, no de tener institución:
+          quien cargó el suyo escribiéndolo también tiene clases hoy. */}
+      {horario.length > 0 ? <>
       <Encabezado texto="Hoy" accion={
         <Pressable onPress={() => navigation.navigate("Horario")}>
           <Text style={e.enlace}>Ver horario</Text>
@@ -125,7 +133,7 @@ export default function Inicio({ navigation }: Props) {
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={tipo.fila} numberOfLines={1}>{ramo.nombre}</Text>
                   <Text style={tipo.detalle}>
-                    {b.tipo} · {b.sala} · hasta {hora(b.hora_fin)}
+                    {unir([b.tipo, b.sala, `hasta ${hora(b.hora_fin)}`])}
                   </Text>
                 </View>
               </Pressable>
@@ -133,7 +141,9 @@ export default function Inicio({ navigation }: Props) {
           })}
         </Hoja>
       )}
+      </> : null}
 
+      {hayColegio ? <>
       <Encabezado texto="Próximas entregas" accion={
         <Pressable onPress={() => navigation.navigate("Tareas")}>
           <Text style={e.enlace}>Ver todas</Text>
@@ -245,20 +255,32 @@ export default function Inicio({ navigation }: Props) {
       )}
       </> : null}
 
-      <Encabezado texto="Lo mío" accion={
-        <Pressable accessibilityRole="button" accessibilityLabel="Nuevo ramo"
-          onPress={() => setCreando(true)}>
-          <Text style={e.enlace}>Nuevo ramo</Text>
-        </Pressable>} />
+      {/* Sin ramos todavía, los dos caminos van en la tarjeta de abajo con
+          su explicación. Repetirlos acá arriba sería ofrecer lo mismo dos
+          veces en la misma pantalla. */}
+      <Encabezado texto="Lo mío" accion={mios.length === 0 ? undefined : (
+        <View style={{ flexDirection: "row", gap: espacio.m }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Cargar mi horario"
+            onPress={() => setCargando(true)}>
+            <Text style={e.enlace}>Cargar horario</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Nuevo ramo"
+            onPress={() => setCreando(true)}>
+            <Text style={e.enlace}>Nuevo ramo</Text>
+          </Pressable>
+        </View>)} />
       {mios.length === 0 ? (
         <Hoja>
           <Text style={e.vacio}>
             {hayColegio
               ? "Acá puedes armar tus propios ramos, con lo que quieras estudiar aparte."
-              : "Todavía no tienes nada. Crea un ramo, pega o escribe el texto que quieras estudiar y escúchalo con el lector mientras tomas apuntes."}
+              : "Todavía no tienes nada. Carga tu horario de una vez y quedan todos tus ramos creados, o arma uno solo si prefieres."}
           </Text>
           {hayColegio ? null : (
-            <Boton texto="Crear mi primer ramo" onPress={() => setCreando(true)} />
+            <>
+              <Boton texto="Cargar mi horario" onPress={() => setCargando(true)} />
+              <Boton texto="Crear un ramo" variante="suave" onPress={() => setCreando(true)} />
+            </>
           )}
         </Hoja>
       ) : (
@@ -280,6 +302,16 @@ export default function Inicio({ navigation }: Props) {
           ))}
         </Hoja>
       )}
+
+      <CargarHorario
+        abierto={cargandoHorario}
+        cerrar={() => setCargando(false)}
+        yaTengo={mios.length}
+        cargar={async (ramos) => {
+          await crearHorarioPropio(ramos, mios.length);
+          await recargar();
+        }}
+      />
 
       <NuevoRamo
         abierto={creando}

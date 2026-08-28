@@ -8,7 +8,7 @@ import type * as Real from "./consultas-supabase.ts";
 import { TEXTOS_DEMO } from "./textos-demo.ts";
 import { perfilActual } from "./perfiles-demo.ts";
 import {
-  RAMOS_PROPIOS, lecturaPropiaDe, modulosPropiosDe,
+  RAMOS_PROPIOS, horarioPropio, lecturaPropiaDe, modulosPropiosDe,
 } from "./datos-propios.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
@@ -321,8 +321,12 @@ export async function misAsignaturas(): Promise<Asignatura[]> {
 
 export async function miHorario(): Promise<BloqueHorario[]> {
   await respirar();
-  if (!conInstitucion()) return [];
-  return copiar(HORARIO);
+  // Quien no tiene institución igual puede tener horario: el que se cargó
+  // escribiéndolo. Antes esta rama devolvía siempre vacío y su pestaña de
+  // horario no podía mostrar nada nunca.
+  const propio = horarioPropio();
+  if (!conInstitucion()) return propio;
+  return [...copiar(HORARIO), ...propio];
 }
 
 export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
@@ -578,10 +582,12 @@ export {
 // Y lo que arma quien llega por su cuenta vive en otro archivo más, por la
 // misma razón: son sus ramos, no los de una institución.
 import {
-  borrarRamoPropio, crearMaterial, crearModulo, crearRamoPropio,
+  borrarRamoPropio, crearHorarioPropio, crearMaterial, crearModulo, crearRamoPropio,
 } from "./datos-propios.ts";
 
-export { borrarRamoPropio, crearMaterial, crearModulo, crearRamoPropio };
+export {
+  borrarRamoPropio, crearHorarioPropio, crearMaterial, crearModulo, crearRamoPropio,
+};
 
 // Si en `consultas-supabase.ts` aparece una consulta nueva, esto deja de
 // compilar hasta que exista también acá.
@@ -593,6 +599,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   marcarLeida, marcarTodasLeidas, mensajesDe, misApuntes, apuntePorId, misDictados,
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
   cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
-  crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial,
+  crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
 };
 void _cobertura;

@@ -6,6 +6,7 @@ import {
 } from "../ui/tema.ts";
 import { miHorario, misAsignaturas } from "../lib/consultas.ts";
 import { porHora } from "../dominio/horario.ts";
+import { unir } from "../dominio/horario-escrito.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 
@@ -60,7 +61,9 @@ export default function Horario({ navigation }: Props) {
                   </View>
                 }
                 titulo={ramo.nombre}
-                detalle={`${b.tipo} · ${b.sala} · ${ramo.profesor}`}
+                // En un ramo propio el "profesor" es "Por tu cuenta", que en
+                // el horario no agrega nada que no se sepa ya.
+                detalle={unir([b.tipo, b.sala, ramo.propio ? "" : ramo.profesor])}
                 onPress={() => navigation.navigate("Asignatura", { asignaturaId: ramo.id })}
               />
             );
