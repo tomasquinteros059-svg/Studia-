@@ -1,9 +1,10 @@
 // Datos y dobles compartidos por las pruebas de pantalla.
 
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { act, render } from "@testing-library/react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { Tarea } from "../src/dominio/acta.ts";
 import type { Reunion, ReunionCompleta, TareaConReunion } from "../src/lib/tipos-reunion.ts";
 
@@ -76,6 +77,23 @@ export const TAREAS: TareaConReunion[] = [
   conReunion(TAREA_AJENA), conReunion(TAREA_EN_EL_AIRE),
 ];
 
+/**
+ * Los márgenes del sistema que se le dan a una pantalla en las pruebas.
+ *
+ * Con valores de verdad y no en cero: la aplicación dibuja de borde a borde
+ * en Android, y una prueba con márgenes en cero no vería nunca el error de
+ * un botón que queda debajo de la barra de gestos.
+ */
+export const MARGENES = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 47, left: 0, right: 0, bottom: 34 },
+};
+
+/** El envoltorio que la aplicación pone arriba de todo. */
+export function ConMargenes({ children }: { children: ReactNode }) {
+  return <SafeAreaProvider initialMetrics={MARGENES}>{children}</SafeAreaProvider>;
+}
+
 /** Una navegación de mentira, con los métodos que las pantallas usan. */
 export function navegacionFalsa() {
   return {
@@ -102,7 +120,9 @@ export async function renderPantalla(
   const navigation = navegacionFalsa();
   const Suelta = Pantalla as ComponentType<Record<string, unknown>>;
   const vista = await render(
-    <Suelta navigation={navigation} route={{ key: "k", name: "X", params }} />,
+    <ConMargenes>
+      <Suelta navigation={navigation} route={{ key: "k", name: "X", params }} />
+    </ConMargenes>,
   );
   // Deja que la carga inicial de datos asiente antes de devolver la pantalla:
   // si no, React avisa por cada actualización de estado fuera de `act`.
@@ -126,10 +146,12 @@ export async function renderConNavegador(
 ) {
   const Pila = createNativeStackNavigator();
   return render(
-    <NavigationContainer>
-      <Pila.Navigator>
-        <Pila.Screen name="Prueba" component={Pantalla as never} initialParams={params} />
-      </Pila.Navigator>
-    </NavigationContainer>,
+    <ConMargenes>
+      <NavigationContainer>
+        <Pila.Navigator>
+          <Pila.Screen name="Prueba" component={Pantalla as never} initialParams={params} />
+        </Pila.Navigator>
+      </NavigationContainer>
+    </ConMargenes>,
   );
 }

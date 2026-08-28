@@ -1,10 +1,7 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View,
-} from "react-native";
-import { Boton, Campo } from "../../ui/componentes.tsx";
-import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+import { StyleSheet, Text, View } from "react-native";
+import { Boton, Campo, HojaModal } from "../../ui/componentes.tsx";
+import { color, espacio, monoespaciada, radio, tenue, tipo } from "../../ui/tema.ts";
 import { LARGO, normalizarCodigo } from "../../dominio/sala.ts";
 
 /**
@@ -47,65 +44,47 @@ export default function Entrar({
   };
 
   return (
-    <Modal visible={abierto} animationType="slide" onRequestClose={cerrar}>
-      <KeyboardAvoidingView style={e.pantalla}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={cerrar} hitSlop={10}>
-            <Icono nombre="cerrar" tamano={22} tono={color.marca} />
-          </Pressable>
-          <Text style={e.barraTitulo}>Entrar a una sala</Text>
-          <View style={{ width: 22 }} />
-        </View>
+    <HojaModal abierto={abierto} cerrar={cerrar} titulo="Entrar a una sala">
+      <Text style={e.explica}>
+        Si alguien grabó una reunión en la que estuviste, te va a dictar un
+        código de {LARGO} letras. Escríbelo acá y recibes el acta y las tareas.
+      </Text>
 
-        <View style={e.hoja}>
-          <Text style={e.explica}>
-            Si alguien grabó una reunión en la que estuviste, te va a dictar un
-            código de {LARGO} letras. Escríbelo acá y recibes el acta y las tareas.
-          </Text>
+      <Campo
+        style={e.campoCodigo}
+        placeholder="ACD-234"
+        value={codigo}
+        onChangeText={(t) => { setCodigo(t); setFalla(null); }}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        autoFocus
+        maxLength={LARGO + 3}
+        accessibilityLabel="Código de la sala"
+        onSubmitEditing={() => { if (servible) void enviar(); }}
+      />
 
-          <Campo
-            style={e.campoCodigo}
-            placeholder="ACD-234"
-            value={codigo}
-            onChangeText={(t) => { setCodigo(t); setFalla(null); }}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            autoFocus
-            maxLength={LARGO + 3}
-            accessibilityLabel="Código de la sala"
-            onSubmitEditing={() => { if (servible) void enviar(); }}
-          />
+      {falla ? (
+        <View style={e.falla}><Text style={e.fallaTexto}>{falla}</Text></View>
+      ) : null}
 
-          {falla ? (
-            <View style={e.falla}><Text style={e.fallaTexto}>{falla}</Text></View>
-          ) : null}
-
-          <Boton
-            texto={ocupado ? "Entrando…" : "Entrar"}
-            onPress={() => void enviar()}
-            deshabilitado={!servible || ocupado}
-          />
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      <Boton
+        texto={ocupado ? "Entrando…" : "Entrar"}
+        onPress={() => void enviar()}
+        deshabilitado={!servible || ocupado}
+      />
+    </HojaModal>
   );
 }
 
 const e = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: color.fondo },
-  barra: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: espacio.m, paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
-  },
-  barraTitulo: { fontSize: 16, fontWeight: "600", color: color.texto },
-  hoja: { padding: espacio.l, gap: espacio.m },
-  explica: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 21 },
+  explica: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 22 },
   campoCodigo: {
-    fontSize: 26, fontWeight: "700", letterSpacing: 3, textAlign: "center",
-    paddingVertical: espacio.m,
+    fontFamily: monoespaciada,
+    fontSize: 27, fontWeight: "700", letterSpacing: 5,
+    textAlign: "center", paddingVertical: espacio.l,
   },
-  falla: { padding: espacio.m, backgroundColor: tenue(color.vivo), borderRadius: radio.tarjeta },
-  fallaTexto: { ...tipo.cuerpo, color: color.texto, lineHeight: 20 },
+  falla: {
+    padding: espacio.m, backgroundColor: tenue(color.vivo), borderRadius: radio.tarjeta,
+  },
+  fallaTexto: { ...tipo.cuerpo, lineHeight: 21 },
 });

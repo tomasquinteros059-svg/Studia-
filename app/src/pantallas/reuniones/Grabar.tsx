@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { Boton, Cargando, Error, Pantalla, Vacio } from "../../ui/componentes.tsx";
+import { Boton, Cargando, Encabezado, Error, Hoja, Pantalla, Vacio } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+import { FILETE, color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import { analizarReunion, reunionPorId } from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { equipoDe } from "../../dominio/rubros.ts";
@@ -50,8 +50,8 @@ export default function Grabar({ route, navigation }: Props) {
 
   return (
     <Pantalla>
-      <View style={e.equipo}>
-        <Text style={tipo.etiqueta}>Tu equipo para esta reunión</Text>
+      <Encabezado texto="Tu equipo para esta reunión" />
+      <Hoja>
         {equipo.agentes.map((a, i) => (
           <View key={a.papel} style={e.agente}>
             <Text style={e.paso}>{i + 1}</Text>
@@ -61,7 +61,7 @@ export default function Grabar({ route, navigation }: Props) {
             </View>
           </View>
         ))}
-      </View>
+      </Hoja>
 
       {equipo.cuidado ? (
         <View style={e.cuidado}>
@@ -115,10 +115,6 @@ export default function Grabar({ route, navigation }: Props) {
 }
 
 const e = StyleSheet.create({
-  equipo: {
-    margin: espacio.m, padding: espacio.m, gap: espacio.s,
-    backgroundColor: color.elemento, borderRadius: radio.tarjeta,
-  },
   agente: { flexDirection: "row", alignItems: "center", gap: espacio.m },
   paso: {
     width: 22, height: 22, borderRadius: 11, textAlign: "center", lineHeight: 22,
@@ -128,7 +124,7 @@ const e = StyleSheet.create({
 
   cuidado: {
     flexDirection: "row", gap: espacio.s, alignItems: "flex-start",
-    marginHorizontal: espacio.m, padding: espacio.m,
+    marginHorizontal: espacio.m, marginTop: espacio.m, padding: espacio.m,
     backgroundColor: tenue(color.ambar), borderRadius: radio.tarjeta,
   },
   cuidadoTexto: { ...tipo.cuerpo, color: color.texto, lineHeight: 20, flex: 1 },
@@ -136,8 +132,9 @@ const e = StyleSheet.create({
   margen: { paddingHorizontal: espacio.m, paddingTop: espacio.m },
   papel: {
     margin: espacio.m, minHeight: 220, padding: espacio.m,
-    fontSize: 15, lineHeight: 24, color: color.texto,
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.campo,
+    fontSize: 15.5, lineHeight: 25, color: color.texto,
+    backgroundColor: color.papel,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.campo,
   },
   falla: {
     marginHorizontal: espacio.m, padding: espacio.m,
@@ -148,8 +145,8 @@ const e = StyleSheet.create({
 
   micro: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
-    margin: espacio.m, padding: espacio.m, opacity: 0.55,
-    borderWidth: 1, borderColor: color.borde, borderStyle: "dashed",
+    margin: espacio.m, padding: espacio.m, opacity: 0.6,
+    borderWidth: 1, borderColor: color.bordeFuerte, borderStyle: "dashed",
     borderRadius: radio.tarjeta,
   },
   microTitulo: { fontSize: 14, fontWeight: "600", color: color.texto },

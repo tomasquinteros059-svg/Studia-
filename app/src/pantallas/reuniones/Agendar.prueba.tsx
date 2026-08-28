@@ -1,11 +1,12 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import { tocar } from "../../../pruebas/dobles.tsx";
+import { ConMargenes, tocar } from "../../../pruebas/dobles.tsx";
 import { SIN_AGENDA, type Agenda } from "../../dominio/agenda.ts";
 import Agendar, { leerHora } from "./Agendar.tsx";
 
 const montar = async (agenda: Agenda = SIN_AGENDA) => {
   const cambiar = jest.fn();
-  const vista = await render(<Agendar agenda={agenda} cambiar={cambiar} />);
+  const vista = await render(
+    <ConMargenes><Agendar agenda={agenda} cambiar={cambiar} /></ConMargenes>);
   return Object.assign(vista, { cambiar });
 };
 

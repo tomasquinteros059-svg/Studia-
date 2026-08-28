@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Cargando, Error, Pantalla } from "../../ui/componentes.tsx";
+import { Cargando, Error, Hoja, Pantalla } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+import { FILETE, cifras, color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import { marcarTarea, misTareasDeTodas, quienSoy } from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import {
@@ -61,6 +61,8 @@ export default function Tareas({ navigation }: Props) {
         <Text style={e.titulo}>Tareas</Text>
       </View>
 
+      {/* Un control segmentado y no fichas sueltas: son tres vistas de lo
+          mismo, y un segmentado dice justamente eso. */}
       <View style={e.filtros}>
         {FILTROS.map((f) => {
           const activo = f.id === filtro;
@@ -72,8 +74,8 @@ export default function Tareas({ navigation }: Props) {
               accessibilityState={{ selected: activo }}
               accessibilityLabel={`${f.texto}, ${cuantas}`}
               onPress={() => setFiltro(f.id)}
-              style={[e.chip, activo ? { backgroundColor: color.marca } : null]}>
-              <Text style={[e.chipTexto, activo ? { color: color.sobreMarca, fontWeight: "600" } : null]}>
+              style={[e.chip, activo ? e.chipActivo : null]}>
+              <Text style={[e.chipTexto, activo ? e.chipTextoActivo : null]}>
                 {f.texto} {cuantas > 0 ? `· ${cuantas}` : ""}
               </Text>
             </Pressable>
@@ -89,35 +91,47 @@ export default function Tareas({ navigation }: Props) {
       ) : null}
 
       {mostradas.length === 0 ? (
-        <Text style={e.vacio}>
-          {filtro === "mias" ? "No tienes nada pendiente a tu nombre."
-            : filtro === "aire" ? "Ningún compromiso quedó en el aire."
-            : "No hay tareas todavía."}
-        </Text>
+        <Hoja>
+          <Text style={e.vacio}>
+            {filtro === "mias" ? "No tienes nada pendiente a tu nombre."
+              : filtro === "aire" ? "Ningún compromiso quedó en el aire."
+              : "No hay tareas todavía."}
+          </Text>
+        </Hoja>
       ) : (
-        mostradas.map((t) => {
+        <Hoja ceñida>
+        {mostradas.map((t, i) => {
           const estado = estadoDeTarea(t);
           return (
-            <View key={t.id} style={e.fila}>
+            <View key={t.id} style={[e.fila, i > 0 ? e.conFilete : null]}>
               <Pressable accessibilityRole="checkbox"
                 accessibilityState={{ checked: t.lista }}
                 accessibilityLabel={t.lista ? `Desmarcar ${t.que}` : `Marcar ${t.que} como hecha`}
-                onPress={() => void marcar(t)} hitSlop={10}>
-                <Icono nombre={t.lista ? "listo" : "tareas"} tamano={20}
-                  tono={t.lista ? color.ok : estado === "vencida" ? color.vivo : color.textoSuave} />
+                onPress={() => void marcar(t)} hitSlop={12}>
+                <View style={[
+                  e.casilla,
+                  t.lista ? { backgroundColor: color.ok, borderColor: color.ok } : null,
+                  !t.lista && estado === "vencida" ? { borderColor: color.vivo } : null,
+                ]}>
+                  {t.lista ? <Icono nombre="listo" tamano={13} tono={color.sobreMarca} /> : null}
+                </View>
               </Pressable>
               <Pressable style={{ flex: 1, gap: 2 }} accessibilityRole="button"
                 accessibilityLabel={`Ir a ${t.reunion}`}
                 onPress={() => navigation.navigate("Reunion", { reunionId: t.reunion_id })}>
                 <Text style={[e.filaTexto, t.lista ? e.tachada : null]}>{t.que}</Text>
-                <Text style={tipo.detalle}>{t.reunion}</Text>
-                <Text style={[tipo.detalle, estado === "vencida" ? { color: color.vivo } : null]}>
+                <Text style={tipo.detalle} numberOfLines={1}>{t.reunion}</Text>
+                <Text style={[
+                  tipo.detalle, cifras,
+                  estado === "vencida" ? { color: color.vivo, fontWeight: "700" } : null,
+                ]}>
                   {t.responsable ?? "sin responsable"} · {cuandoVence(t)}
                 </Text>
               </Pressable>
             </View>
           );
-        })
+        })}
+        </Hoja>
       )}
       <View style={{ height: espacio.xl }} />
     </Pantalla>
@@ -126,20 +140,30 @@ export default function Tareas({ navigation }: Props) {
 
 const e = StyleSheet.create({
   encabezado: { padding: espacio.m, paddingTop: espacio.l },
-  titulo: { fontSize: 22, fontWeight: "600", color: color.texto },
-  filtros: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: espacio.m },
-  chip: {
-    backgroundColor: color.elemento, borderRadius: radio.pastilla,
-    paddingHorizontal: 13, paddingVertical: 7,
+  titulo: { ...tipo.portada },
+
+  filtros: {
+    flexDirection: "row", marginHorizontal: espacio.m, padding: 3,
+    backgroundColor: color.elemento, borderRadius: radio.boton,
   },
-  chipTexto: { fontSize: 13, color: color.textoSuave },
-  pista: { ...tipo.detalle, padding: espacio.m, lineHeight: 19 },
-  vacio: { ...tipo.detalle, padding: espacio.m },
+  chip: { flex: 1, borderRadius: radio.boton - 3, paddingVertical: 8, alignItems: "center" },
+  chipActivo: { backgroundColor: color.papel },
+  chipTexto: { ...cifras, fontSize: 13, color: color.textoSuave, fontWeight: "600" },
+  chipTextoActivo: { color: color.texto, fontWeight: "700" },
+
+  pista: { ...tipo.detalle, paddingHorizontal: espacio.m, paddingTop: espacio.m, lineHeight: 19 },
+  vacio: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 21 },
+
+  conFilete: { borderTopWidth: FILETE, borderTopColor: color.borde },
   fila: {
     flexDirection: "row", alignItems: "flex-start", gap: espacio.m,
-    paddingHorizontal: espacio.m, paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
+    paddingHorizontal: espacio.m, paddingVertical: 13,
   },
-  filaTexto: { fontSize: 14.5, color: color.texto },
-  tachada: { textDecorationLine: "line-through", color: color.textoSuave },
+  casilla: {
+    width: 21, height: 21, borderRadius: 6, marginTop: 1,
+    borderWidth: 1.4, borderColor: color.bordeFuerte,
+    alignItems: "center", justifyContent: "center",
+  },
+  filaTexto: { ...tipo.cuerpo, fontSize: 15 },
+  tachada: { textDecorationLine: "line-through", color: color.textoTenue },
 });

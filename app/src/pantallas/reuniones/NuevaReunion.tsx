@@ -1,11 +1,8 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
-  StyleSheet, Text, View,
-} from "react-native";
-import { Boton, Campo } from "../../ui/componentes.tsx";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Boton, Campo, HojaModal } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+import { FILETE, color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import { EQUIPOS, equipoDe, type Rubro } from "../../dominio/rubros.ts";
 import type { ReunionNueva } from "../../lib/tipos-reunion.ts";
 import { SIN_AGENDA, type Agenda } from "../../dominio/agenda.ts";
@@ -62,18 +59,7 @@ export default function NuevaReunion({
   const elegido = rubro ? equipoDe(rubro) : null;
 
   return (
-    <Modal visible={abierta} animationType="slide" onRequestClose={cerrar}>
-      <KeyboardAvoidingView style={e.pantalla}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={cerrar} hitSlop={10}>
-            <Icono nombre="cerrar" tamano={22} tono={color.marca} />
-          </Pressable>
-          <Text style={e.barraTitulo}>Nueva reunión</Text>
-          <View style={{ width: 22 }} />
-        </View>
-
-        <ScrollView contentContainerStyle={e.hoja} keyboardShouldPersistTaps="handled">
+    <HojaModal abierto={abierta} cerrar={cerrar} titulo="Nueva reunión">
           <Campo placeholder="¿Qué reunión es?" value={titulo} onChangeText={setTitulo}
             autoCapitalize="sentences" accessibilityLabel="Título de la reunión" />
 
@@ -148,14 +134,12 @@ export default function NuevaReunion({
 
           <Agendar agenda={agenda} cambiar={setAgenda} />
 
-          <Boton
-            texto={ocupado ? "Creando…" : agenda.programada_para ? "Agendar" : "Empezar"}
-            onPress={() => void enviar()}
-            deshabilitado={!sePuede}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+      <Boton
+        texto={ocupado ? "Creando…" : agenda.programada_para ? "Agendar" : "Empezar"}
+        onPress={() => void enviar()}
+        deshabilitado={!sePuede}
+      />
+    </HojaModal>
   );
 }
 
@@ -168,28 +152,21 @@ export function enLineas(texto: string): string[] {
 }
 
 const e = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: color.fondo },
-  barra: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: espacio.m, paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
-  },
-  barraTitulo: { fontSize: 16, fontWeight: "600", color: color.texto },
-  hoja: { padding: espacio.l, gap: espacio.m, paddingBottom: espacio.xl },
   pista: { ...tipo.detalle, lineHeight: 19, marginTop: -6 },
 
   rubro: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta,
-    padding: espacio.m,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.tarjeta,
+    padding: espacio.m, backgroundColor: color.papel,
   },
-  rubroElegido: { borderColor: color.marca, backgroundColor: tenue(color.marca) },
+  rubroElegido: { borderColor: color.marca, borderWidth: 1.4, backgroundColor: tenue(color.marca) },
   rubroNombre: { fontSize: 15, fontWeight: "600", color: color.texto },
   marca: { width: 38, height: 38, borderRadius: radio.campo, alignItems: "center", justifyContent: "center" },
 
   equipo: {
     gap: espacio.s, padding: espacio.m,
-    backgroundColor: color.elemento, borderRadius: radio.tarjeta,
+    backgroundColor: color.papel, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.borde,
   },
   agente: { gap: 1 },
   agenteNombre: { fontSize: 14, fontWeight: "600", color: color.texto },

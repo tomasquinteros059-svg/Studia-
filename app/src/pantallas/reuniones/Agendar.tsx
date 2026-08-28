@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Campo } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+import { FILETE, cifras, color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import {
   comoSeRepite, cuandoEs, type Agenda, type Repeticion,
 } from "../../dominio/agenda.ts";
@@ -132,22 +132,22 @@ export function leerHora(escrito: string): { horas: number; minutos: number } | 
 const e = StyleSheet.create({
   abrir: {
     flexDirection: "row", alignItems: "center", gap: espacio.s,
-    borderWidth: 1, borderColor: color.borde, borderStyle: "dashed",
+    borderWidth: 1, borderColor: color.bordeFuerte, borderStyle: "dashed",
     borderRadius: radio.tarjeta, padding: espacio.m,
   },
   abrirTexto: { fontSize: 14, fontWeight: "600", color: color.marca },
   caja: {
-    gap: espacio.s, padding: espacio.m,
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta,
+    gap: espacio.s, padding: espacio.m, backgroundColor: color.papel,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.tarjeta,
   },
   encabezado: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  cuando: { fontSize: 17, fontWeight: "600", color: color.texto },
+  cuando: { ...tipo.subtitulo, ...cifras, fontSize: 19 },
   fila: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: {
     backgroundColor: color.elemento, borderRadius: radio.pastilla,
-    paddingHorizontal: 12, paddingVertical: 7,
+    paddingHorizontal: 12, paddingVertical: 8,
   },
-  chipTexto: { fontSize: 13, color: color.textoSuave },
+  chipTexto: { fontSize: 13, color: color.textoSuave, fontWeight: "600" },
   nota: {
     flexDirection: "row", gap: espacio.s, alignItems: "flex-start",
     padding: espacio.m, backgroundColor: tenue(color.ambar), borderRadius: radio.tarjeta,

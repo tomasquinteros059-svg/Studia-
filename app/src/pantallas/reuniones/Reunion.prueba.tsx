@@ -52,7 +52,8 @@ describe("una reunión analizada", () => {
     const t = await abrir();
     await waitFor(() => expect(t.getByText(TAREA_EN_EL_AIRE.que)).toBeTruthy());
     expect(t.getByText("EN EL AIRE")).toBeTruthy();
-    expect(t.getByText(/sin responsable · sin plazo/)).toBeTruthy();
+    expect(t.getByText("sin responsable")).toBeTruthy();
+    expect(t.getByText("sin plazo")).toBeTruthy();
   });
 
   test("un acuerdo que solo se propuso no se muestra como acordado", async () => {

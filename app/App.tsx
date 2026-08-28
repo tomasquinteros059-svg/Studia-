@@ -9,7 +9,7 @@ import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "./src/lib/supabase.ts";
 import { AVISO_DEMO, MODO_DEMO } from "./src/lib/config.ts";
-import { color } from "./src/ui/tema.ts";
+import { FILETE, color } from "./src/ui/tema.ts";
 import type { RutasPestanas, RutasPila } from "./src/lib/rutas.ts";
 
 import Sesion from "./src/pantallas/Sesion.tsx";
@@ -27,17 +27,33 @@ const ICONO_PESTANA = {
   Reuniones: "equipo", Tareas: "tareas", Apuntes: "documento",
 } as const;
 
+/**
+ * Los mismos huesos en todas las pantallas: papel arriba, filete abajo, y
+ * tipografía apretada. Es lo que hace que la aplicación se vea de una pieza.
+ */
+const CABECERA = {
+  headerStyle: { backgroundColor: color.papel },
+  headerShadowVisible: false,
+  headerTintColor: color.marca,
+  headerTitleStyle: { color: color.texto, fontSize: 16.5, fontWeight: "600" as const },
+};
+
 function Principal() {
   return (
     <Pestanas.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: color.marca,
-        tabBarInactiveTintColor: color.textoSuave,
+        tabBarInactiveTintColor: color.textoTenue,
         tabBarIcon: ({ color: tono, size }) => (
           <Icono nombre={ICONO_PESTANA[route.name]} tamano={size} tono={tono} />
         ),
-        tabBarLabelStyle: { fontSize: 10.5 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        tabBarStyle: {
+          backgroundColor: color.papel,
+          borderTopColor: color.borde,
+          borderTopWidth: FILETE,
+        },
       })}
     >
       <Pestanas.Screen name="Reuniones" component={Reuniones} />
@@ -64,15 +80,20 @@ export default function App() {
 
   if (!listo) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.fondo }}>
-        <ActivityIndicator color={color.marca} />
-      </View>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.fondo }}>
+          <ActivityIndicator color={color.marca} />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      {/* La aplicación dibuja de borde a borde, así que el reloj y la batería
+          quedan encima de lo que pintemos: la cinta se lleva ese espacio
+          cuando existe, y cuando no, lo hace la cabecera de navegación. */}
+      <StatusBar style={MODO_DEMO ? "light" : "dark"} />
       {MODO_DEMO ? (
         <SafeAreaView edges={["top"]} style={cinta.fondo}>
           <Text style={cinta.texto}>{AVISO_DEMO}</Text>
@@ -82,12 +103,7 @@ export default function App() {
         {!sesion && !MODO_DEMO ? (
           <Sesion />
         ) : (
-          <Pila.Navigator
-            screenOptions={{
-              headerTintColor: color.marca,
-              headerTitleStyle: { color: color.texto, fontSize: 15 },
-            }}
-          >
+          <Pila.Navigator screenOptions={CABECERA}>
             <Pila.Screen name="Principal" component={Principal} options={{ headerShown: false }} />
             <Pila.Screen name="Reunion" component={Reunion} options={{ title: "Reunión" }} />
             <Pila.Screen name="Grabar" component={Grabar} options={{ title: "Grabar la reunión" }} />
@@ -102,7 +118,8 @@ export default function App() {
 const cinta = StyleSheet.create({
   fondo: { backgroundColor: color.marcaOscura },
   texto: {
-    color: "#fff", fontSize: 11.5, fontWeight: "600",
-    textAlign: "center", paddingVertical: 5, letterSpacing: 0.2,
+    color: color.sobreMarca, fontSize: 11.5, fontWeight: "600",
+    textAlign: "center", paddingVertical: 6, letterSpacing: 0.2,
+    opacity: 0.92,
   },
 });

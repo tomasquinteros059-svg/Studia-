@@ -1,10 +1,10 @@
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import { tocar } from "../../../pruebas/dobles.tsx";
+import { ConMargenes, tocar } from "../../../pruebas/dobles.tsx";
 import Entrar from "./Entrar.tsx";
 
 const montar = async (entrar = jest.fn().mockResolvedValue("r-1")) => {
   const vista = await render(
-    <Entrar abierto cerrar={jest.fn()} entrar={entrar} />);
+    <ConMargenes><Entrar abierto cerrar={jest.fn()} entrar={entrar} /></ConMargenes>);
   return Object.assign(vista, { entrar });
 };
 

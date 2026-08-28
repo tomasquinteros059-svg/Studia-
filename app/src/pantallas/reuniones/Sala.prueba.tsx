@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import { COMPLETA, tocar } from "../../../pruebas/dobles.tsx";
+import { COMPLETA, ConMargenes, tocar } from "../../../pruebas/dobles.tsx";
 import type { ReunionCompleta } from "../../lib/tipos-reunion.ts";
 import Sala from "./Sala.tsx";
 
@@ -18,7 +18,8 @@ const abierta = (p: Partial<ReunionCompleta> = {}): ReunionCompleta => ({
 const montar = async (r: ReunionCompleta) => {
   const abrir = jest.fn().mockResolvedValue(undefined);
   const cerrar = jest.fn().mockResolvedValue(undefined);
-  const vista = await render(<Sala reunion={r} abrir={abrir} cerrar={cerrar} />);
+  const vista = await render(
+    <ConMargenes><Sala reunion={r} abrir={abrir} cerrar={cerrar} /></ConMargenes>);
   return Object.assign(vista, { abrir, cerrar });
 };
 
@@ -70,6 +71,8 @@ describe("la sala", () => {
 
   test("en una reunión ajena y sin nadie más, la sala no ocupa lugar", async () => {
     const t = await montar(abierta({ mia: false, codigo: null, sala: [] }));
-    expect(t.toJSON()).toBeNull();
+    expect(t.queryByText("La sala")).toBeNull();
+    expect(t.queryByText("Compartir con los que estuvieron")).toBeNull();
+    expect(t.queryByText("Luis Pinto · Sonia Cerda")).toBeNull();
   });
 });

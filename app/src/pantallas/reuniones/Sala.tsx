@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Boton } from "../../ui/componentes.tsx";
-import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+import { Boton, Encabezado, Hoja } from "../../ui/componentes.tsx";
+import { color, espacio, monoespaciada, radio, tenue, tipo } from "../../ui/tema.ts";
 import { HORAS_ABIERTA, comoEsta, comoSeMuestra, sePuedeEntrar } from "../../dominio/sala.ts";
 import { comoSala, type ReunionCompleta } from "../../lib/tipos-reunion.ts";
 
@@ -37,16 +36,17 @@ export default function Sala({
     // Quien entró con un código ve que no está solo, y nada más.
     if (cuantos === 0) return null;
     return (
-      <View style={e.caja}>
-        <Text style={tipo.etiqueta}>La sala</Text>
-        <Text style={e.gente}>{nombres(reunion)}</Text>
-      </View>
+      <>
+        <Encabezado texto="La sala" />
+        <Hoja><Text style={e.gente}>{nombres(reunion)}</Text></Hoja>
+      </>
     );
   }
 
   return (
-    <View style={e.caja}>
-      <Text style={tipo.etiqueta}>Compartir con los que estuvieron</Text>
+    <>
+      <Encabezado texto="Compartir con los que estuvieron" />
+      <Hoja>
 
       {abierta && reunion.codigo ? (
         <>
@@ -82,7 +82,8 @@ export default function Sala({
           />
         </>
       )}
-    </View>
+      </Hoja>
+    </>
   );
 }
 
@@ -93,18 +94,18 @@ const nombres = (r: ReunionCompleta): string =>
 const deletreado = (codigo: string): string => codigo.split("").join(" ");
 
 const e = StyleSheet.create({
-  caja: {
-    margin: espacio.m, padding: espacio.m, gap: espacio.s,
-    borderWidth: 1, borderColor: color.borde, borderRadius: radio.tarjeta,
-  },
-  explica: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 20 },
+  explica: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 21 },
+  // El código se muestra como un sello: es lo que hay que dictar en voz alta
+  // y por eso es lo único de la pantalla que grita.
   codigoCaja: {
-    alignItems: "center", paddingVertical: espacio.m,
+    alignItems: "center", paddingVertical: espacio.l,
     backgroundColor: tenue(color.marca), borderRadius: radio.tarjeta,
+    borderWidth: 1.2, borderColor: tenue(color.marca), borderStyle: "dashed",
   },
   codigo: {
-    fontSize: 30, fontWeight: "700", color: color.marca, letterSpacing: 3,
+    fontFamily: monoespaciada,
+    fontSize: 31, fontWeight: "700", color: color.marca, letterSpacing: 5,
   },
-  gente: { ...tipo.cuerpo, color: color.texto, lineHeight: 20 },
-  enlace: { color: color.marca, fontWeight: "600", fontSize: 13, paddingTop: 4 },
+  gente: { ...tipo.cuerpo, lineHeight: 21 },
+  enlace: { color: color.marca, fontWeight: "700", fontSize: 13, paddingTop: 4 },
 });
