@@ -2,13 +2,13 @@
   "expo": {
     "name": "StudIA",
     "slug": "studia",
-    "version": "0.1.0",
+    "version": "1.1.0",
     "orientation": "default",
     "scheme": "studia",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#208AEF"
+      "backgroundColor": "#191A1F"
     },
     "ios": {
       "supportsTablet": true,
@@ -16,7 +16,8 @@
     },
     "android": {
       "package": "cl.studia.app",
-      "resizeableActivity": true
+      "resizeableActivity": true,
+      "versionCode": 2
     },
     "extra": {
       "supabaseUrl": "",

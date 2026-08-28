@@ -1,7 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Icono } from "../ui/Icono.tsx";
-import { FILETE, color, espacio, radio, tenue, tipo } from "../ui/tema.ts";
+import { FILETE, cifras, color, espacio, radio, tenue, tipo } from "../ui/tema.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
+import { VERSION_VISIBLE } from "../lib/version.ts";
 import { PERFILES_DEMO, entrarComo, type PerfilDemo } from "../lib/perfiles-demo.ts";
 
 const ICONO = {
@@ -80,6 +81,10 @@ export default function Perfiles() {
         eres lo decide tu cuenta y los permisos los aplica la base de datos,
         no la app.
       </Text>
+
+      {/* Se ve antes de entrar: es la forma más rápida de comprobar que se
+          instaló el APK nuevo y no se abrió el viejo de Descargas. */}
+      {VERSION_VISIBLE ? <Text style={e.version}>{VERSION_VISIBLE}</Text> : null}
     </ScrollView>
   );
 }
@@ -112,6 +117,10 @@ const e = StyleSheet.create({
   pastillaTexto: { fontSize: 11.5, fontWeight: "700", letterSpacing: 0.3 },
   descripcion: { ...tipo.detalle, lineHeight: 19 },
 
+  version: {
+    ...tipo.detalle, ...cifras, color: color.textoTenue,
+    textAlign: "center", paddingTop: espacio.m,
+  },
   nota: {
     ...tipo.detalle, lineHeight: 19, marginTop: espacio.l,
     padding: espacio.m, backgroundColor: color.elemento, borderRadius: radio.tarjeta,

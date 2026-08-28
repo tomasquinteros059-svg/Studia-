@@ -83,13 +83,24 @@ jobs:
           FIN
           chmod +x limpiar.sh
 
+      # El nombre del archivo lleva la versión y el commit. Con un nombre fijo,
+      # el teléfono guarda el nuevo como "StudIA(1).apk" y deja el viejo primero
+      # en la lista de Descargas: tocar el equivocado instala la versión
+      # anterior y nada avisa de nada. Con esto, los dos archivos se distinguen
+      # de un vistazo y ninguna caché puede servir uno por otro.
+      - name: Cómo se van a llamar los archivos
+        id: nombre
+        run: |
+          version=$(node -p "require('./app/app.json').expo.version")
+          echo "sufijo=$version-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Compilar el APK para arm64
         working-directory: app/android
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
           mkdir -p ../../entrega
-          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA.apk
+          cp app/build/outputs/apk/release/*.apk "../../entrega/StudIA-${{ steps.nombre.outputs.sufijo }}.apk"
 
       # Con R8: encoge el código Java, que es el segundo bulto del paquete
       # después de las bibliotecas nativas. Va aparte y no reemplaza al de
@@ -104,14 +115,14 @@ jobs:
             -PreactNativeArchitectures=arm64-v8a \
             -Pandroid.enableMinifyInReleaseBuilds=true \
             -Pandroid.enableShrinkResourcesInReleaseBuilds=true
-          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA-liviano.apk
+          cp app/build/outputs/apk/release/*.apk "../../entrega/StudIA-liviano-${{ steps.nombre.outputs.sufijo }}.apk"
 
       - name: Compilar el APK universal
         working-directory: app/android
         run: |
           ./limpiar.sh
           ./gradlew assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA-universal.apk
+          cp app/build/outputs/apk/release/*.apk "../../entrega/StudIA-universal-${{ steps.nombre.outputs.sufijo }}.apk"
 
       - name: Cuánto pesa cada uno
         run: ls -lh entrega/
@@ -131,21 +142,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          sufijo="${{ steps.nombre.outputs.sufijo }}"
           gh release delete ultimo-apk --yes --cleanup-tag 2>/dev/null || true
-          gh release create ultimo-apk entrega/StudIA.apk entrega/StudIA-liviano.apk entrega/StudIA-universal.apk \
-            --title "StudIA · último APK" \
+          gh release create ultimo-apk entrega/*.apk \
+            --title "StudIA $sufijo" \
             --notes "Compilado desde \`${{ github.ref_name }}\` (${{ github.sha }}).
 
-          **StudIA.apk** es el que sirve: trae solo arm64, que es lo que usa cualquier
-          tablet o teléfono de los últimos años.
+          **StudIA-$sufijo.apk** es el que sirve: trae solo arm64, que es lo que usa
+          cualquier tablet o teléfono de los últimos años.
 
-          **StudIA-liviano.apk** es el mismo, encogido con R8. Pesa bastante menos, pero
-          no está probado: si no arranca, usa el de arriba.
+          **StudIA-liviano-$sufijo.apk** es el mismo, encogido con R8. Pesa bastante
+          menos, pero no está probado: si no arranca, usa el de arriba.
 
-          **StudIA-universal.apk** trae las cuatro arquitecturas y pesa el triple. Solo
-          hace falta si el otro dice que no se puede instalar, cosa que pasa en aparatos
-          viejos o en un Chromebook con procesador Intel.
+          **StudIA-universal-$sufijo.apk** trae las cuatro arquitecturas y pesa el
+          triple. Solo hace falta si el otro dice que no se puede instalar, cosa que
+          pasa en aparatos viejos o en un Chromebook con procesador Intel.
 
           Se instala tocándolo y aceptando instalar desde esta fuente. Trae datos de
-          ejemplo, así que funciona sin servidor." \
+          ejemplo, así que funciona sin servidor.
+
+          El nombre del archivo lleva la versión y el commit, así que no se puede
+          confundir con una descarga anterior. La app también dice su versión: sale
+          abajo en la pantalla de perfil, y en la de elegir perfil." \
             --target "${{ github.sha }}"

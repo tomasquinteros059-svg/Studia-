@@ -1,13 +1,14 @@
 import { useCallback, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { Boton, Campo, Cargando, Encabezado, Error, Pantalla } from "../ui/componentes.tsx";
-import { color, espacio, tipo } from "../ui/tema.ts";
+import { cifras, color, espacio, tipo } from "../ui/tema.ts";
 import { cambiarNombre, miPerfil } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { supabase } from "../lib/supabase.ts";
 import { MODO_DEMO } from "../lib/config.ts";
 import { salir } from "../lib/perfiles-demo.ts";
 import { inicialesDePersona } from "../dominio/personas.ts";
+import { VERSION_VISIBLE } from "../lib/version.ts";
 
 export default function Perfil() {
   const { datos, cargando, error, recargar } = usarCarga(miPerfil, []);
@@ -69,6 +70,9 @@ export default function Perfil() {
         Nadie más puede verlo.
       </Text>
 
+      {/* Para saber qué versión estás probando sin tener que adivinar. */}
+      {VERSION_VISIBLE ? <Text style={e.version}>{VERSION_VISIBLE}</Text> : null}
+
       {MODO_DEMO ? (
         <View style={{ paddingHorizontal: espacio.l, paddingBottom: espacio.l }}>
           <Boton texto="Cambiar de perfil" onPress={salir} />
@@ -87,4 +91,8 @@ const e = StyleSheet.create({
   iniciales: { color: color.sobreMarca, fontSize: 30, fontWeight: "800", letterSpacing: -0.8 },
   nombre: { ...tipo.titulo },
   pie: { ...tipo.detalle, textAlign: "center", padding: espacio.l, lineHeight: 19 },
+  version: {
+    ...tipo.detalle, ...cifras, color: color.textoTenue,
+    textAlign: "center", paddingBottom: espacio.l,
+  },
 });
