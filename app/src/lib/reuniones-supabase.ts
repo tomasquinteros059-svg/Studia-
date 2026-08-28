@@ -7,6 +7,7 @@
 import { supabase } from "./supabase.ts";
 import type { Tarea } from "../dominio/acta.ts";
 import type { Rubro } from "../dominio/rubros.ts";
+import { normalizarCodigo, nuevoCodigo } from "../dominio/sala.ts";
 import type {
   Reunion, ReunionCompleta, ReunionNueva, TareaConReunion,
 } from "./tipos-reunion.ts";
@@ -15,7 +16,9 @@ function reventar(queHacia: string, error: { message: string } | null): void {
   if (error) throw new Error(`${queHacia}: ${error.message}`);
 }
 
-const CABECERA = "id, titulo, rubro, estado, ocurrio_en, duracion_seg, participantes, tabla, dueno_id";
+// En una sola línea a propósito: partida en dos con un `+`, Supabase deja de
+// inferir el tipo de la fila y todo lo que sigue queda en `any` disfrazado.
+const CABECERA = "id, titulo, rubro, estado, ocurrio_en, duracion_seg, participantes, tabla, dueno_id, codigo, sala_abierta, sala_abierta_en";
 
 /** Quién soy, para saber qué tareas quedaron a mi nombre. */
 export async function quienSoy(): Promise<string> {
@@ -73,6 +76,10 @@ function armarCabecera(fila: FilaConInvitados, yo: string): Reunion {
     tabla: (fila.tabla as string[] | null) ?? [],
     mia,
     puedo_editar: mia || invitacion?.puede_editar === true,
+    // El código solo se le muestra a quien puede repartirlo.
+    codigo: mia ? ((fila.codigo as string | null) ?? null) : null,
+    sala_abierta: fila.sala_abierta === true,
+    sala_abierta_en: (fila.sala_abierta_en as string | null) ?? null,
   };
 }
 
@@ -88,18 +95,20 @@ export async function reunionPorId(id: string): Promise<ReunionCompleta | null> 
   reventar("No pude cargar la reunión", error);
   if (!data) return null;
 
-  const [analisis, tareas] = await Promise.all([
+  const [analisis, tareas, sala] = await Promise.all([
     supabase.from("analisis")
       .select("resumen, acuerdos, pendientes, sin_tratar, aportes, contradicciones")
       .eq("reunion_id", id).maybeSingle(),
     supabase.from("tareas_reunion")
       .select("id, que, responsable, plazo, prioridad, acuerdo, lista")
       .eq("reunion_id", id),
+    supabase.rpc("gente_de_la_sala", { p_reunion: id }),
   ]);
 
   const a = analisis.data;
   return {
     ...armarCabecera(data, yo),
+    sala: (sala.data ?? []) as ReunionCompleta["sala"],
     documento: (data.documento as string | null) ?? null,
     transcripcion: (data.transcripcion_limpia as string | null) ?? null,
     resumen: a?.resumen ?? "",
@@ -176,6 +185,51 @@ export async function misTareasDeTodas(): Promise<TareaConReunion[]> {
       rubro: r?.rubro ?? "gerencia",
     };
   });
+}
+
+/* --------------------------------------------------------------- la sala */
+
+/**
+ * Abre la sala y devuelve el código. Se genera acá y no en la base para que
+ * sea el mismo alfabeto que la app sabe leer, y se reintenta si choca: hay
+ * 244 millones de códigos posibles, así que chocar es raro, pero raro no es
+ * nunca y quedarse sin sala por eso sería absurdo.
+ */
+export async function abrirSala(reunionId: string): Promise<string> {
+  for (let intento = 0; intento < 5; intento++) {
+    const codigo = nuevoCodigo();
+    const { error } = await supabase
+      .from("reuniones")
+      .update({ codigo, sala_abierta: true })
+      .eq("id", reunionId);
+
+    if (!error) return codigo;
+    // 23505 es la clave única: ese código ya lo tiene otra reunión.
+    if ((error as { code?: string }).code !== "23505") {
+      reventar("No pude abrir la sala", error);
+    }
+  }
+  throw new Error("No pude abrir la sala. Inténtalo de nuevo.");
+}
+
+export async function cerrarSala(reunionId: string): Promise<void> {
+  const { error } = await supabase
+    .from("reuniones").update({ sala_abierta: false }).eq("id", reunionId);
+  reventar("No pude cerrar la sala", error);
+}
+
+/**
+ * Entrar con un código. Devuelve el id de la reunión, o null si el código no
+ * sirve. La base no dice si el código no existe o si la sala se cerró: la
+ * diferencia serviría para averiguar qué códigos existen probando de a uno.
+ */
+export async function entrarConCodigo(escrito: string): Promise<string | null> {
+  const codigo = normalizarCodigo(escrito);
+  if (codigo === null) return null;
+
+  const { data, error } = await supabase.rpc("entrar_con_codigo", { p_codigo: codigo });
+  reventar("No pude entrar a la sala", error);
+  return (data as string | null) ?? null;
 }
 
 /**

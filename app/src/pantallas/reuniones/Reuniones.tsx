@@ -3,17 +3,21 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Cargando, Encabezado, Error, Pantalla } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
-import { crearReunion, misReuniones, misTareasDeTodas, quienSoy } from "../../lib/consultas.ts";
+import {
+  crearReunion, entrarConCodigo, misReuniones, misTareasDeTodas, quienSoy,
+} from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { equipoDe } from "../../dominio/rubros.ts";
 import { cuandoVence, estadoDeTarea, misTareas, ordenarTareas } from "../../dominio/acta.ts";
 import type { PropsPestana } from "../../lib/rutas.ts";
 import NuevaReunion from "./NuevaReunion.tsx";
+import Entrar from "./Entrar.tsx";
 
 type Props = PropsPestana<"Reuniones">;
 
 export default function Reuniones({ navigation }: Props) {
   const [creando, setCreando] = useState(false);
+  const [entrando, setEntrando] = useState(false);
 
   const traer = useCallback(async () => {
     const [reuniones, tareas, yo] = await Promise.all([
@@ -54,6 +58,15 @@ export default function Reuniones({ navigation }: Props) {
         style={({ pressed }) => [e.grabar, pressed ? { opacity: 0.85 } : null]}>
         <Icono nombre="grabar" tamano={22} tono={color.sobreMarca} />
         <Text style={e.grabarTexto}>Nueva reunión</Text>
+      </Pressable>
+
+      {/* Grabó otro y a mí me dictaron el código. Es la mitad de los casos:
+          en una sala con treinta personas graba una sola. */}
+      <Pressable accessibilityRole="button" accessibilityLabel="Entrar con un código"
+        onPress={() => setEntrando(true)}
+        style={({ pressed }) => [e.entrar, pressed ? { backgroundColor: color.elemento } : null]}>
+        <Icono nombre="equipo" tamano={18} tono={color.marca} />
+        <Text style={e.entrarTexto}>Entrar con un código</Text>
       </Pressable>
 
       {mias.length > 0 ? (
@@ -123,6 +136,19 @@ export default function Reuniones({ navigation }: Props) {
         })
       )}
 
+      <Entrar
+        abierto={entrando}
+        cerrar={() => setEntrando(false)}
+        entrar={async (codigo) => {
+          const id = await entrarConCodigo(codigo);
+          if (id !== null) {
+            await recargar();
+            navigation.navigate("Reunion", { reunionId: id });
+          }
+          return id;
+        }}
+      />
+
       <NuevaReunion
         abierta={creando}
         cerrar={() => setCreando(false)}
@@ -159,6 +185,12 @@ const e = StyleSheet.create({
     backgroundColor: color.marca, borderRadius: radio.boton,
   },
   grabarTexto: { color: color.sobreMarca, fontSize: 15, fontWeight: "700" },
+  entrar: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: espacio.s,
+    marginHorizontal: espacio.m, marginTop: espacio.s, paddingVertical: 12,
+    borderWidth: 1, borderColor: color.borde, borderRadius: radio.boton,
+  },
+  entrarTexto: { color: color.marca, fontSize: 14, fontWeight: "600" },
   enlace: { color: color.marca, fontWeight: "600", fontSize: 12.5 },
   alarma: {
     flexDirection: "row", alignItems: "center", gap: espacio.s,

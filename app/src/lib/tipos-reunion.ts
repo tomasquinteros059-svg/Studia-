@@ -6,6 +6,7 @@
 
 import type { Rubro } from "../dominio/rubros.ts";
 import type { Acuerdo, Pendiente, Tarea } from "../dominio/acta.ts";
+import type { Sala } from "../dominio/sala.ts";
 
 export type EstadoReunion = "borrador" | "grabando" | "analizando" | "listo" | "falló";
 
@@ -21,10 +22,27 @@ export type Reunion = {
   /** Soy el dueño, o me invitaron. Cambia lo que se puede hacer. */
   mia: boolean;
   puedo_editar: boolean;
+  /** El código para entrar. Null mientras la sala no se abra. */
+  codigo: string | null;
+  sala_abierta: boolean;
+  sala_abierta_en: string | null;
 };
+
+export type EnLaSala = { id: string; nombre: string; puede_editar: boolean };
+
+/**
+ * La reunión vista como sala, que es como la mira el dominio. Las columnas
+ * llevan el prefijo `sala_` porque viven en la fila de la reunión; el dominio
+ * no tiene por qué saber eso.
+ */
+export const comoSala = (
+  r: { sala_abierta: boolean; sala_abierta_en: string | null },
+): Sala => ({ abierta: r.sala_abierta, abierta_en: r.sala_abierta_en });
 
 /** La reunión con todo lo que salió de ella. */
 export type ReunionCompleta = Reunion & {
+  /** Quiénes entraron a la sala. Vacío si nadie más está. */
+  sala: EnLaSala[];
   documento: string | null;
   transcripcion: string | null;
   resumen: string;

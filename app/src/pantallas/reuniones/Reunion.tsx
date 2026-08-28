@@ -5,7 +5,10 @@ import {
 } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
-import { agregarTarea, marcarTarea, quienSoy, reunionPorId } from "../../lib/consultas.ts";
+import {
+  abrirSala, agregarTarea, cerrarSala, marcarTarea, quienSoy, reunionPorId,
+} from "../../lib/consultas.ts";
+import Sala from "./Sala.tsx";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { equipoDe } from "../../dominio/rubros.ts";
 import {
@@ -219,6 +222,12 @@ export default function Reunion({ route, navigation }: Props) {
           ))}
         </>
       ) : null}
+
+      <Sala
+        reunion={r}
+        abrir={async () => { await abrirSala(reunionId); recargar(); }}
+        cerrar={async () => { await cerrarSala(reunionId); recargar(); }}
+      />
 
       {r.participantes.length > 0 ? (
         <>

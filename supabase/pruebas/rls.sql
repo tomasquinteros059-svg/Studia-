@@ -668,4 +668,106 @@ delete from public.invitados_reunion where persona_id = auth.uid();
 select pg_temp.afirmar('el invitado puede irse solo',
   (select count(*) from reuniones where titulo = 'Asamblea extraordinaria')::int, 0);
 
-select '— también pasaron las pruebas de reuniones —' as resultado;
+-- ============================ la sala =================================
+-- Uno graba, los demás entran con un código. Lo interesante es que quien va
+-- a entrar todavía no ve la reunión: entra a ciegas y la función es lo único
+-- que la mira por dentro.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000001';
+
+do $$
+declare v_reunion uuid;
+begin
+  select id into v_reunion from public.reuniones where titulo = 'Asamblea extraordinaria';
+  update public.reuniones set codigo = 'ACD234', sala_abierta = true where id = v_reunion;
+  raise notice 'ok · el dueño abre la sala';
+end $$;
+
+select pg_temp.afirmar('abrir la sala deja la hora sola',
+  (select count(*) from reuniones where sala_abierta and sala_abierta_en is not null)::int, 1);
+
+-- Un código con letras que se confunden al dictarlo no entra ni a la fuerza.
+do $$
+begin
+  update public.reuniones set codigo = 'ABC0IL' where titulo = 'Asamblea extraordinaria';
+  raise exception 'FALLA · aceptó un código con letras que se confunden al dictarlo';
+exception when check_violation then
+  raise notice 'ok · el código no admite las letras que se confunden';
+end $$;
+
+-- Alguien de afuera, que no ve nada.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000003';
+select pg_temp.afirmar('antes de entrar no ve la reunión',
+  (select count(*) from reuniones)::int, 0);
+
+select pg_temp.afirmar('un código que no existe no dice nada',
+  (select public.entrar_con_codigo('XXXXXX')), null::uuid);
+
+do $$
+declare v_id uuid;
+begin
+  v_id := public.entrar_con_codigo('acd 234');
+  if v_id is null then
+    raise exception 'FALLA · no lo dejó entrar con el código bien escrito';
+  end if;
+  raise notice 'ok · entra con el código, aunque lo escriba en minúsculas y con espacio';
+end $$;
+
+select pg_temp.afirmar('ahora sí ve la reunión',
+  (select count(*) from reuniones where titulo = 'Asamblea extraordinaria')::int, 1);
+select pg_temp.afirmar('y ve el acuerdo de la reunión, que es a lo que venía',
+  (select count(*) from tareas_reunion)::int, 1);
+
+-- Entra de lectura: la sala no reparte permiso de escritura.
+do $$
+declare v_tocadas int;
+begin
+  update public.tareas_reunion set lista = true where lista = false;
+  get diagnostics v_tocadas = row_count;
+  if v_tocadas > 0 then
+    raise exception 'FALLA · quien entró por la sala pudo marcar tareas';
+  end if;
+  raise notice 'ok · quien entra por la sala entra de lectura';
+end $$;
+
+-- Entrar dos veces no duplica.
+select public.entrar_con_codigo('ACD234');
+select pg_temp.afirmar('entrar dos veces no lo anota dos veces',
+  (select count(*) from invitados_reunion
+    where persona_id = 'f0000000-0000-4000-8000-000000000003')::int, 1);
+
+-- La lista de la sala trae nombres, y solo a quien está en ella.
+select pg_temp.afirmar('ve quiénes están en la sala',
+  (select count(*) from public.gente_de_la_sala(
+    (select id from reuniones where titulo = 'Asamblea extraordinaria')))::int, 1);
+
+-- El dueño cierra la sala y el código deja de servir.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000001';
+update public.reuniones set sala_abierta = false where codigo = 'ACD234';
+select pg_temp.afirmar('cerrar la sala borra la hora de apertura',
+  (select count(*) from reuniones where sala_abierta_en is not null)::int, 0);
+
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('con la sala cerrada el código ya no sirve',
+  (select public.entrar_con_codigo('ACD234')), null::uuid);
+
+-- Y una sala que quedó abierta hace más de doce horas tampoco.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000001';
+update public.reuniones set sala_abierta = true where codigo = 'ACD234';
+update public.reuniones set sala_abierta_en = now() - interval '13 hours' where codigo = 'ACD234';
+
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('un código de ayer ya no abre nada',
+  (select public.entrar_con_codigo('ACD234')), null::uuid);
+
+-- Nadie puede darse acceso escribiendo el código a mano en la tabla.
+do $$
+begin
+  update public.reuniones set sala_abierta = true, codigo = 'WWWWWW'
+   where codigo = 'ACD234';
+  if found then
+    raise exception 'FALLA · alguien que no es el dueño le cambió el código a la sala';
+  end if;
+  raise notice 'ok · el código de la sala es del dueño';
+end $$;
+
+select '— también pasaron las pruebas de reuniones y de la sala —' as resultado;

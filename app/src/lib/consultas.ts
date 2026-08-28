@@ -17,6 +17,10 @@ export const crearReunion = fuente.crearReunion;
 export const borrarReunion = fuente.borrarReunion;
 export const analizarReunion = fuente.analizarReunion;
 
+export const abrirSala = fuente.abrirSala;
+export const cerrarSala = fuente.cerrarSala;
+export const entrarConCodigo = fuente.entrarConCodigo;
+
 export const misTareasDeTodas = fuente.misTareasDeTodas;
 export const marcarTarea = fuente.marcarTarea;
 export const agregarTarea = fuente.agregarTarea;

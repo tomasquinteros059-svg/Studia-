@@ -23,6 +23,9 @@ export const REUNION: Reunion = {
   tabla: ["Ascensores", "Gastos comunes", "Renovación del seguro"],
   mia: true,
   puedo_editar: true,
+  codigo: null,
+  sala_abierta: false,
+  sala_abierta_en: null,
 };
 
 export const REUNION_2: Reunion = {
@@ -48,6 +51,7 @@ export const TAREA_EN_EL_AIRE = tarea({
 
 export const COMPLETA: ReunionCompleta = {
   ...REUNION,
+  sala: [],
   documento: null,
   transcripcion: null,
   resumen: "Se trató la mantención de los ascensores y se revisaron los gastos comunes.",

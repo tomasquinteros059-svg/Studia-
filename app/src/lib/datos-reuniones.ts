@@ -11,8 +11,11 @@
 
 import type * as Real from "./reuniones-supabase.ts";
 import type { Rubro } from "../dominio/rubros.ts";
+import { normalizarCodigo, nuevoCodigo, sePuedeEntrar } from "../dominio/sala.ts";
 import type { Acuerdo, Pendiente, Tarea } from "../dominio/acta.ts";
-import type { Reunion, ReunionCompleta, ReunionNueva, TareaConReunion } from "./tipos-reunion.ts";
+import {
+  comoSala, type Reunion, type ReunionCompleta, type ReunionNueva, type TareaConReunion,
+} from "./tipos-reunion.ts";
 
 const ahora = Date.now();
 const enDias = (d: number) => new Date(ahora + d * 86_400_000).toISOString();
@@ -41,6 +44,14 @@ const SEMILLAS: Semilla[] = [
     duracion_seg: 4920,
     participantes: ["Marta Vega (administración)", "Luis Pinto (comité)", "Sonia Cerda (comité)", "18 copropietarios"],
     tabla: ["Mantención de ascensores", "Gastos comunes de marzo", "Morosidad", "Renovación del seguro"],
+    // Esta nace con la sala abierta y gente adentro: es el caso que hay que
+    // poder ver sin tener que armarlo a mano.
+    codigo: "KRD497", sala_abierta: true, sala_abierta_en: enDias(-2),
+    sala: [
+      { id: "p-luis", nombre: "Luis Pinto", puede_editar: true },
+      { id: "p-sonia", nombre: "Sonia Cerda", puede_editar: false },
+      { id: "p-jorge", nombre: "Jorge Ampuero", puede_editar: false },
+    ],
     documento: null,
     transcripcion: null,
     resumen:
@@ -79,6 +90,7 @@ const SEMILLAS: Semilla[] = [
     duracion_seg: 3480,
     participantes: ["Rodrigo Salas (ITO)", "Carla Núñez (jefa de obra)", "Pedro Lagos (clima)", "Fernanda Díaz (eléctrica)"],
     tabla: ["Avance de la semana", "Interferencias", "RDI abiertas", "Estados de pago", "Seguridad"],
+    codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
     documento: null,
     transcripcion: null,
     resumen:
@@ -117,6 +129,7 @@ const SEMILLAS: Semilla[] = [
     duracion_seg: 2760,
     participantes: ["Ana Ríos (socia)", "Ignacio Soto (asociado)", "Cliente"],
     tabla: ["Estado de la posesión efectiva", "Inventario de bienes", "Honorarios"],
+    codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
     documento: null,
     transcripcion: null,
     resumen:
@@ -149,6 +162,7 @@ const SEMILLAS: Semilla[] = [
     duracion_seg: 3900,
     participantes: ["Paula Vergara", "Diego Fuentes", "Matías Leiva"],
     tabla: ["Cierre de marzo", "Dotación", "Proveedor de logística", "Presupuesto de abril"],
+    codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
     documento: null,
     transcripcion: null,
     resumen:
@@ -204,7 +218,8 @@ const conPermisos = (r: Semilla): ReunionCompleta =>
 const sinDetalle = (r: ReunionCompleta): Reunion => {
   const {
     documento: _d, transcripcion: _t, resumen: _r, acuerdos: _a, tareas: _ta,
-    pendientes: _p, sinTratar: _s, aportes: _ap, contradicciones: _c, ...cabecera
+    pendientes: _p, sinTratar: _s, aportes: _ap, contradicciones: _c,
+    sala: _sa, ...cabecera
   } = r;
   return cabecera;
 };
@@ -234,6 +249,7 @@ export async function crearReunion(nueva: ReunionNueva): Promise<Reunion> {
     duracion_seg: null,
     participantes: nueva.participantes,
     tabla: nueva.tabla,
+    codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
     documento: null, transcripcion: null, resumen: "",
     acuerdos: [], tareas: [], pendientes: [],
     sinTratar: [], aportes: [], contradicciones: [],
@@ -305,11 +321,41 @@ export async function analizarReunion(reunionId: string, transcripcion: string):
   r.contradicciones = [];
 }
 
+/* --------------------------------------------------------------- la sala */
+
+export async function abrirSala(reunionId: string): Promise<string> {
+  await dormir();
+  const r = REUNIONES.find((x) => x.id === reunionId);
+  if (!r) throw new Error("Esa reunión ya no existe.");
+  r.codigo = nuevoCodigo();
+  r.sala_abierta = true;
+  r.sala_abierta_en = new Date().toISOString();
+  return r.codigo;
+}
+
+export async function cerrarSala(reunionId: string): Promise<void> {
+  const r = REUNIONES.find((x) => x.id === reunionId);
+  if (!r) return;
+  r.sala_abierta = false;
+  r.sala_abierta_en = null;
+}
+
+export async function entrarConCodigo(escrito: string): Promise<string | null> {
+  await dormir();
+  const codigo = normalizarCodigo(escrito);
+  if (codigo === null) return null;
+
+  const r = REUNIONES.find((x) => x.codigo === codigo);
+  if (!r || !sePuedeEntrar(comoSala(r))) return null;
+  return r.id;
+}
+
 // Si en `reuniones-supabase.ts` aparece una consulta nueva, esto deja de
 // compilar hasta que exista también acá.
 const _cobertura: typeof Real = {
   quienSoy, miPerfil, cambiarNombre, misReuniones, reunionPorId, crearReunion,
   borrarReunion, analizarReunion, misTareasDeTodas, marcarTarea, agregarTarea,
+  abrirSala, cerrarSala, entrarConCodigo,
 };
 void _cobertura;
 
