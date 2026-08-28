@@ -6,6 +6,7 @@ import { cambiarNombre, miPerfil } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { supabase } from "../lib/supabase.ts";
 import { MODO_DEMO } from "../lib/config.ts";
+import { salir } from "../lib/perfiles-demo.ts";
 
 export default function Perfil() {
   const { datos, cargando, error, recargar } = usarCarga(miPerfil, []);
@@ -57,19 +58,21 @@ export default function Perfil() {
         ) : null}
       </View>
 
-      {MODO_DEMO ? null : (
-        <>
-          <Encabezado texto="Sesión" />
-          <View style={{ paddingHorizontal: espacio.m }}>
-            <Boton texto="Cerrar sesión" variante="suave" onPress={() => supabase.auth.signOut()} />
-          </View>
-        </>
-      )}
+      <Encabezado texto="Sesión" />
+      <View style={{ paddingHorizontal: espacio.m }}>
+        <Boton texto="Cerrar sesión" variante="suave" onPress={() => supabase.auth.signOut()} />
+      </View>
 
       <Text style={e.pie}>
-        Tus reuniones son tuyas. Nadie más las ve —ni una jefatura, ni la
-        administración— hasta que compartas una con alguien.
+        Tu correo no se guarda en la base de datos de la app: sale de tu sesión.
+        Nadie más puede verlo.
       </Text>
+
+      {MODO_DEMO ? (
+        <View style={{ paddingHorizontal: espacio.l, paddingBottom: espacio.l }}>
+          <Boton texto="Cambiar de perfil" onPress={salir} />
+        </View>
+      ) : null}
     </Pantalla>
   );
 }

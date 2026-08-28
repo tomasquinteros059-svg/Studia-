@@ -1,0 +1,6 @@
+codigo,modulo,orden_modulo,tipo,titulo,detalle,orden,lectura,url
+MAT1610,1 · Límites y continuidad,1,video,Idea intuitiva de límite,Video · 14 min,1,,https://ejemplo.cl/video-limites
+MAT1610,1 · Límites y continuidad,1,documento,Apunte: límites laterales,Lectura · 4 min,2,limites-laterales.txt,
+MAT1610,1 · Límites y continuidad,1,ejercicios,Ejercicios 1.1 resueltos,12 ítems,3,,https://ejemplo.cl/guia-1-1
+MAT1610,2 · La derivada,2,documento,Formulario de derivadas,Lectura · 3 min,1,formulario-derivadas.txt,
+FIS1503,2 · Dinámica,1,documento,Apunte: roce estático y cinético,Lectura · 4 min,1,roce.txt,

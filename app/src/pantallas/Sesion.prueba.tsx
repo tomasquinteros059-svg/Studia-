@@ -32,10 +32,10 @@ const escribirCorreo = async (t: Awaited<ReturnType<typeof abrir>>, correo: stri
   await act(async () => { fireEvent.changeText(t.getByLabelText("Correo"), correo); });
 };
 
-describe("entrar a Acta", () => {
+describe("entrar a StudIA", () => {
   test("la bienvenida no pide nada todavía", async () => {
     const t = await render(<Sesion />);
-    expect(t.getByText("Acta")).toBeTruthy();
+    expect(t.getByText("StudIA")).toBeTruthy();
     expect(t.queryByLabelText("Contraseña")).toBeNull();
   });
 
@@ -45,16 +45,22 @@ describe("entrar a Acta", () => {
     expect(t.queryByLabelText("Contraseña")).toBeNull();
   });
 
-  test("un correo bien escrito no levanta ninguna alarma", async () => {
+  test("a un correo cualquiera le explica que entra por su cuenta", async () => {
     const t = await abrir();
     await escribirCorreo(t, "alguien@gmail.com");
-    expect(t.queryByText(/no se ve completo/)).toBeNull();
+    expect(t.getByText(/armas tus propios ramos/)).toBeTruthy();
+  });
+
+  test("a un correo institucional lo reconoce por su nombre", async () => {
+    const t = await abrir();
+    await escribirCorreo(t, "eduardo@alumnos.uc.cl");
+    expect(t.getByText(/Pontificia Universidad Católica/)).toBeTruthy();
   });
 
   test("un correo mal escrito no deja continuar", async () => {
     const t = await abrir();
-    await escribirCorreo(t, "alguien");
-    expect(t.getByText(/no se ve completo/)).toBeTruthy();
+    await escribirCorreo(t, "eduardo");
+    expect(t.getByText(/no parece un correo/)).toBeTruthy();
     await act(async () => { fireEvent.press(t.getByText("Continuar")); });
     // Sigue en el mismo paso: no llegó a pedir la clave.
     expect(t.getByText("¿Cuál es tu correo?")).toBeTruthy();

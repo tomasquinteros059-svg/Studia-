@@ -42,21 +42,6 @@ export const ICONOS = {
   letra: "text-outline",
   cerrar: "close",
   lapiz: "create-outline",
-
-  // Los rubros y lo que sale de una reunión.
-  legal: "briefcase-outline",
-  edificios: "business-outline",
-  salud: "medkit-outline",
-  obras: "construct-outline",
-  gerencia: "people-outline",
-  aviso: "alert-circle-outline",
-  acuerdo: "checkmark-done-outline",
-  pendiente: "help-circle-outline",
-  idea: "bulb-outline",
-  chocan: "git-compare-outline",
-  equipo: "layers-outline",
-  grabar: "radio-button-on",
-  detener: "stop",
 } as const;
 
 export function Icono({

@@ -1,0 +1,13 @@
+El roce es la fuerza que aparece entre dos superficies en contacto y se opone al movimiento relativo entre ellas. Siempre actúa a lo largo de la superficie, nunca perpendicular a ella, y su dirección se determina preguntándose hacia dónde se movería el cuerpo si el roce no existiera.
+
+Hay dos regímenes distintos y confundirlos es el error central del capítulo. El roce estático actúa mientras el cuerpo no se mueve, y no tiene un valor fijo: vale exactamente lo necesario para impedir el movimiento, hasta un máximo. El roce cinético actúa cuando el cuerpo ya está deslizando, y ahí sí tiene un valor definido.
+
+El máximo del roce estático es el coeficiente estático por la fuerza normal. Mientras la fuerza aplicada sea menor que ese máximo, el cuerpo no se mueve y el roce iguala a la fuerza aplicada. Cuando la fuerza aplicada supera ese máximo, el cuerpo se suelta y el roce pasa a ser el cinético, que es el coeficiente cinético por la normal.
+
+El coeficiente cinético es menor que el estático en casi todos los materiales. Por eso cuesta más empezar a empujar un mueble que seguir empujándolo, y por eso el cuerpo acelera de golpe justo después de soltarse.
+
+Sobre la normal hay que tener cuidado. En un plano horizontal sin fuerzas verticales extras, la normal es el peso. En un plano inclinado, la normal es el peso por el coseno del ángulo, no el peso. Y si alguien empuja hacia abajo o tira hacia arriba, la normal cambia y el roce cambia con ella.
+
+En un plano inclinado el cuerpo empieza a deslizar cuando la tangente del ángulo iguala al coeficiente estático. Es un resultado útil porque la masa se cancela: el ángulo al que un objeto se suelta no depende de cuánto pesa, cosa que en el laboratorio sorprende a todo el mundo.
+
+Al hacer el diagrama de cuerpo libre conviene poner los ejes paralelo y perpendicular al plano, no horizontal y vertical. Descomponer el peso una vez es mucho más corto que descomponer la normal y el roce por separado.

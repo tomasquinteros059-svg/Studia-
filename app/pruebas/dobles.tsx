@@ -1,105 +1,111 @@
 // Datos y dobles compartidos por las pruebas de pantalla.
 
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 import { act, render } from "@testing-library/react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import type { Tarea } from "../src/dominio/acta.ts";
-import type { Reunion, ReunionCompleta, TareaConReunion } from "../src/lib/tipos-reunion.ts";
+
+export const RAMO = {
+  id: "r-cal", codigo: "MAT1610", nombre: "Cálculo I", profesor: "Ana Ríos",
+  ayudante: "Ignacio Soto", color: "#208AEF", creditos: 10,
+  descripcion: "Cálculo diferencial en una variable.",
+  requisitos: "Álgebra de enseñanza media",
+  bibliografia: ["Stewart, J. — Cálculo"],
+  intro_tutor: "Cuéntame en qué problema estás.",
+  propio: false,
+};
+
+export const RAMO_2 = {
+  ...RAMO, id: "r-fis", codigo: "FIS1503", nombre: "Física I",
+  profesor: "Carla Núñez", color: "#C9701C", creditos: 10,
+  intro_tutor: "Partamos por el diagrama de cuerpo libre.",
+};
 
 const enDias = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString();
-export const dia = (d: number) => enDias(d).slice(0, 10);
 
-export const YO = "Marta Vega";
-
-export const REUNION: Reunion = {
-  id: "r-1",
-  titulo: "Asamblea extraordinaria · Torre B",
-  rubro: "edificios",
-  estado: "listo",
-  ocurrio_en: enDias(-2),
-  duracion_seg: 4920,
-  participantes: ["Marta Vega", "Luis Pinto"],
-  tabla: ["Ascensores", "Gastos comunes", "Renovación del seguro"],
-  mia: true,
-  puedo_editar: true,
-  codigo: null,
-  sala_abierta: false,
-  sala_abierta_en: null,
-  programada_para: null,
-  repite: "nunca",
+export const TAREA_PENDIENTE = {
+  id: "t-1", asignatura_id: RAMO.id, titulo: "Guía 4 · Optimización",
+  enunciado: "Resuelve los 9 problemas.", criterios: ["El diagrama", "La función objetivo"],
+  puntos: 20, vence_en: enDias(3), entregada_en: null, puntos_obtenidos: null,
 };
 
-export const REUNION_2: Reunion = {
-  ...REUNION, id: "r-2", titulo: "Reunión de obra semanal",
-  rubro: "obras", ocurrio_en: enDias(-1),
+export const TAREA_ATRASADA = {
+  ...TAREA_PENDIENTE, id: "t-2", titulo: "Guía 2 · Planos", vence_en: enDias(-2),
 };
 
-export const tarea = (p: Partial<Tarea> & { id: string }): Tarea => ({
-  que: "Pedir tres cotizaciones", responsable: YO, plazo: dia(4),
-  prioridad: "normal", acuerdo: 1, lista: false, ...p,
-});
+export const TAREA_ENTREGADA = {
+  ...TAREA_PENDIENTE, id: "t-3", titulo: "Control 2", vence_en: enDias(-10),
+  entregada_en: enDias(-11), puntos_obtenidos: 27,
+};
 
-export const TAREA_MIA = tarea({ id: "t-1" });
-export const TAREA_VENCIDA = tarea({
-  id: "t-2", que: "Enviar el acta firmada", plazo: dia(-3),
-});
-export const TAREA_AJENA = tarea({
-  id: "t-3", que: "Revisar la póliza", responsable: "Luis Pinto",
-});
-export const TAREA_EN_EL_AIRE = tarea({
-  id: "t-4", que: "Preparar el detalle de morosidad", responsable: null, plazo: null,
-});
+export const BLOQUE = {
+  id: "b-1", asignatura_id: RAMO.id, dia: ((new Date().getDay() + 6) % 7) + 1,
+  hora_inicio: "08:30:00", hora_fin: "10:00:00", sala: "A-201", tipo: "Cátedra",
+};
 
-export const COMPLETA: ReunionCompleta = {
-  ...REUNION,
-  sala: [],
-  documento: null,
-  transcripcion: null,
-  resumen: "Se trató la mantención de los ascensores y se revisaron los gastos comunes.",
-  acuerdos: [
-    { numero: 1, texto: "Se aprueba la mantención mayor con cargo al fondo de reserva.", firme: true },
-    { numero: 2, texto: "Se evaluará subir la cuota del fondo de reserva.", firme: false },
+export const CLASE_VIVA = {
+  id: "c-viva", asignatura_id: RAMO.id, titulo: "Teorema del valor medio",
+  estado: "en_vivo" as const, inicia_en: new Date(Date.now() - 720_000).toISOString(),
+  duracion_seg: null, audio_url: null,
+};
+
+export const CLASE_GRABADA = {
+  id: "c-grab", asignatura_id: RAMO.id, titulo: "Clase 12 · L'Hôpital",
+  estado: "grabada" as const, inicia_en: enDias(-5), duracion_seg: 3840, audio_url: null,
+};
+
+export const MODULO = {
+  id: "m-1", titulo: "1 · Límites", orden: 1,
+  materiales: [
+    { id: "mat-1", tipo: "video" as const, titulo: "Idea de límite", detalle: "Video · 14 min", orden: 1, completado: true, leible: false },
+    { id: "mat-2", tipo: "documento" as const, titulo: "Apunte de límites", detalle: "Lectura · 4 min", orden: 2, completado: false, leible: true },
   ],
-  tareas: [TAREA_MIA, TAREA_VENCIDA, TAREA_AJENA, TAREA_EN_EL_AIRE],
-  pendientes: [{ texto: "Adjudicar la mantención", porque: "faltan dos cotizaciones" }],
-  sinTratar: ["Renovación del seguro"],
-  aportes: ["Llevar el detalle de morosidad por unidad."],
-  contradicciones: ["El monto del fondo de reserva: dos cifras distintas."],
 };
 
-export const conReunion = (t: Tarea, r: Reunion = REUNION): TareaConReunion =>
-  ({ ...t, reunion_id: r.id, reunion: r.titulo, rubro: r.rubro });
+/** Un ramo que armó la propia persona: no tiene curso, ni foro, ni notas. */
+export const RAMO_PROPIO = {
+  ...RAMO, id: "r-mio", codigo: "MIS-INGLES", nombre: "Inglés",
+  profesor: "Por tu cuenta", ayudante: null, creditos: 1,
+  descripcion: null, requisitos: null, bibliografia: [],
+  intro_tutor: "¿En qué parte de Inglés estás? Cuéntame qué intentaste.",
+  propio: true,
+};
 
-export const TAREAS: TareaConReunion[] = [
-  conReunion(TAREA_MIA), conReunion(TAREA_VENCIDA),
-  conReunion(TAREA_AJENA), conReunion(TAREA_EN_EL_AIRE),
+export const EVALUACIONES = [
+  { id: "e-1", titulo: "Control 1", peso: 30, orden: 1, nota: 6.2 },
+  { id: "e-2", titulo: "Examen", peso: 70, orden: 2, nota: null },
 ];
 
-/**
- * Los márgenes del sistema que se le dan a una pantalla en las pruebas.
- *
- * Con valores de verdad y no en cero: la aplicación dibuja de borde a borde
- * en Android, y una prueba con márgenes en cero no vería nunca el error de
- * un botón que queda debajo de la barra de gestos.
- */
-export const MARGENES = {
-  frame: { x: 0, y: 0, width: 390, height: 844 },
-  insets: { top: 47, left: 0, right: 0, bottom: 34 },
+export const HILO = {
+  id: "h-1", asignatura_id: RAMO.id, autor_nombre: "Ana Ríos", autor_rol: "Profesora",
+  titulo: "Sala del control", cuerpo: "Se rinde en la A-301.", fijado: true,
+  creado_en: enDias(-1), respuestas: 2,
 };
 
-/** El envoltorio que la aplicación pone arriba de todo. */
-export function ConMargenes({ children }: { children: ReactNode }) {
-  return <SafeAreaProvider initialMetrics={MARGENES}>{children}</SafeAreaProvider>;
-}
+export const NOTIFICACION = {
+  id: "n-1", tipo: "tarea" as const, titulo: "Guía 2 vence mañana",
+  detalle: "Independencia lineal", asignatura_id: RAMO.id,
+  ref_tipo: "tarea" as const, ref_id: TAREA_PENDIENTE.id, leida: false, creado_en: enDias(0),
+};
 
-/** Una navegación de mentira, con los métodos que las pantallas usan. */
+export const APUNTE = {
+  id: "a-1", asignatura_id: RAMO.id, clase_id: null, titulo: "Clase del valor medio",
+  contenido: "El teorema dice que existe un c en (a,b) tal que la derivada es la pendiente media.",
+  fijado: false, actualizado_en: enDias(-1),
+};
+
+export const LECTURA = {
+  id: "mat-2", titulo: "Apunte de límites", asignatura_id: RAMO.id,
+  asignatura_nombre: RAMO.nombre,
+  texto: "Un límite lateral se acerca por un lado. La regla es simple.\n\nEl escalón no tiene límite en cero.",
+};
+
+/** Navegación de mentira: registra a dónde se quiso ir. */
 export function navegacionFalsa() {
   return {
     navigate: jest.fn(),
-    replace: jest.fn(),
     goBack: jest.fn(),
+    replace: jest.fn(),
     setOptions: jest.fn(),
     push: jest.fn(),
     addListener: jest.fn(() => jest.fn()),
@@ -119,21 +125,15 @@ export async function renderPantalla(
 ) {
   const navigation = navegacionFalsa();
   const Suelta = Pantalla as ComponentType<Record<string, unknown>>;
-  const vista = await render(
-    <ConMargenes>
-      <Suelta navigation={navigation} route={{ key: "k", name: "X", params }} />
-    </ConMargenes>,
+  const elemento = (
+    <Suelta navigation={navigation} route={{ key: "k", name: "X", params }} />
   );
+  const vista = await render(elemento);
   // Deja que la carga inicial de datos asiente antes de devolver la pantalla:
   // si no, React avisa por cada actualización de estado fuera de `act`.
   await act(async () => { await Promise.resolve(); });
-  return Object.assign(vista, { navigation });
+  return { ...vista, navigation };
 }
-
-/** Los manejadores son asíncronos: sin esto, el estado cambia fuera de `act`. */
-export const tocar = async (hacer: () => void) => {
-  await act(async () => { hacer(); await Promise.resolve(); });
-};
 
 /**
  * Renderiza una pantalla dentro de un navegador de verdad. Hace falta cuando la
@@ -146,12 +146,10 @@ export async function renderConNavegador(
 ) {
   const Pila = createNativeStackNavigator();
   return render(
-    <ConMargenes>
-      <NavigationContainer>
-        <Pila.Navigator>
-          <Pila.Screen name="Prueba" component={Pantalla as never} initialParams={params} />
-        </Pila.Navigator>
-      </NavigationContainer>
-    </ConMargenes>,
+    <NavigationContainer>
+      <Pila.Navigator>
+        <Pila.Screen name="Prueba" component={Pantalla as never} initialParams={params} />
+      </Pila.Navigator>
+    </NavigationContainer>,
   );
 }
