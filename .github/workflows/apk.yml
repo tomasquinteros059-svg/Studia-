@@ -65,6 +65,27 @@ jobs:
       # arm64, que es lo que usa cualquier tablet o teléfono de los últimos
       # años. El segundo las trae todas y queda como red de seguridad para un
       # aparato viejo o un Chromebook con procesador Intel.
+      # Entre una compilación y otra hay que dejar el proyecto limpio, y
+      # `gradlew clean` no sirve para eso: su tarea de C++ borra el código
+      # generado de las dependencias y deja la caché de CMake apuntando a
+      # carpetas que ya no existen. La segunda vez que se ejecuta, revienta
+      # con "add_subdirectory given source ... which is not an existing
+      # directory". Borrar las carpetas a mano no tiene ese problema: no
+      # queda ninguna caché que pueda quedar desincronizada.
+      - name: Preparar el limpiador entre compilaciones
+        working-directory: app/android
+        run: |
+          cat > limpiar.sh <<'FIN'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          rm -rf app/build app/.cxx build
+          # El código nativo que generan las dependencias se rehace solo en
+          # la compilación siguiente; lo que no se rehace es la caché que lo
+          # apunta, así que se va con lo demás.
+          find ../node_modules -maxdepth 4 -type d -name .cxx -exec rm -rf {} + 2>/dev/null || true
+          FIN
+          chmod +x limpiar.sh
+
       - name: Compilar el APK para arm64
         working-directory: app/android
         run: |
@@ -81,7 +102,8 @@ jobs:
       - name: Compilar el APK liviano
         working-directory: app/android
         run: |
-          ./gradlew clean assembleRelease --no-daemon \
+          ./limpiar.sh
+          ./gradlew assembleRelease --no-daemon \
             -PreactNativeArchitectures=arm64-v8a \
             -Pandroid.enableMinifyInReleaseBuilds=true \
             -Pandroid.enableShrinkResourcesInReleaseBuilds=true
@@ -90,7 +112,8 @@ jobs:
       - name: Compilar el APK universal
         working-directory: app/android
         run: |
-          ./gradlew clean assembleRelease --no-daemon
+          ./limpiar.sh
+          ./gradlew assembleRelease --no-daemon
           cp app/build/outputs/apk/release/*.apk ../../entrega/Acta-universal.apk
 
       - name: Cuánto pesa cada uno
