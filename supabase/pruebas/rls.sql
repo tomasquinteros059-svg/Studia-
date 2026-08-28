@@ -770,4 +770,46 @@ begin
   raise notice 'ok · el código de la sala es del dueño';
 end $$;
 
-select '— también pasaron las pruebas de reuniones y de la sala —' as resultado;
+-- =========================== la agenda ================================
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000001';
+
+do $$
+begin
+  update public.reuniones
+     set programada_para = now() + interval '1 day', repite = 'cada_semana'
+   where titulo = 'Asamblea extraordinaria';
+  raise notice 'ok · agenda su reunión para que se repita';
+end $$;
+
+do $$
+begin
+  update public.reuniones set repite = 'dias_de_semana', programada_para = null
+   where titulo = 'Asamblea extraordinaria';
+  raise exception 'FALLA · aceptó repetir algo que no tiene fecha de inicio';
+exception when check_violation then
+  raise notice 'ok · repetir sin fecha de inicio no significa nada, y no se acepta';
+end $$;
+
+-- Quien entró por la sala sí ve cuándo se repite: es la reunión a la que
+-- pertenece. Lo que no puede es cambiarle la agenda al dueño.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000003';
+select pg_temp.afirmar('el invitado ve cuándo se repite la reunión',
+  (select count(*) from reuniones where programada_para is not null)::int, 1);
+
+do $$
+declare v_tocadas int;
+begin
+  update public.reuniones set programada_para = now() + interval '5 days';
+  get diagnostics v_tocadas = row_count;
+  if v_tocadas > 0 then
+    raise exception 'FALLA · un invitado le movió la agenda al dueño';
+  end if;
+  raise notice 'ok · el invitado no le mueve la agenda al dueño';
+end $$;
+
+-- Y alguien de afuera no ve nada, ni la agenda ni la reunión.
+set pruebas.uid = 'f0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('quien no está en la reunión no ve su agenda',
+  (select count(*) from reuniones where programada_para is not null)::int, 0);
+
+select '— también pasaron las pruebas de reuniones, la sala y la agenda —' as resultado;

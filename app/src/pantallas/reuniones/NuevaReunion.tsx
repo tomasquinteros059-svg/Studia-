@@ -8,6 +8,8 @@ import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import { EQUIPOS, equipoDe, type Rubro } from "../../dominio/rubros.ts";
 import type { ReunionNueva } from "../../lib/tipos-reunion.ts";
+import { SIN_AGENDA, type Agenda } from "../../dominio/agenda.ts";
+import Agendar from "./Agendar.tsx";
 
 /**
  * El encabezado de la reunión, antes de grabar.
@@ -28,10 +30,12 @@ export default function NuevaReunion({
   const [rubro, setRubro] = useState<Rubro | null>(null);
   const [participantes, setParticipantes] = useState("");
   const [tabla, setTabla] = useState("");
+  const [agenda, setAgenda] = useState<Agenda>(SIN_AGENDA);
   const [ocupado, setOcupado] = useState(false);
 
   const limpiar = () => {
-    setTitulo(""); setRubro(null); setParticipantes(""); setTabla(""); setOcupado(false);
+    setTitulo(""); setRubro(null); setParticipantes(""); setTabla("");
+    setAgenda(SIN_AGENDA); setOcupado(false);
   };
 
   const sePuede = titulo.trim().length > 0 && rubro !== null && !ocupado;
@@ -45,6 +49,8 @@ export default function NuevaReunion({
         rubro,
         participantes: enLineas(participantes),
         tabla: enLineas(tabla),
+        programada_para: agenda.programada_para,
+        repite: agenda.repite,
       });
       limpiar();
       cerrar();
@@ -140,8 +146,10 @@ export default function NuevaReunion({
             accessibilityLabel="Tabla de la reunión"
           />
 
+          <Agendar agenda={agenda} cambiar={setAgenda} />
+
           <Boton
-            texto={ocupado ? "Creando…" : "Empezar"}
+            texto={ocupado ? "Creando…" : agenda.programada_para ? "Agendar" : "Empezar"}
             onPress={() => void enviar()}
             deshabilitado={!sePuede}
           />

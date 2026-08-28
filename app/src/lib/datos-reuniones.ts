@@ -48,6 +48,7 @@ const SEMILLAS: Semilla[] = [
     // La asamblea fue hace dos días: su sala ya caducó, con tres personas
     // adentro. Es el estado en que queda una sala la mayor parte del tiempo.
     codigo: "KRD497", sala_abierta: false, sala_abierta_en: null,
+    programada_para: null, repite: "nunca",
     sala: [
       { id: "p-luis", nombre: "Luis Pinto", puede_editar: true },
       { id: "p-sonia", nombre: "Sonia Cerda", puede_editar: false },
@@ -94,6 +95,8 @@ const SEMILLAS: Semilla[] = [
     // Esta es de hace un rato y su sala sigue abierta: es el único estado en
     // que se puede recorrer el flujo entero sin tener que armarlo a mano.
     codigo: "TWQ863", sala_abierta: true, sala_abierta_en: haceHoras(3),
+    // La de obra es semanal: es el caso que justifica agendar.
+    programada_para: haceHoras(3), repite: "cada_semana",
     sala: [{ id: "p-pedro", nombre: "Pedro Lagos", puede_editar: false }],
     documento: null,
     transcripcion: null,
@@ -134,6 +137,7 @@ const SEMILLAS: Semilla[] = [
     participantes: ["Ana Ríos (socia)", "Ignacio Soto (asociado)", "Cliente"],
     tabla: ["Estado de la posesión efectiva", "Inventario de bienes", "Honorarios"],
     codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
+    programada_para: null, repite: "nunca",
     documento: null,
     transcripcion: null,
     resumen:
@@ -167,6 +171,7 @@ const SEMILLAS: Semilla[] = [
     participantes: ["Paula Vergara", "Diego Fuentes", "Matías Leiva"],
     tabla: ["Cierre de marzo", "Dotación", "Proveedor de logística", "Presupuesto de abril"],
     codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
+    programada_para: null, repite: "nunca",
     documento: null,
     transcripcion: null,
     resumen:
@@ -254,12 +259,24 @@ export async function crearReunion(nueva: ReunionNueva): Promise<Reunion> {
     participantes: nueva.participantes,
     tabla: nueva.tabla,
     codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
+    programada_para: nueva.programada_para ?? null,
+    repite: nueva.repite ?? "nunca",
     documento: null, transcripcion: null, resumen: "",
     acuerdos: [], tareas: [], pendientes: [],
     sinTratar: [], aportes: [], contradicciones: [],
   };
   REUNIONES.unshift(semilla);
   return sinDetalle(conPermisos(semilla));
+}
+
+export async function agendar(
+  reunionId: string, programada_para: string | null, repite: Reunion["repite"],
+): Promise<void> {
+  await dormir();
+  const r = REUNIONES.find((x) => x.id === reunionId);
+  if (!r) throw new Error("Esa reunión ya no existe.");
+  r.programada_para = programada_para;
+  r.repite = programada_para === null ? "nunca" : repite;
 }
 
 export async function borrarReunion(id: string): Promise<void> {
@@ -359,7 +376,7 @@ export async function entrarConCodigo(escrito: string): Promise<string | null> {
 const _cobertura: typeof Real = {
   quienSoy, miPerfil, cambiarNombre, misReuniones, reunionPorId, crearReunion,
   borrarReunion, analizarReunion, misTareasDeTodas, marcarTarea, agregarTarea,
-  abrirSala, cerrarSala, entrarConCodigo,
+  abrirSala, cerrarSala, entrarConCodigo, agendar,
 };
 void _cobertura;
 

@@ -7,6 +7,7 @@
 import type { Rubro } from "../dominio/rubros.ts";
 import type { Acuerdo, Pendiente, Tarea } from "../dominio/acta.ts";
 import type { Sala } from "../dominio/sala.ts";
+import type { Agenda, Repeticion } from "../dominio/agenda.ts";
 
 export type EstadoReunion = "borrador" | "grabando" | "analizando" | "listo" | "falló";
 
@@ -26,6 +27,9 @@ export type Reunion = {
   codigo: string | null;
   sala_abierta: boolean;
   sala_abierta_en: string | null;
+  /** Cuándo empieza y cada cuánto se repite. Sin agendar, null y "nunca". */
+  programada_para: string | null;
+  repite: Repeticion;
 };
 
 export type EnLaSala = { id: string; nombre: string; puede_editar: boolean };
@@ -35,6 +39,11 @@ export type EnLaSala = { id: string; nombre: string; puede_editar: boolean };
  * llevan el prefijo `sala_` porque viven en la fila de la reunión; el dominio
  * no tiene por qué saber eso.
  */
+/** La reunión vista como agenda, por lo mismo que `comoSala`. */
+export const comoAgenda = (
+  r: { programada_para: string | null; repite: Repeticion },
+): Agenda => ({ programada_para: r.programada_para, repite: r.repite });
+
 export const comoSala = (
   r: { sala_abierta: boolean; sala_abierta_en: string | null },
 ): Sala => ({ abierta: r.sala_abierta, abierta_en: r.sala_abierta_en });
@@ -59,6 +68,9 @@ export type ReunionNueva = {
   rubro: Rubro;
   participantes: string[];
   tabla: string[];
+  /** Cuándo empieza, si se agendó. Null para grabar ahora mismo. */
+  programada_para?: string | null;
+  repite?: Repeticion;
 };
 
 /** Una tarea con de qué reunión salió, para la lista de todas mis tareas. */

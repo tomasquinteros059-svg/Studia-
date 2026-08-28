@@ -16,6 +16,7 @@ export const reunionPorId = fuente.reunionPorId;
 export const crearReunion = fuente.crearReunion;
 export const borrarReunion = fuente.borrarReunion;
 export const analizarReunion = fuente.analizarReunion;
+export const agendar = fuente.agendar;
 
 export const abrirSala = fuente.abrirSala;
 export const cerrarSala = fuente.cerrarSala;

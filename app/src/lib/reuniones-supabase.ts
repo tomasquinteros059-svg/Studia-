@@ -18,7 +18,7 @@ function reventar(queHacia: string, error: { message: string } | null): void {
 
 // En una sola línea a propósito: partida en dos con un `+`, Supabase deja de
 // inferir el tipo de la fila y todo lo que sigue queda en `any` disfrazado.
-const CABECERA = "id, titulo, rubro, estado, ocurrio_en, duracion_seg, participantes, tabla, dueno_id, codigo, sala_abierta, sala_abierta_en";
+const CABECERA = "id, titulo, rubro, estado, ocurrio_en, duracion_seg, participantes, tabla, dueno_id, codigo, sala_abierta, sala_abierta_en, programada_para, repite";
 
 /** Quién soy, para saber qué tareas quedaron a mi nombre. */
 export async function quienSoy(): Promise<string> {
@@ -80,6 +80,8 @@ function armarCabecera(fila: FilaConInvitados, yo: string): Reunion {
     codigo: mia ? ((fila.codigo as string | null) ?? null) : null,
     sala_abierta: fila.sala_abierta === true,
     sala_abierta_en: (fila.sala_abierta_en as string | null) ?? null,
+    programada_para: (fila.programada_para as string | null) ?? null,
+    repite: (fila.repite as Reunion["repite"]) ?? "nunca",
   };
 }
 
@@ -143,12 +145,27 @@ export async function crearReunion(nueva: ReunionNueva): Promise<Reunion> {
       rubro: nueva.rubro,
       participantes: nueva.participantes,
       tabla: nueva.tabla,
+      programada_para: nueva.programada_para ?? null,
+      repite: nueva.repite ?? "nunca",
     })
     .select(CABECERA)
     .single();
   reventar("No pude crear la reunión", error);
   if (!data) throw new Error("No pude crear la reunión.");
   return armarCabecera(data, sesion.user.id);
+}
+
+/** Cambiar la hora o la repetición de una reunión ya creada. */
+export async function agendar(
+  reunionId: string, programada_para: string | null, repite: Reunion["repite"],
+): Promise<void> {
+  const { error } = await supabase
+    .from("reuniones")
+    // Sin fecha no hay repetición que valga: la base lo exige y acá se
+    // manda coherente en vez de dejar que reviente allá.
+    .update({ programada_para, repite: programada_para === null ? "nunca" : repite })
+    .eq("id", reunionId);
+  reventar("No pude agendar la reunión", error);
 }
 
 export async function borrarReunion(id: string): Promise<void> {

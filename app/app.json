@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "StudIA",
-    "slug": "studia",
+    "name": "Acta",
+    "slug": "acta",
     "version": "0.1.0",
     "orientation": "default",
-    "scheme": "studia",
+    "scheme": "acta",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -26,11 +26,12 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "StudIA usa el micrófono solo cuando pides la palabra en una clase en vivo.",
-          "enableBackgroundPlayback": true,
-          "enableBackgroundRecording": false
+          "microphonePermission": "Acta usa el micrófono para grabar la reunión que tú empieces, y solo mientras la grabas.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": true
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "web": {
       "bundler": "metro",

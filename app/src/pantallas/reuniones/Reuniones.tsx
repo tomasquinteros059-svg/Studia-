@@ -9,6 +9,9 @@ import {
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { equipoDe } from "../../dominio/rubros.ts";
 import { cuandoVence, estadoDeTarea, misTareas, ordenarTareas } from "../../dominio/acta.ts";
+import { pedirPermiso, programarAvisos } from "../../lib/avisos.ts";
+import { comoAgenda } from "../../lib/tipos-reunion.ts";
+import { cuandoEs, comoSeRepite, estaAgendada } from "../../dominio/agenda.ts";
 import type { PropsPestana } from "../../lib/rutas.ts";
 import NuevaReunion from "./NuevaReunion.tsx";
 import Entrar from "./Entrar.tsx";
@@ -124,11 +127,13 @@ export default function Reuniones({ navigation }: Props) {
                   {equipoDe(r.rubro).nombre} · {fecha(r.ocurrio_en)}
                 </Text>
                 <Text style={tipo.detalle}>
-                  {r.estado !== "listo"
-                    ? ESTADO[r.estado]
-                    : abiertas === 0
-                      ? "Nada pendiente"
-                      : `${abiertas} ${abiertas === 1 ? "tarea pendiente" : "tareas pendientes"}`}
+                  {r.estado === "borrador" && estaAgendada(comoAgenda(r))
+                    ? `Agendada ${cuandoEs(comoAgenda(r))}${r.repite === "nunca" ? "" : ` · ${comoSeRepite(r.repite)}`}`
+                    : r.estado !== "listo"
+                      ? ESTADO[r.estado]
+                      : abiertas === 0
+                        ? "Nada pendiente"
+                        : `${abiertas} ${abiertas === 1 ? "tarea pendiente" : "tareas pendientes"}`}
                 </Text>
               </View>
             </Pressable>
@@ -154,6 +159,14 @@ export default function Reuniones({ navigation }: Props) {
         cerrar={() => setCreando(false)}
         crear={async (nueva) => {
           const r = await crearReunion(nueva);
+          if (r.programada_para !== null) {
+            // Agendada: se dejan los avisos puestos y se vuelve a la lista.
+            // Llevarla a grabar ahora sería justo lo contrario de agendarla.
+            await pedirPermiso();
+            await programarAvisos(r.id, r.titulo, comoAgenda(r));
+            await recargar();
+            return;
+          }
           await recargar();
           navigation.navigate("Grabar", { reunionId: r.id });
         }}

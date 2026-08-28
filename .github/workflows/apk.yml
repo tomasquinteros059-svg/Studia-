@@ -71,7 +71,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
           mkdir -p ../../entrega
-          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA.apk
+          cp app/build/outputs/apk/release/*.apk ../../entrega/Acta.apk
 
       # Con R8: encoge el código Java, que es el segundo bulto del paquete
       # después de las bibliotecas nativas. Va aparte y no reemplaza al de
@@ -85,20 +85,20 @@ jobs:
             -PreactNativeArchitectures=arm64-v8a \
             -Pandroid.enableMinifyInReleaseBuilds=true \
             -Pandroid.enableShrinkResourcesInReleaseBuilds=true
-          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA-liviano.apk
+          cp app/build/outputs/apk/release/*.apk ../../entrega/Acta-liviano.apk
 
       - name: Compilar el APK universal
         working-directory: app/android
         run: |
           ./gradlew clean assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/*.apk ../../entrega/StudIA-universal.apk
+          cp app/build/outputs/apk/release/*.apk ../../entrega/Acta-universal.apk
 
       - name: Cuánto pesa cada uno
         run: ls -lh entrega/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: studia-apk
+          name: acta-apk
           path: entrega/*.apk
           if-no-files-found: error
           retention-days: 30
@@ -112,20 +112,21 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete ultimo-apk --yes --cleanup-tag 2>/dev/null || true
-          gh release create ultimo-apk entrega/StudIA.apk entrega/StudIA-liviano.apk entrega/StudIA-universal.apk \
-            --title "StudIA · último APK" \
+          gh release create ultimo-apk entrega/Acta.apk entrega/Acta-liviano.apk entrega/Acta-universal.apk \
+            --title "Acta · último APK" \
             --notes "Compilado desde \`${{ github.ref_name }}\` (${{ github.sha }}).
 
-          **StudIA.apk** es el que sirve: trae solo arm64, que es lo que usa cualquier
-          tablet o teléfono de los últimos años.
+          ### Cuál bajar
 
-          **StudIA-liviano.apk** es el mismo, encogido con R8. Pesa bastante menos, pero
-          no está probado: si no arranca, usa el de arriba.
+          **Acta-liviano.apk** — empieza por este. Es el más chico, y en un teléfono esa
+          diferencia es la que hace que la descarga termine en vez de quedarse pegada.
 
-          **StudIA-universal.apk** trae las cuatro arquitecturas y pesa el triple. Solo
-          hace falta si el otro dice que no se puede instalar, cosa que pasa en aparatos
-          viejos o en un Chromebook con procesador Intel.
+          **Acta.apk** — el mismo sin encoger, por si el de arriba no arranca.
 
-          Se instala tocándolo y aceptando instalar desde esta fuente. Trae datos de
-          ejemplo, así que funciona sin servidor." \
+          **Acta-universal.apk** — solo si los otros dicen que no se pueden instalar.
+          Pesa el triple; hace falta en aparatos viejos o en un Chromebook con
+          procesador Intel.
+
+          Se instala tocándolo y aceptando instalar desde esta fuente. Trae reuniones de
+          ejemplo, así que funciona sin servidor y sin cuenta." \
             --target "${{ github.sha }}"

@@ -26,6 +26,8 @@ export const REUNION: Reunion = {
   codigo: null,
   sala_abierta: false,
   sala_abierta_en: null,
+  programada_para: null,
+  repite: "nunca",
 };
 
 export const REUNION_2: Reunion = {
