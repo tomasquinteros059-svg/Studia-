@@ -19,12 +19,42 @@ describe("la portada", () => {
   test("cuenta qué es esto antes de pedir nada", async () => {
     const t = await render(<Portada entrar={jest.fn()} />);
 
-    expect(t.getByText("StudIA")).toBeTruthy();
-    expect(t.getByText("Aprende pensando, no copiando.")).toBeTruthy();
-    expect(t.getByText("Un lector que lee en voz alta")).toBeTruthy();
+    // El titular se arma palabra por palabra para poder pintarles el
+    // destacador detrás, así que se busca así y no como una frase.
+    for (const palabra of ["Estudia", "método,", "trasnoche."]) {
+      expect(t.getByText(palabra)).toBeTruthy();
+    }
+    expect(t.getByText("Lectura en voz alta")).toBeTruthy();
+    expect(t.getByText("El Tutor")).toBeTruthy();
     // Todavía no pide ni correo ni clave.
     expect(t.queryByLabelText("Correo")).toBeNull();
     expect(t.queryByLabelText("Contraseña")).toBeNull();
+  });
+
+  test("los enlaces de arriba llevan a las secciones, no a ninguna parte", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    // Existen y se pueden apretar sin que nada reviente: el desplazamiento
+    // en sí lo hace el ScrollView, que en las pruebas no tiene alto.
+    for (const nombre of ["Qué hace", "Los agentes"]) {
+      const enlace = t.getByRole("link", { name: nombre });
+      await act(async () => { fireEvent.press(enlace); });
+    }
+  });
+
+  test("iniciar sesión desde la barra es la misma puerta que la de abajo", async () => {
+    const entrar = jest.fn();
+    const t = await render(<Portada entrar={entrar} />);
+
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Iniciar sesión" }));
+    });
+    expect(entrar).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Entrar con mi correo" }));
+    });
+    expect(entrar).toHaveBeenCalledTimes(2);
   });
 
   test("ofrece las cuentas que la persona ya tiene, además del correo", async () => {

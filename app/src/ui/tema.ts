@@ -56,6 +56,20 @@ export const espacio = { xs: 4, s: 8, m: 14, l: 20, xl: 30 } as const;
 /** El filete más fino que el aparato sepa dibujar. */
 export const FILETE = Platform.select({ ios: 0.5, default: 0.7 }) as number;
 
+/**
+ * Las tipografías de la portada.
+ *
+ * Solo llegan en el navegador: las carga la página que envuelve al paquete
+ * web, junto al resto de la hoja. En el teléfono no se cargan a propósito
+ * —serían un megabyte de fuentes dentro del APK para una sola pantalla— y
+ * cae en la del sistema, que es la que usa toda la aplicación de todos modos.
+ */
+export const letra = {
+  titulo: Platform.select({ web: "'Bricolage Grotesque', system-ui, sans-serif", default: undefined }),
+  cuerpo: Platform.select({ web: "'Instrument Sans', system-ui, sans-serif", default: undefined }),
+  mano: Platform.select({ web: "'Caveat', 'Bradley Hand', cursive", default: undefined }),
+} as const;
+
 /** Cifras que se alinean: notas, horas, minutos de lectura. */
 export const cifras: { fontVariant: TextStyle["fontVariant"] } = {
   fontVariant: ["tabular-nums"],
