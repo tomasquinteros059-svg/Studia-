@@ -16,8 +16,7 @@
     },
     "android": {
       "package": "cl.studia.app",
-      "resizeableActivity": true,
-      "versionCode": 4
+      "resizeableActivity": true
     },
     "extra": {
       "supabaseUrl": "",

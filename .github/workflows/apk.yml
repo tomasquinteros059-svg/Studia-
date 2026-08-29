@@ -25,7 +25,12 @@ jobs:
     timeout-minutes: 45
 
     steps:
+      # Con la profundidad de siempre —un solo commit— `git rev-list --count`
+      # devolvería 1, y numerar la compilación con 1 la dejaría por debajo de
+      # la que ya está instalada: Android rechazaría la actualización.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -88,11 +93,45 @@ jobs:
       # en la lista de Descargas: tocar el equivocado instala la versión
       # anterior y nada avisa de nada. Con esto, los dos archivos se distinguen
       # de un vistazo y ninguna caché puede servir uno por otro.
-      - name: Cómo se van a llamar los archivos
+      # Android solo instala un APK encima de otro si el `versionCode` subió.
+      # Mantenerlo a mano es cuestión de tiempo hasta que alguien lo olvide y
+      # la actualización quede rechazada con un "no se pudo instalar" que no
+      # explica nada. Sale de la cantidad de commits: sube solo, y sube igual
+      # aunque se compile dos veces el mismo día.
+      #
+      # La firma no hace falta cuidarla: el keystore de depuración que trae la
+      # plantilla de Expo es siempre el mismo archivo, así que dos APK armados
+      # acá quedan firmados igual y uno se pone encima del otro.
+      - name: Numerar la compilación
         id: nombre
         run: |
           version=$(node -p "require('./app/app.json').expo.version")
-          echo "sufijo=$version-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          codigo=$(git rev-list --count HEAD)
+
+          # Si el historial llegara recortado, la cuenta saldría en 1 o 2 y el
+          # APK no se podría instalar encima del que ya está. Vale más que la
+          # compilación se detenga acá, donde se ve el motivo, que entregar un
+          # archivo que el teléfono rechaza sin decir por qué.
+          if [ "$codigo" -lt 10 ]; then
+            echo "::error::La cuenta de commits salió en $codigo. El historial llegó incompleto."
+            exit 1
+          fi
+
+          # Va en dos lugares y no es duplicación: `android.versionCode` es lo
+          # que Android mira para dejar instalar encima, y `extra.compilacion`
+          # es lo que la app puede leer para mostrarlo —el bloque `android` no
+          # llega a la configuración en todas las plataformas—.
+          node -e '
+            const fs = require("fs");
+            const ruta = "app/app.json";
+            const c = JSON.parse(fs.readFileSync(ruta, "utf8"));
+            const codigo = Number(process.argv[1]);
+            c.expo.android.versionCode = codigo;
+            c.expo.extra = { ...c.expo.extra, compilacion: codigo };
+            fs.writeFileSync(ruta, JSON.stringify(c, null, 2) + "\n");
+          ' "$codigo"
+          echo "Versión $version · compilación $codigo"
+          echo "sufijo=$version-$codigo-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Compilar el APK para arm64
         working-directory: app/android
@@ -161,7 +200,10 @@ jobs:
           Se instala tocándolo y aceptando instalar desde esta fuente. Trae datos de
           ejemplo, así que funciona sin servidor.
 
-          El nombre del archivo lleva la versión y el commit, así que no se puede
-          confundir con una descarga anterior. La app también dice su versión: sale
-          abajo en la pantalla de perfil, y en la de elegir perfil." \
+          El nombre del archivo lleva la versión, el número de compilación y el commit,
+          así que no se puede confundir con una descarga anterior. La app dice lo mismo
+          adentro: sale abajo en la pantalla de perfil y en la de elegir perfil.
+
+          Se instala encima de la anterior sin desinstalar nada: mismo paquete, misma
+          firma y un número de compilación que sube en cada build." \
             --target "${{ github.sha }}"
