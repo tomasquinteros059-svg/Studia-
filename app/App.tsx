@@ -17,7 +17,7 @@ import type {
   RutasPestanas, RutasPestanasDocente, RutasPila, RutasPilaDocente,
 } from "./src/lib/rutas.ts";
 
-import Sesion from "./src/pantallas/Sesion.tsx";
+import Entrada from "./src/pantallas/Entrada.tsx";
 import Inicio from "./src/pantallas/Inicio.tsx";
 import Horario from "./src/pantallas/Horario.tsx";
 import Tareas from "./src/pantallas/Tareas.tsx";
@@ -35,7 +35,6 @@ import Apunte from "./src/pantallas/Apunte.tsx";
 import Lectura from "./src/pantallas/Lectura.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
 import MisApuntes from "./src/pantallas/MisApuntes.tsx";
-import Perfiles from "./src/pantallas/Perfiles.tsx";
 import InicioDocente from "./src/pantallas/docente/InicioDocente.tsx";
 import RamoDocente from "./src/pantallas/docente/RamoDocente.tsx";
 import PerfilDocente from "./src/pantallas/docente/PerfilDocente.tsx";
@@ -142,10 +141,9 @@ export default function App() {
         </SafeAreaView>
       ) : null}
       <NavigationContainer theme={TEMA_NAVEGACION}>
-        {MODO_DEMO && !yo ? (
-          <Perfiles />
-        ) : !sesion && !MODO_DEMO ? (
-          <Sesion />
+        {/* Con servidor o sin él, se entra por la portada. */}
+        {(MODO_DEMO && !yo) || (!sesion && !MODO_DEMO) ? (
+          <Entrada />
         ) : yo?.rol === "profesor" ? (
           <AppDocente />
         ) : yo?.rol === "administrador" ? (

@@ -22,23 +22,14 @@ beforeEach(() => {
   mockAuth.signUp.mockResolvedValue({ error: null });
 });
 
-const abrir = async () => {
-  const t = await render(<Sesion />);
-  await act(async () => { fireEvent.press(t.getByText("Comenzar")); });
-  return t;
-};
+// Ya no hay una bienvenida que saltar: quien llega acá viene de la portada.
+const abrir = async () => await render(<Sesion />);
 
 const escribirCorreo = async (t: Awaited<ReturnType<typeof abrir>>, correo: string) => {
   await act(async () => { fireEvent.changeText(t.getByLabelText("Correo"), correo); });
 };
 
 describe("entrar a StudIA", () => {
-  test("la bienvenida no pide nada todavía", async () => {
-    const t = await render(<Sesion />);
-    expect(t.getByText("StudIA")).toBeTruthy();
-    expect(t.queryByLabelText("Contraseña")).toBeNull();
-  });
-
   test("primero pregunta el correo, no la clave", async () => {
     const t = await abrir();
     expect(t.getByText("¿Cuál es tu correo?")).toBeTruthy();

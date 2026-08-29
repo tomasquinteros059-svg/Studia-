@@ -10,7 +10,11 @@ export default function Sesion() {
   // pantalla: el dominio decide por dónde entra la persona —con los ramos de
   // su institución o armando el suyo— y conviene decírselo antes de que se
   // haga una idea equivocada.
-  const [modo, setModo] = useState<"bienvenida" | "correo" | "entrar" | "crear">("bienvenida");
+  //
+  // Ya no empieza por una bienvenida: quien llega acá viene de la portada,
+  // que es donde se cuenta qué es esto. Repetirlo sería una pantalla de más
+  // entre la persona y su cuenta.
+  const [modo, setModo] = useState<"correo" | "entrar" | "crear">("correo");
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
   const [nombre, setNombre] = useState("");
@@ -39,25 +43,6 @@ export default function Sesion() {
     } finally {
       setOcupado(false);
     }
-  }
-
-  if (modo === "bienvenida") {
-    return (
-      <View style={[e.pantalla, e.centrado]}>
-        <View style={e.logo}>
-          <Text style={e.logoTexto}>S</Text>
-        </View>
-        <Text style={e.marca}>StudIA</Text>
-        <Text style={e.lema}>Aprende pensando, no copiando.</Text>
-        <Text style={e.sub}>
-          Tus clases, tu materia y tus tareas en un solo lugar.{"\n"}
-          Y un tutor que te guía para que descubras la respuesta.
-        </Text>
-        <View style={{ width: "100%", marginTop: espacio.s }}>
-          <Boton texto="Comenzar" onPress={() => setModo("correo")} />
-        </View>
-      </View>
-    );
   }
 
   const camino = caminoDe(correo);
@@ -95,9 +80,6 @@ export default function Sesion() {
           deshabilitado={camino.tipo === "invalido"}
         />
 
-        <Pressable onPress={() => { setModo("bienvenida"); setError(null); }}>
-          <Text style={e.enlace}>Volver</Text>
-        </Pressable>
       </KeyboardAvoidingView>
     );
   }

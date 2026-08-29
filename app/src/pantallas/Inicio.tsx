@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  Baldosa, Boton, Cargando, Encabezado, Error, Hoja, Pantalla, Pastilla,
+  Baldosa, Cargando, Encabezado, Error, Hoja, Pantalla, Pastilla,
 } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
