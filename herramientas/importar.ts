@@ -12,7 +12,7 @@
 
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { revisar, comoHora, type Colegio, type Planillas } from "./planilla.ts";
+import { revisar, comoHora, type Colegio, type Planillas } from "../app/src/dominio/planilla.ts";
 
 const DATOS = join(import.meta.dirname, "..", "datos");
 const SALIDA = join(DATOS, "importado.sql");

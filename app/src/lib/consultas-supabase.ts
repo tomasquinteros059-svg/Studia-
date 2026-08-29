@@ -13,6 +13,7 @@ import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
+import { comoHora, type Colegio } from "../dominio/planilla.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
   if (error) throw new Error(`${contexto}: ${error.message}`);
@@ -605,6 +606,38 @@ export async function publicarNotas(evaluacionId: string): Promise<void> {
 // Quien llega sin institución arma sus propios ramos. Las políticas exigen
 // que queden a nombre propio, así que acá no hay nada que decidir: se manda
 // el identificador de quien está en sesión y la base hace el resto.
+
+/**
+ * Carga el catálogo del semestre —ramos y horario— de una sola vez.
+ *
+ * Va por una función de la base y no por inserts sueltos porque a mil ramos
+ * eso deja de ser un detalle: es una transacción, así que o entra todo o no
+ * entra nada. Un semestre a medio cargar no se puede arreglar desde afuera,
+ * porque no hay manera de saber dónde quedó.
+ *
+ * Quién puede llamarla lo siguen decidiendo las políticas de las tablas: la
+ * función es `security invoker`, no una puerta de atrás.
+ */
+export async function cargarCatalogo(
+  colegio: Pick<Colegio, "asignaturas" | "horario">,
+): Promise<{ ramos: number; bloques: number }> {
+  const { data, error } = await supabase.rpc("cargar_catalogo", {
+    p_asignaturas: colegio.asignaturas,
+    // Las horas viajan como "HH:MM": adentro son minutos desde medianoche,
+    // y eso es cosa de la revisión, no de la base.
+    p_horario: colegio.horario.map((b) => ({
+      codigo: b.codigo,
+      dia: b.dia,
+      hora_inicio: comoHora(b.inicio),
+      hora_fin: comoHora(b.fin),
+      sala: b.sala,
+      tipo: b.tipo,
+    })),
+  });
+  reventar("No pude cargar el catálogo", error);
+  const r = data as { ramos?: number; bloques?: number } | null;
+  return { ramos: r?.ramos ?? 0, bloques: r?.bloques ?? 0 };
+}
 
 export async function crearRamoPropio(nombre: string, color: string): Promise<Asignatura> {
   const { data: sesion } = await supabase.auth.getUser();

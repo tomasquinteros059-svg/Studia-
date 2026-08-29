@@ -55,5 +55,6 @@ export const crearRamoPropio = fuente.crearRamoPropio;
 export const crearHorarioPropio = fuente.crearHorarioPropio;
 export const borrarRamoPropio = fuente.borrarRamoPropio;
 export const crearModulo = fuente.crearModulo;
+export const cargarCatalogo = fuente.cargarCatalogo;
 export const moduloParaMaterial = fuente.moduloParaMaterial;
 export const crearMaterial = fuente.crearMaterial;

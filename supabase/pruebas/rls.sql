@@ -544,3 +544,85 @@ select pg_temp.afirmar('la profesora tampoco ve el ramo propio de otro',
   (select count(*) from asignaturas where codigo = 'PROPIO-1')::int, 0);
 
 select '— también pasaron las pruebas de docentes —' as resultado;
+
+-- ==================== cargar el catálogo del semestre ====================
+-- La carga masiva es una función, pero la seguridad no se muda ahí adentro:
+-- es `security invoker`, así que las mismas políticas siguen decidiendo.
+
+-- Un alumno cualquiera no puede cargar el semestre.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.cargar_catalogo(
+      '[{"codigo":"COLADO-1","nombre":"Colado","profesor":"X","ayudante":null,
+         "color":"#2563C9","creditos":10,"descripcion":null,"requisitos":null,
+         "bibliografia":[],"intro_tutor":"¿?"}]'::jsonb,
+      '[]'::jsonb);
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('un alumno no puede cargar el catálogo', v_falló, true);
+end $$;
+
+select pg_temp.afirmar('y no dejó nada escrito',
+  (select count(*) from public.asignaturas where codigo = 'COLADO-1')::int, 0);
+
+-- La administración sí, y en una sola llamada.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('la administración carga ramos y horario de una vez',
+  (public.cargar_catalogo(
+    '[{"codigo":"NUE1001","nombre":"Ramo Nuevo","profesor":"Ana Ríos","ayudante":null,
+       "color":"#2563C9","creditos":10,"descripcion":null,"requisitos":null,
+       "bibliografia":["Un libro"],"intro_tutor":"¿En qué estás?"}]'::jsonb,
+    '[{"codigo":"NUE1001","dia":1,"hora_inicio":"08:30","hora_fin":"10:00",
+       "sala":"B-104","tipo":"Cátedra"},
+      {"codigo":"NUE1001","dia":3,"hora_inicio":"08:30","hora_fin":"10:00",
+       "sala":"B-104","tipo":"Cátedra"}]'::jsonb)
+  ->> 'bloques')::int, 2);
+
+select pg_temp.afirmar('el ramo quedó con su bibliografía',
+  (select bibliografia[1] from asignaturas where codigo = 'NUE1001'), 'Un libro');
+
+-- Volver a cargar corregido: actualiza, no duplica. Es lo que pasa de verdad
+-- cuando el colegio se equivoca en una celda y vuelve a importar.
+select public.cargar_catalogo(
+  '[{"codigo":"NUE1001","nombre":"Ramo Nuevo Corregido","profesor":"Ana Ríos","ayudante":null,
+     "color":"#2563C9","creditos":10,"descripcion":null,"requisitos":null,
+     "bibliografia":[],"intro_tutor":"¿En qué estás?"}]'::jsonb,
+  '[{"codigo":"NUE1001","dia":1,"hora_inicio":"09:00","hora_fin":"10:30",
+     "sala":"B-105","tipo":"Cátedra"}]'::jsonb);
+
+select pg_temp.afirmar('reimportar no duplica el ramo',
+  (select count(*) from asignaturas where codigo = 'NUE1001')::int, 1);
+select pg_temp.afirmar('y le deja el nombre corregido',
+  (select nombre from asignaturas where codigo = 'NUE1001'), 'Ramo Nuevo Corregido');
+select pg_temp.afirmar('el horario se rehace entero, no se suma al anterior',
+  (select count(*) from bloques_horario where asignatura_id = pg_temp.id_de('NUE1001'))::int, 1);
+
+-- Una planilla parcial no puede llevarse por delante el resto del semestre.
+-- Los tres bloques de MAT1610 vienen del seed y ninguna de las cargas de
+-- arriba lo nombra: tienen que seguir ahí, contados a mano y no comparados
+-- consigo mismos, que sería una prueba que no puede fallar.
+select pg_temp.afirmar('los ramos que la planilla no menciona conservan su horario',
+  (select count(*) from bloques_horario where asignatura_id = pg_temp.id_de('MAT1610'))::int, 3);
+select pg_temp.afirmar('y siguen existiendo',
+  (select count(*) from asignaturas where codigo = 'MAT1610')::int, 1);
+
+-- Un horario que nombra un ramo inexistente no puede quedar a medias.
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.cargar_catalogo(
+      '[{"codigo":"NUE1002","nombre":"Otro","profesor":"X","ayudante":null,
+         "color":"#2563C9","creditos":10,"descripcion":null,"requisitos":null,
+         "bibliografia":[],"intro_tutor":"¿?"}]'::jsonb,
+      '[{"codigo":"NO-EXISTE","dia":1,"hora_inicio":"08:30","hora_fin":"10:00",
+         "sala":"X","tipo":"Cátedra"}]'::jsonb);
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('un horario con un código que no existe detiene la carga', v_falló, true);
+end $$;
+
+select '— también pasaron las pruebas de carga masiva —' as resultado;

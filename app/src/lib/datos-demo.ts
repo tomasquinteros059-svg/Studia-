@@ -6,6 +6,7 @@
 
 import type * as Real from "./consultas-supabase.ts";
 import { TEXTOS_DEMO } from "./textos-demo.ts";
+import { comoHora, type Colegio } from "../dominio/planilla.ts";
 import { perfilActual } from "./perfiles-demo.ts";
 import {
   RAMOS_PROPIOS, horarioPropio, lecturaPropiaDe, modulosPropiosDe,
@@ -319,6 +320,64 @@ export async function misAsignaturas(): Promise<Asignatura[]> {
   return copiar([...ASIGNATURAS, ...RAMOS_PROPIOS]);
 }
 
+/**
+ * La misma carga masiva que hace la base, sobre los datos del aparato.
+ *
+ * Existe para poder recorrer el panel de administración sin servidor. Se
+ * comporta igual en lo que importa: el ramo que ya estaba se actualiza en
+ * vez de duplicarse, el horario de esos ramos se rehace entero, y lo que la
+ * planilla no menciona no se toca.
+ */
+export async function cargarCatalogo(
+  colegio: Pick<Colegio, "asignaturas" | "horario">,
+): Promise<{ ramos: number; bloques: number }> {
+  await respirar();
+  const codigos = new Set(colegio.asignaturas.map((a) => a.codigo.toUpperCase()));
+
+  for (const a of colegio.asignaturas) {
+    const codigo = a.codigo.toUpperCase();
+    const ramo: Asignatura = {
+      id: `col-${codigo}`,
+      codigo,
+      nombre: a.nombre,
+      profesor: a.profesor,
+      ayudante: a.ayudante,
+      color: a.color,
+      creditos: a.creditos,
+      descripcion: a.descripcion,
+      requisitos: a.requisitos,
+      bibliografia: a.bibliografia,
+      intro_tutor: a.intro_tutor,
+      propio: false,
+    };
+    const i = ASIGNATURAS.findIndex((x) => x.codigo.toUpperCase() === codigo);
+    if (i >= 0) ASIGNATURAS[i] = { ...ASIGNATURAS[i]!, ...ramo, id: ASIGNATURAS[i]!.id };
+    else ASIGNATURAS.push(ramo);
+  }
+
+  const idDe = (codigo: string) =>
+    ASIGNATURAS.find((x) => x.codigo.toUpperCase() === codigo.toUpperCase())?.id ?? "";
+
+  // Solo el de los ramos que vienen: una planilla parcial no borra el resto.
+  for (let i = HORARIO.length - 1; i >= 0; i--) {
+    const suyo = ASIGNATURAS.find((x) => x.id === HORARIO[i]!.asignatura_id);
+    if (suyo && codigos.has(suyo.codigo.toUpperCase())) HORARIO.splice(i, 1);
+  }
+  for (const [n, b] of colegio.horario.entries()) {
+    HORARIO.push({
+      id: `bloque-cargado-${n}`,
+      asignatura_id: idDe(b.codigo),
+      dia: b.dia,
+      hora_inicio: comoHora(b.inicio),
+      hora_fin: comoHora(b.fin),
+      sala: b.sala,
+      tipo: b.tipo,
+    });
+  }
+
+  return { ramos: colegio.asignaturas.length, bloques: colegio.horario.length };
+}
+
 export async function miHorario(): Promise<BloqueHorario[]> {
   await respirar();
   // Quien no tiene institución igual puede tener horario: el que se cargó
@@ -602,6 +661,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
   cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
-  moduloParaMaterial,
+  moduloParaMaterial, cargarCatalogo,
 };
 void _cobertura;

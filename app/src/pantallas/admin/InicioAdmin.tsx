@@ -5,7 +5,8 @@ import { Icono } from "../../ui/Icono.tsx";
 import {
   color, colorDeRamo, espacio, hora, nombreDia, radio, tenue, tipo,
 } from "../../ui/tema.ts";
-import { cursoDe, miHorario, misAsignaturas } from "../../lib/consultas.ts";
+import { cargarCatalogo, cursoDe, miHorario, misAsignaturas } from "../../lib/consultas.ts";
+import CargarCatalogo from "./CargarCatalogo.tsx";
 import { PERFILES_DEMO } from "../../lib/perfiles-demo.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import {
@@ -23,6 +24,7 @@ const enMinutos = (t: string): number => {
 
 export default function InicioAdmin() {
   const [seccion, setSeccion] = useState<Seccion>("Ramos");
+  const [cargandoCatalogo, setCargando] = useState(false);
 
   const traer = useCallback(async () => {
     const [asignaturas, horario] = await Promise.all([misAsignaturas(), miHorario()]);
@@ -61,11 +63,30 @@ export default function InicioAdmin() {
   return (
     <View style={{ flex: 1, backgroundColor: color.fondo }}>
       <View style={e.cabecera}>
-        <Text style={e.titulo}>El colegio</Text>
-        <Text style={tipo.detalle}>
-          {datos.asignaturas.length} ramos · {datos.horario.length} bloques · {datos.inscritos} inscripciones
-        </Text>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={e.titulo}>El colegio</Text>
+          <Text style={tipo.detalle}>
+            {datos.asignaturas.length} ramos · {datos.horario.length} bloques · {datos.inscritos} inscripciones
+          </Text>
+        </View>
+        {/* Un semestre no se arma ramo por ramo: se pega la planilla. */}
+        <Pressable accessibilityRole="button" accessibilityLabel="Cargar el semestre"
+          onPress={() => setCargando(true)}
+          style={({ pressed }) => [e.cargar, pressed ? { opacity: 0.85 } : null]}>
+          <Icono nombre="descargar" tamano={17} tono={color.sobreMarca} />
+          <Text style={e.cargarTexto}>Cargar</Text>
+        </Pressable>
       </View>
+
+      <CargarCatalogo
+        abierto={cargandoCatalogo}
+        cerrar={() => setCargando(false)}
+        yaCargados={datos.asignaturas}
+        cargar={async (colegio) => {
+          await cargarCatalogo(colegio);
+          recargar();
+        }}
+      />
 
       {problemas.length > 0 ? (
         <View style={e.alerta}>
@@ -153,7 +174,16 @@ export default function InicioAdmin() {
 }
 
 const e = StyleSheet.create({
-  cabecera: { paddingHorizontal: espacio.l, paddingTop: espacio.l, paddingBottom: espacio.s },
+  cargar: {
+    flexDirection: "row", alignItems: "center", gap: espacio.s,
+    backgroundColor: color.marca, borderRadius: radio.pastilla,
+    paddingHorizontal: espacio.m, paddingVertical: 10,
+  },
+  cargarTexto: { color: color.sobreMarca, fontSize: 14, fontWeight: "700" },
+  cabecera: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.l, paddingTop: espacio.l, paddingBottom: espacio.s,
+  },
   titulo: { ...tipo.titulo, color: color.texto },
 
   alerta: {

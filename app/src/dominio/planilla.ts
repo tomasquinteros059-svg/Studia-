@@ -1,5 +1,10 @@
 // Lee las planillas del colegio y avisa qué está mal antes de tocar la base.
 //
+// Vive en el dominio de la app y no en `herramientas/` porque lo usan los
+// dos: el comando que convierte la carpeta `datos/` en SQL, y el panel de
+// administración, que hace lo mismo desde el navegador. La revisión tiene
+// que ser exactamente la misma en los dos lados; en dos copias, no lo sería.
+//
 // Quien llena esto es una secretaría académica con una planilla abierta, no
 // alguien escribiendo SQL. Por eso hay dos reglas de fondo acá:
 //
@@ -9,7 +14,7 @@
 //   2. Cada problema dice archivo, línea y qué se esperaba. "Error de
 //      validación" no le sirve a nadie.
 
-import { choquesDeHorario, comoHora } from "../app/src/dominio/horario.ts";
+import { choquesDeHorario, comoHora } from "./horario.ts";
 
 export { comoHora };
 
@@ -335,3 +340,37 @@ export function revisar(p: Planillas): { colegio: Colegio; problemas: Problema[]
   };
 }
 
+
+/**
+ * Lo que va a pasar si se aplica la carga, para decirlo antes de aplicarla.
+ *
+ * Con mil ramos nadie va a revisar fila por fila: lo que se mira es el
+ * resumen. Y el dato que más falta hace es el último —qué queda fuera—,
+ * porque una planilla parcial no borra el resto del semestre y alguien
+ * podría creer que sí.
+ */
+export type Resumen = {
+  /** Códigos que todavía no existen. */
+  nuevos: string[];
+  /** Códigos que ya existen: se actualizan, no se duplican. */
+  actualizados: string[];
+  /** Bloques de horario que trae la planilla. */
+  bloques: number;
+  /** Ramos ya cargados que la planilla no menciona: quedan como están. */
+  intactos: string[];
+};
+
+export function resumenDeCarga(
+  colegio: Pick<Colegio, "asignaturas" | "horario">,
+  yaCargados: readonly { codigo: string }[],
+): Resumen {
+  const existentes = new Set(yaCargados.map((r) => r.codigo.toUpperCase()));
+  const vienen = new Set(colegio.asignaturas.map((a) => a.codigo.toUpperCase()));
+
+  return {
+    nuevos: colegio.asignaturas.map((a) => a.codigo).filter((c) => !existentes.has(c.toUpperCase())),
+    actualizados: colegio.asignaturas.map((a) => a.codigo).filter((c) => existentes.has(c.toUpperCase())),
+    bloques: colegio.horario.length,
+    intactos: yaCargados.map((r) => r.codigo).filter((c) => !vienen.has(c.toUpperCase())),
+  };
+}

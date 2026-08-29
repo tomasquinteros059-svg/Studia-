@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { comoHora, leerCsv, leerDia, leerHora, revisar, type Planillas } from "./planilla.ts";
+import {
+  comoHora, leerCsv, leerDia, leerHora, resumenDeCarga, revisar, type Planillas,
+} from "./planilla.ts";
 
 // ── El CSV ──────────────────────────────────────────────────────────────
 
@@ -233,4 +235,38 @@ test("los choques aparecen en la revisión completa", () => {
       "MAT1610,Lunes,09:00,10:30,A-201"].join("\n"),
   }));
   assert.ok(problemas.some((x) => /sala A-201 está tomada/.test(x.mensaje)));
+});
+
+// ── Lo que se dice antes de aplicar ─────────────────────────────────────
+
+const colegioCon = (codigos: string[], bloques = 0) => ({
+  asignaturas: codigos.map((codigo) => ({ codigo })) as never,
+  horario: Array.from({ length: bloques }, () => ({})) as never,
+});
+
+test("separa los ramos que entran de los que ya estaban", () => {
+  const r = resumenDeCarga(colegioCon(["MAT1610", "FIS1503"]), [{ codigo: "MAT1610" }]);
+  assert.deepEqual(r.nuevos, ["FIS1503"]);
+  assert.deepEqual(r.actualizados, ["MAT1610"]);
+});
+
+test("dice qué ramos quedan intactos: una planilla parcial no borra el resto", () => {
+  const r = resumenDeCarga(colegioCon(["MAT1610"]), [{ codigo: "MAT1610" }, { codigo: "EAE1110" }]);
+  assert.deepEqual(r.intactos, ["EAE1110"]);
+});
+
+test("el código se compara sin importar mayúsculas: la planilla las mezcla", () => {
+  const r = resumenDeCarga(colegioCon(["mat1610"]), [{ codigo: "MAT1610" }]);
+  assert.deepEqual(r.actualizados, ["mat1610"]);
+  assert.deepEqual(r.nuevos, []);
+  assert.deepEqual(r.intactos, []);
+});
+
+test("cuenta los bloques de horario que trae la planilla", () => {
+  assert.equal(resumenDeCarga(colegioCon(["MAT1610"], 14), []).bloques, 14);
+});
+
+test("un colegio vacío no rompe el resumen", () => {
+  const r = resumenDeCarga(colegioCon([]), []);
+  assert.deepEqual(r, { nuevos: [], actualizados: [], bloques: 0, intactos: [] });
 });

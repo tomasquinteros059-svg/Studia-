@@ -42,6 +42,7 @@ export const ICONOS = {
   letra: "text-outline",
   cerrar: "close",
   lapiz: "create-outline",
+  aviso: "alert-circle-outline",
 } as const;
 
 export function Icono({
