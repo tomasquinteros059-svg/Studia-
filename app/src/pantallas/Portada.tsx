@@ -25,11 +25,9 @@ import { entrarCon } from "../lib/proveedores.ts";
  * que la persona va a tener cuando entre.
  */
 export default function Portada({
-  entrar, probar, sinServidor,
+  entrar, sinServidor,
 }: {
   entrar: () => void;
-  /** Recorrer con datos de ejemplo. Sin servidor es el único camino. */
-  probar?: () => void;
   /**
    * No hay con quién autenticarse. Lo decide quien abre la portada, no ella:
    * así se puede dibujar y probar en los dos casos sin depender de cómo esté
@@ -150,14 +148,11 @@ export default function Portada({
             {falla ? <Text style={e.falla}>{falla}</Text> : null}
 
             <Boton texto="Entrar con mi correo" onPress={entrar} />
-            {probar ? (
-              <>
-                <Boton texto="Mirar con datos de ejemplo" variante="suave" onPress={probar} />
-                <Text style={e.nota}>
-                  Los datos de ejemplo se quedan en este aparato. No hace falta
-                  cuenta ni internet.
-                </Text>
-              </>
+            {sinServidor ? (
+              <Text style={e.nota}>
+                Sin servidor los datos son de ejemplo y se quedan en este
+                aparato, pero el correo se pide igual: es la misma puerta.
+              </Text>
             ) : null}
           </View>
         </View>

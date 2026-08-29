@@ -19,10 +19,11 @@ export default function Entrada() {
     return (
       <Portada
         entrar={() => setDonde("adentro")}
-        // Sin servidor, mirar con datos de ejemplo es el único camino que hay,
-        // así que el botón lleva al mismo lugar. Con servidor no se ofrece:
-        // no hay nada de ejemplo que mirar.
-        probar={MODO_DEMO ? () => setDonde("adentro") : undefined}
+        // Ya no se ofrece mirar sin identificarse. Con servidor nunca se
+        // ofreció; sin servidor era una puerta que la aplicación de verdad no
+        // tiene, y quien la usaba se llevaba una idea equivocada de cómo se
+        // entra. Ahora las dos ramas piden el correo, y en la demostración
+        // los perfiles de ejemplo aparecen después de darlo.
         sinServidor={MODO_DEMO}
       />
     );

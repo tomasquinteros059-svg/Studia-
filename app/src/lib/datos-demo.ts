@@ -7,14 +7,14 @@
 import type * as Real from "./consultas-supabase.ts";
 import { TEXTOS_DEMO } from "./textos-demo.ts";
 import { comoHora, type Colegio } from "../dominio/planilla.ts";
-import { perfilActual } from "./perfiles-demo.ts";
+import { PERFILES_DEMO, perfilActual } from "./perfiles-demo.ts";
 import {
   RAMOS_PROPIOS, horarioPropio, lecturaPropiaDe, modulosPropiosDe,
 } from "./datos-propios.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
-  Respuesta, ResumenGuardado, TareaConEstado,
+  Registro, Respuesta, ResumenGuardado, TareaConEstado,
 } from "./tipos.ts";
 
 const ahora = Date.now();
@@ -378,6 +378,39 @@ export async function cargarCatalogo(
   return { ramos: colegio.asignaturas.length, bloques: colegio.horario.length };
 }
 
+/**
+ * El registro, en la demostración: los perfiles de ejemplo.
+ *
+ * Como en la base, solo lo ve la administración. Devolver la lista a
+ * cualquiera acá dejaría la pantalla mintiendo sobre lo que va a pasar con
+ * servidor de verdad.
+ */
+export async function registros(): Promise<Registro[]> {
+  await respirar();
+  if (perfilActual()?.rol !== "administrador") return [];
+  return PERFILES_DEMO.map((p, i) => ({
+    id: p.id,
+    nombre: p.nombre,
+    correo: p.correo,
+    rol: p.rol,
+    // Escalonados, para que la lista se vea como una lista de verdad.
+    creado_en: new Date(Date.now() - (i + 1) * 86_400_000 * 9).toISOString(),
+  }));
+}
+
+/** El rol, en la demostración. Con las mismas dos guardias que la base. */
+export async function cambiarRol(personaId: string, rol: Registro["rol"]): Promise<void> {
+  await respirar();
+  const yo = perfilActual();
+  if (yo?.rol !== "administrador") throw new Error("Solo la administración cambia roles.");
+  if (personaId === yo.id) {
+    throw new Error("No puedes cambiar tu propio rol. Pídeselo a otra persona de administración.");
+  }
+  const persona = PERFILES_DEMO.find((p) => p.id === personaId);
+  if (!persona) throw new Error("Esa persona ya no está registrada.");
+  persona.rol = rol;
+}
+
 export async function miHorario(): Promise<BloqueHorario[]> {
   await respirar();
   // Quien no tiene institución igual puede tener horario: el que se cargó
@@ -661,6 +694,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
   cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
-  moduloParaMaterial, cargarCatalogo,
+  moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
 };
 void _cobertura;

@@ -6,6 +6,8 @@ jest.mock("../../lib/consultas.ts", () => ({
   miHorario: jest.fn(),
   cursoDe: jest.fn(),
   cargarCatalogo: jest.fn(),
+  registros: jest.fn(),
+  cambiarRol: jest.fn(),
 }));
 
 import * as consultas from "../../lib/consultas.ts";
@@ -32,6 +34,7 @@ const conDatos = () => {
   mock.miHorario.mockResolvedValue([] as never);
   mock.cursoDe.mockResolvedValue([] as never);
   mock.cargarCatalogo.mockResolvedValue({ ramos: 2, bloques: 2 } as never);
+  mock.registros.mockResolvedValue([] as never);
 };
 
 const abrirCarga = async () => {

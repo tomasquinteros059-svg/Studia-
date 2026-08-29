@@ -626,3 +626,99 @@ begin
 end $$;
 
 select '— también pasaron las pruebas de carga masiva —' as resultado;
+
+-- ======================= el registro de las personas =======================
+-- El correo ajeno no es legible desde el cliente, y esa promesa se mantiene.
+-- La administración lo ve por una función con guardia, no por un permiso
+-- nuevo para todo el mundo.
+
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('un alumno no ve el registro de nadie',
+  (select count(*) from public.registros())::int, 0);
+
+set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('una profesora tampoco ve el registro',
+  (select count(*) from public.registros())::int, 0);
+
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+
+-- Leyendo la tabla, ni la administración ve más que su propia fila: la
+-- política de perfiles es "cada quien ve el suyo" y no tiene excepción. Esto
+-- es exactamente por lo que la función existe, y conviene que quede probado
+-- y no solo comentado.
+select pg_temp.afirmar('por la tabla, la administración solo se ve a sí misma',
+  (select count(*) from public.perfiles)::int, 1);
+
+select pg_temp.afirmar('por la función ve a las seis personas registradas',
+  (select count(*) from public.registros())::int, 6);
+select pg_temp.afirmar('y ve el correo, que es lo que identifica a cada una',
+  (select count(*) from public.registros() where correo like '%@%')::int, 6);
+
+-- ---------------------------------------------------------------- roles
+-- Un alumno no puede ascenderse, ni por la tabla ni por la función.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    update public.perfiles set rol = 'administrador'
+     where id = 'e0000000-0000-4000-8000-000000000001';
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('un alumno no se asciende por la tabla', v_falló, true);
+end $$;
+
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.cambiar_rol('e0000000-0000-4000-8000-000000000001', 'administrador');
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('ni por la función', v_falló, true);
+end $$;
+
+-- Comprobado desde la administración, que es quien puede mirar: el alumno no
+-- puede verificar su propio rol en la tabla sin verse solo a sí mismo.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('y sigue siendo estudiante',
+  (select rol from public.registros() where id = 'e0000000-0000-4000-8000-000000000001'),
+  'estudiante');
+
+-- La administración sí cambia el de otra persona.
+select public.cambiar_rol('e0000000-0000-4000-8000-000000000001', 'profesor');
+select pg_temp.afirmar('la administración cambia el rol de otra persona',
+  (select rol from public.registros() where id = 'e0000000-0000-4000-8000-000000000001'),
+  'profesor');
+
+-- Pero no el suyo: ascenderse o degradarse a uno mismo es justo lo que abriría
+-- la puerta, y dejar al colegio sin administración es el otro lado del mismo
+-- problema.
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.cambiar_rol('e0000000-0000-4000-8000-000000000002', 'estudiante');
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('ni la administración se cambia el rol a sí misma', v_falló, true);
+end $$;
+
+select pg_temp.afirmar('y sigue habiendo administración',
+  (select count(*) from public.registros() where rol = 'administrador')::int, 1);
+
+-- Un rol que no existe no entra.
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.cambiar_rol('e0000000-0000-4000-8000-000000000001', 'rector');
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('un rol inventado se rechaza', v_falló, true);
+end $$;
+
+-- Dejar todo como estaba, que abajo no hay nada pero mañana puede haberlo.
+select public.cambiar_rol('e0000000-0000-4000-8000-000000000001', 'estudiante');
+
+select '— también pasaron las pruebas del registro —' as resultado;

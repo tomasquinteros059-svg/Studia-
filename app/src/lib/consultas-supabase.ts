@@ -6,7 +6,7 @@ import { supabase } from "./supabase.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, MensajeTutor, Modulo, Notificacion, Perfil,
-  ResumenGuardado, Respuesta, TareaConEstado,
+  Registro, ResumenGuardado, Respuesta, TareaConEstado,
 } from "./tipos.ts";
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
@@ -637,6 +637,26 @@ export async function cargarCatalogo(
   reventar("No pude cargar el catálogo", error);
   const r = data as { ramos?: number; bloques?: number } | null;
   return { ramos: r?.ramos ?? 0, bloques: r?.bloques ?? 0 };
+}
+
+/**
+ * El registro de quiénes están en StudIA.
+ *
+ * Va por una función de la base y no por la tabla porque el correo ajeno no
+ * es legible desde el cliente —esa es la promesa que la app le hace a cada
+ * persona— y la administración es la única excepción. Leyendo la tabla, ni
+ * ella ve más que su propia fila.
+ */
+export async function registros(): Promise<Registro[]> {
+  const { data, error } = await supabase.rpc("registros");
+  reventar("No pude cargar el registro", error);
+  return (data ?? []) as Registro[];
+}
+
+/** Cambiar el rol de otra persona. El propio no se toca, ni para subir. */
+export async function cambiarRol(personaId: string, rol: Registro["rol"]): Promise<void> {
+  const { error } = await supabase.rpc("cambiar_rol", { p_persona: personaId, p_rol: rol });
+  reventar("No pude cambiar el rol", error);
 }
 
 export async function crearRamoPropio(nombre: string, color: string): Promise<Asignatura> {

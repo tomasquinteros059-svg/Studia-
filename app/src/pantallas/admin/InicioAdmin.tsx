@@ -1,11 +1,16 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Cargando, Encabezado, Error as ErrorUI, Fila } from "../../ui/componentes.tsx";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Campo, Cargando, Encabezado, Error as ErrorUI, Fila } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import {
-  color, colorDeRamo, espacio, hora, nombreDia, radio, tenue, tipo,
+  FILETE, color, colorDeRamo, espacio, fechaCorta, hora, nombreDia, radio,
+  tenue, tipo,
 } from "../../ui/tema.ts";
-import { cargarCatalogo, cursoDe, miHorario, misAsignaturas } from "../../lib/consultas.ts";
+import {
+  cambiarRol, cargarCatalogo, cursoDe, miHorario, misAsignaturas, registros,
+} from "../../lib/consultas.ts";
+import { NOMBRE_DEL_ROL, buscar, cuentaPorRol } from "../../dominio/personas.ts";
+import type { Registro as RegistroDePersona } from "../../lib/tipos.ts";
 import CargarCatalogo from "./CargarCatalogo.tsx";
 import { PERFILES_DEMO } from "../../lib/perfiles-demo.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
@@ -27,10 +32,12 @@ export default function InicioAdmin() {
   const [cargandoCatalogo, setCargando] = useState(false);
 
   const traer = useCallback(async () => {
-    const [asignaturas, horario] = await Promise.all([misAsignaturas(), miHorario()]);
+    const [asignaturas, horario, registro] = await Promise.all([
+      misAsignaturas(), miHorario(), registros(),
+    ]);
     const cursos = await Promise.all(asignaturas.map((a) => cursoDe(a.id)));
     return {
-      asignaturas, horario,
+      asignaturas, horario, registro,
       inscritos: cursos.reduce((n, c) => n + c.length, 0),
     };
   }, []);
@@ -150,30 +157,130 @@ export default function InicioAdmin() {
         }) : null}
 
         {seccion === "Personas" ? (
-          <>
-            <Encabezado texto="Con cuenta" />
-            {PERFILES_DEMO.map((p) => (
-              <Fila key={p.id}
-                izquierda={<Icono nombre="persona" tono={color.textoSuave} />}
-                titulo={p.nombre}
-                detalle={`${p.titulo} · ${p.correo}`}
-              />
-            ))}
-            <Text style={e.pie}>
-              Las personas, los ramos, el horario y las inscripciones se cargan
-              desde la carpeta <Text style={e.fuerte}>datos/</Text> con
-              <Text style={e.fuerte}> npm run importar</Text>. Antes de escribir
-              nada revisa que todo cuadre y avisa los problemas juntos, con
-              archivo y línea. Editarlos desde acá es lo próximo que falta.
-            </Text>
-          </>
+          <Registro
+            gente={datos.registro}
+            recargar={recargar}
+          />
         ) : null}
       </ScrollView>
     </View>
   );
 }
 
+/**
+ * Quiénes están registrados en StudIA.
+ *
+ * Es el único lugar de la aplicación donde se ve el correo de otra persona.
+ * No es un descuido: la administración necesita saber quién entró y con qué
+ * cuenta, y la base lo abre por una función con guardia en vez de aflojar el
+ * permiso para todo el mundo. Para cualquier otro rol esta lista llega vacía.
+ */
+function Registro({
+  gente, recargar,
+}: {
+  gente: RegistroDePersona[];
+  recargar: () => void;
+}) {
+  const [texto, setTexto] = useState("");
+  const [cambiando, setCambiando] = useState<string | null>(null);
+
+  const vistos = buscar(gente, texto);
+  const cuenta = cuentaPorRol(gente);
+
+  const cambiar = async (persona: RegistroDePersona, rol: RegistroDePersona["rol"]) => {
+    setCambiando(persona.id);
+    try {
+      await cambiarRol(persona.id, rol);
+      recargar();
+    } catch (err) {
+      Alert.alert(
+        "No pude cambiar el rol",
+        err instanceof globalThis.Error ? err.message : "",
+      );
+    } finally {
+      setCambiando(null);
+    }
+  };
+
+  if (gente.length === 0) {
+    return (
+      <Text style={e.pie}>
+        Todavía no hay nadie registrado, o esta cuenta no es de administración.
+        El registro solo lo ve quien administra.
+      </Text>
+    );
+  }
+
+  return (
+    <>
+      <View style={e.buscador}>
+        <Campo
+          placeholder="Buscar por nombre o correo…"
+          value={texto} onChangeText={setTexto}
+          autoCapitalize="none" autoCorrect={false}
+          accessibilityLabel="Buscar en el registro"
+        />
+        <Text style={tipo.detalle}>
+          {cuenta.estudiante} estudiantes · {cuenta.profesor} docentes ·{" "}
+          {cuenta.administrador} de administración
+        </Text>
+      </View>
+
+      {vistos.length === 0 ? (
+        <Text style={e.pie}>Nadie calza con «{texto.trim()}».</Text>
+      ) : vistos.map((p) => (
+        <Fila key={p.id}
+          izquierda={<Icono nombre="persona" tono={color.textoSuave} />}
+          titulo={p.nombre}
+          detalle={`${p.correo} · desde ${fechaCorta(p.creado_en)}`}
+          derecha={
+            <View style={e.roles}>
+              {ROLES.map((rol) => {
+                const suyo = p.rol === rol;
+                return (
+                  <Pressable key={rol} accessibilityRole="button"
+                    accessibilityState={{ selected: suyo }}
+                    accessibilityLabel={`${NOMBRE_DEL_ROL[rol]} para ${p.nombre}`}
+                    disabled={suyo || cambiando !== null}
+                    onPress={() => void cambiar(p, rol)}
+                    style={({ pressed }) => [
+                      e.rol, suyo ? e.rolSuyo : null,
+                      pressed && !suyo ? { backgroundColor: color.elemento } : null,
+                      cambiando === p.id ? { opacity: 0.5 } : null,
+                    ]}>
+                    <Text style={[e.rolTexto, suyo ? e.rolTextoSuyo : null]}>
+                      {NOMBRE_DEL_ROL[rol]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          }
+        />
+      ))}
+
+      <Text style={e.pie}>
+        Cambiar un rol cambia la aplicación que esa persona abre la próxima vez.
+        Tu propio rol no se toca desde acá: pídeselo a otra persona de
+        administración.
+      </Text>
+    </>
+  );
+}
+
+const ROLES = ["estudiante", "profesor", "administrador"] as const;
+
 const e = StyleSheet.create({
+  buscador: { paddingHorizontal: espacio.l, paddingTop: espacio.m, gap: espacio.s },
+  roles: { flexDirection: "row", gap: 4 },
+  rol: {
+    borderRadius: radio.pastilla, paddingHorizontal: 9, paddingVertical: 5,
+    borderWidth: FILETE, borderColor: color.borde, backgroundColor: color.papel,
+  },
+  rolSuyo: { backgroundColor: color.marca, borderColor: color.marca },
+  rolTexto: { fontSize: 11.5, fontWeight: "700", color: color.textoSuave },
+  rolTextoSuyo: { color: color.sobreMarca },
+
   cargar: {
     flexDirection: "row", alignItems: "center", gap: espacio.s,
     backgroundColor: color.marca, borderRadius: radio.pastilla,

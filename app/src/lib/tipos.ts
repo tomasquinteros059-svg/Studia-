@@ -40,6 +40,15 @@ export type Material = {
 };
 
 /** Un material abierto en el lector. El texto solo se pide al abrirlo. */
+/** Una persona registrada, como la ve la administración. */
+export type Registro = {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: Rol;
+  creado_en: string;
+};
+
 export type Lectura = {
   id: string;
   titulo: string;

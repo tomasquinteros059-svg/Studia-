@@ -28,3 +28,38 @@ export function inicialesDePersona(nombre: string): string {
   const ultima = partes.length > 1 ? partes[partes.length - 1]![0] ?? "" : "";
   return `${primera}${ultima}`.toUpperCase();
 }
+
+// ── El registro, como lo mira la administración ─────────────────────────
+
+export type Rol = "estudiante" | "profesor" | "administrador";
+
+/** Cómo se nombra cada rol en pantalla. */
+export const NOMBRE_DEL_ROL: Record<Rol, string> = {
+  estudiante: "Estudiante",
+  profesor: "Docente",
+  administrador: "Administración",
+};
+
+/**
+ * Busca por nombre o por correo, sin importar tildes ni mayúsculas.
+ *
+ * Con mil registros, escribir "jose" y que no aparezca José es la manera más
+ * rápida de que alguien crea que la persona no está inscrita.
+ */
+export function buscar<T extends { nombre: string; correo: string }>(
+  gente: readonly T[], texto: string,
+): T[] {
+  const aguja = plano(texto);
+  if (!aguja) return [...gente];
+  return gente.filter((p) => plano(p.nombre).includes(aguja) || plano(p.correo).includes(aguja));
+}
+
+const plano = (t: string) =>
+  t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+
+/** Cuántas personas hay de cada rol, para decirlo de una. */
+export function cuentaPorRol(gente: readonly { rol: Rol }[]): Record<Rol, number> {
+  const cuenta: Record<Rol, number> = { estudiante: 0, profesor: 0, administrador: 0 };
+  for (const p of gente) cuenta[p.rol] += 1;
+  return cuenta;
+}

@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { revisarIngreso } from "../dominio/registro-demo.ts";
 
 export type RolDemo = "estudiante" | "profesor" | "administrador";
 
@@ -100,16 +101,27 @@ const CLAVE = "studia.demo.perfil";
 // El almacenamiento del aparato puede no estar —en las pruebas no lo está— y
 // recordar el perfil elegido es una comodidad, no un requisito: si falla, la
 // app sigue funcionando y solo vuelve a preguntar al abrirla.
-const guardar = (id: string | null): void => {
+//
+// Se guarda el perfil entero y no su id: desde que alguien puede entrar con
+// su propio correo, el perfil elegido no siempre es uno de los cinco de
+// ejemplo. Lo guardado por versiones anteriores era un id suelto y se sigue
+// leyendo.
+const guardar = (p: PerfilDemo | null): void => {
   try {
-    void (id === null ? AsyncStorage.removeItem(CLAVE) : AsyncStorage.setItem(CLAVE, id))
-      .catch(() => {});
+    void (p === null
+      ? AsyncStorage.removeItem(CLAVE)
+      : AsyncStorage.setItem(CLAVE, JSON.stringify(p))
+    ).catch(() => {});
   } catch { /* sin almacenamiento */ }
 };
 
-const leerGuardado = async (): Promise<string | null> => {
+const leerGuardado = async (): Promise<PerfilDemo | null> => {
   try {
-    return await AsyncStorage.getItem(CLAVE);
+    const guardado = await AsyncStorage.getItem(CLAVE);
+    if (!guardado) return null;
+    if (!guardado.startsWith("{")) return perfilPorId(guardado);
+    const p = JSON.parse(guardado) as PerfilDemo;
+    return typeof p?.id === "string" && typeof p?.correo === "string" ? p : null;
   } catch {
     return null;
   }
@@ -125,8 +137,41 @@ export const perfilActual = (): PerfilDemo | null => actual;
 
 export function entrarComo(id: string): void {
   actual = perfilPorId(id);
-  guardar(id);
+  guardar(actual);
   avisar();
+}
+
+/**
+ * Entrar con el correo propio, sin servidor.
+ *
+ * Nadie entra a StudIA sin correo. Con Supabase conectado eso lo hace cumplir
+ * el inicio de sesión; acá lo hace cumplir esto. No es seguridad —no hay clave
+ * ni nada que verificar— y la pantalla lo dice: es la misma puerta, para que
+ * en la demostración no exista una entrada anónima que en la aplicación de
+ * verdad no existe.
+ *
+ * Quien se registra así empieza con todo vacío, tenga el correo que tenga: en
+ * la demostración no hay institución que le mande ramos.
+ */
+export function registrarse(correo: string, nombre: string): PerfilDemo {
+  const r = revisarIngreso(correo, nombre);
+  if (!r.ok) throw new Error(r.motivo);
+
+  actual = {
+    id: `p-propio-${r.correo}`,
+    nombre: r.nombre,
+    correo: r.correo,
+    rol: "estudiante",
+    dicta: [],
+    institucion: false,
+    titulo: "Por tu cuenta",
+    descripcion: r.institucion
+      ? `Entraste con tu correo de ${r.institucion}.`
+      : "Entraste con tu propio correo.",
+  };
+  guardar(actual);
+  avisar();
+  return actual;
 }
 
 export function salir(): void {
@@ -153,9 +198,9 @@ export function usarPerfilDemo(): { perfil: PerfilDemo | null; listo: boolean } 
   useEffect(() => {
     if (actual !== null) { setListo(true); return; }
     let vigente = true;
-    void leerGuardado().then((id) => {
+    void leerGuardado().then((p) => {
       if (!vigente) return;
-      if (id) { actual = perfilPorId(id); setPerfil(actual); }
+      if (p) { actual = p; setPerfil(actual); }
       setListo(true);
     });
     return () => { vigente = false; };

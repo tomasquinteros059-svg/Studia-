@@ -56,7 +56,7 @@ describe("la portada", () => {
   });
 
   test("sin servidor no se intenta nada: se dice por qué y adónde ir", async () => {
-    const t = await render(<Portada entrar={jest.fn()} probar={jest.fn()} sinServidor />);
+    const t = await render(<Portada entrar={jest.fn()} sinServidor />);
 
     await act(async () => { fireEvent.press(t.getByLabelText("Continuar con Google")); });
 
@@ -64,12 +64,13 @@ describe("la portada", () => {
     expect(t.getByText(/no tiene servidor detrás/)).toBeTruthy();
   });
 
-  test("el botón de mirar con datos de ejemplo solo está cuando hay qué mirar", async () => {
-    const conEjemplo = await render(<Portada entrar={jest.fn()} probar={jest.fn()} sinServidor />);
-    expect(conEjemplo.getByRole("button", { name: "Mirar con datos de ejemplo" })).toBeTruthy();
+  test("no hay ninguna puerta que se salte el correo, ni siquiera sin servidor", async () => {
+    const sinBackend = await render(<Portada entrar={jest.fn()} sinServidor />);
+    expect(sinBackend.queryByRole("button", { name: /ejemplo/i })).toBeNull();
+    expect(sinBackend.getByRole("button", { name: "Entrar con mi correo" })).toBeTruthy();
 
-    const sinEjemplo = await render(<Portada entrar={jest.fn()} />);
-    expect(sinEjemplo.queryByRole("button", { name: "Mirar con datos de ejemplo" })).toBeNull();
+    const conBackend = await render(<Portada entrar={jest.fn()} />);
+    expect(conBackend.queryByRole("button", { name: /ejemplo/i })).toBeNull();
   });
 
   test("entrar con el correo lo avisa a quien la abrió", async () => {
