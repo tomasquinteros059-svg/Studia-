@@ -39,6 +39,32 @@ jobs:
         with:
           ref: ${{ env.ACTA }}
 
+      # Lo que se le agrega a Acta vive en `acta/` de la rama de hoy, no en
+      # su commit. Se trae aparte para no pisar el árbol recién sacado.
+      - name: Traer los parches de la rama
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: acta
+          sparse-checkout-cone-mode: false
+          path: .parches
+
+      - name: Aplicarlos
+        run: |
+          shopt -s nullglob
+          parches=(.parches/acta/*.patch)
+          if [ ${#parches[@]} -eq 0 ]; then
+            echo "No hay parches que aplicar."
+            exit 0
+          fi
+          for p in "${parches[@]}"; do
+            echo "→ $p"
+            # --check primero: un parche que no calza tiene que detener la
+            # compilación acá, no dejar el árbol a medio aplicar.
+            git apply --check "$p"
+            git apply "$p"
+          done
+          rm -rf .parches
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

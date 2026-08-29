@@ -1,0 +1,748 @@
+diff --git a/app/pruebas/dobles.tsx b/app/pruebas/dobles.tsx
+index 4a76cec..2d69ec1 100644
+--- a/app/pruebas/dobles.tsx
++++ b/app/pruebas/dobles.tsx
+@@ -29,6 +29,7 @@ export const REUNION: Reunion = {
+   sala_abierta_en: null,
+   programada_para: null,
+   repite: "nunca",
++  enlace: null,
+ };
+ 
+ export const REUNION_2: Reunion = {
+diff --git a/app/src/dominio/enlace.prueba.ts b/app/src/dominio/enlace.prueba.ts
+new file mode 100644
+index 0000000..ea6fcfc
+--- /dev/null
++++ b/app/src/dominio/enlace.prueba.ts
+@@ -0,0 +1,93 @@
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { comoEntrar, comoSeVe, leerEnlace, podar, servicioDe } from "./enlace.ts";
++
++const url = (t: string) => leerEnlace(t)?.url ?? null;
++
++// ── De qué servicio es ──────────────────────────────────────────────────
++
++test("reconoce los tres servicios que usa la gente", () => {
++  assert.equal(servicioDe("https://meet.google.com/abc-defg-hij"), "meet");
++  assert.equal(servicioDe("https://us02web.zoom.us/j/123456789"), "zoom");
++  assert.equal(servicioDe("https://teams.microsoft.com/l/meetup-join/19%3ameeting"), "teams");
++});
++
++test("un servicio que no conoce sigue sirviendo, solo que sin nombre", () => {
++  const e = leerEnlace("https://videollamada.miempresa.cl/sala/42");
++  assert.equal(e?.servicio, "otro");
++  assert.equal(comoEntrar(e!), "Entrar a la reunión");
++});
++
++test("un dominio que solo termina parecido no se hace pasar por el servicio", () => {
++  assert.equal(servicioDe("https://nozoom.us/j/1"), "otro");
++  assert.equal(servicioDe("https://meet.google.com.falso.cl/x"), "otro");
++  // Un subdominio de verdad sí cuenta.
++  assert.equal(servicioDe("https://us02web.zoom.us/j/1"), "zoom");
++});
++
++test("el puerto y el usuario no impiden reconocer el servicio", () => {
++  assert.equal(servicioDe("https://MEET.GOOGLE.COM/abc-defg-hij"), "meet");
++  assert.equal(servicioDe("https://zoom.us:443/j/123"), "zoom");
++});
++
++// ── Sacar el enlace de una invitación pegada ────────────────────────────
++
++test("una dirección sola se toma tal cual", () => {
++  assert.equal(url("https://meet.google.com/abc-defg-hij"), "https://meet.google.com/abc-defg-hij");
++  assert.equal(url("  https://zoom.us/j/123  "), "https://zoom.us/j/123");
++});
++
++test("de una invitación entera saca el enlace de la reunión, no el primero", () => {
++  const invitacion = `
++Reunión de comité
++Cuándo: martes 3, 10:00
++Ver en Google Calendar: https://calendar.google.com/calendar/event?eid=abc
++
++Información para unirse por videollamada
++Enlace: https://meet.google.com/xyz-mnop-qrs
++¿Más ayuda? https://support.google.com/a/users/answer/9282720
++`;
++  assert.equal(url(invitacion), "https://meet.google.com/xyz-mnop-qrs");
++});
++
++test("la puntuación de la frase no se queda pegada a la dirección", () => {
++  assert.equal(url("Entra a https://meet.google.com/abc-defg-hij."),
++    "https://meet.google.com/abc-defg-hij");
++  assert.equal(url("(https://zoom.us/j/123)"), "https://zoom.us/j/123");
++  assert.equal(url("El enlace es https://zoom.us/j/123, avisa si no entra."),
++    "https://zoom.us/j/123");
++});
++
++test("un paréntesis que es parte de la dirección no se poda", () => {
++  const t = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_(NzQ)%40thread";
++  assert.equal(podar(t), t);
++});
++
++test("sin ninguna dirección no hay enlace, y eso no es un error", () => {
++  assert.equal(leerEnlace(""), null);
++  assert.equal(leerEnlace("   "), null);
++  assert.equal(leerEnlace("Reunión en la sala 3, presencial"), null);
++  // Sin http:// delante no es una dirección que se pueda abrir.
++  assert.equal(leerEnlace("meet.google.com/abc-defg-hij"), null);
++});
++
++test("el nombre del servicio es lo que se pinta en el botón", () => {
++  assert.equal(comoEntrar(leerEnlace("https://meet.google.com/a-b-c")!), "Entrar a Google Meet");
++  assert.equal(comoEntrar(leerEnlace("https://zoom.us/j/1")!), "Entrar a Zoom");
++  assert.equal(comoEntrar(leerEnlace("https://teams.microsoft.com/l/x")!),
++    "Entrar a Microsoft Teams");
++});
++
++// ── Cómo se muestra ─────────────────────────────────────────────────────
++
++test("la dirección se muestra sin el https:// que no aporta nada", () => {
++  assert.equal(comoSeVe("https://meet.google.com/abc-defg-hij"), "meet.google.com/abc-defg-hij");
++  assert.equal(comoSeVe("https://zoom.us/j/123/"), "zoom.us/j/123");
++});
++
++test("una dirección larguísima se corta en vez de ocupar tres renglones", () => {
++  const larga = `https://teams.microsoft.com/l/meetup-join/${"x".repeat(200)}`;
++  const vista = comoSeVe(larga);
++  assert.ok(vista.length <= 44, `mide ${vista.length}`);
++  assert.ok(vista.endsWith("…"));
++});
+diff --git a/app/src/dominio/enlace.ts b/app/src/dominio/enlace.ts
+new file mode 100644
+index 0000000..d6d57e3
+--- /dev/null
++++ b/app/src/dominio/enlace.ts
+@@ -0,0 +1,109 @@
++// El enlace de la reunión en línea.
++//
++// Casi nadie escribe la dirección a mano: se pega la invitación entera del
++// calendario, con su párrafo de instrucciones, su número de teléfono y su
++// aviso legal. Sacar el enlace de ahí es todo el trabajo, y hacerlo bien es
++// la diferencia entre entrar de un toque y tener que buscar el correo.
++//
++// Lo que esto NO hace, y conviene que quede escrito: Acta no puede grabar a
++// los demás participantes de una reunión en línea. Ni Android ni iOS dejan
++// que una aplicación capture el audio de otra —el de una llamada, nunca—,
++// así que el micrófono solo oye lo que suene en la sala donde uno está. El
++// enlace sirve para entrar a la reunión, no para grabarla por dentro.
++
++export type Servicio = "meet" | "zoom" | "teams" | "otro";
++
++export type Enlace = {
++  url: string;
++  servicio: Servicio;
++  /** "Google Meet", "Zoom"… Lo que se pinta en el botón. */
++  nombre: string;
++};
++
++const NOMBRES: Record<Servicio, string> = {
++  meet: "Google Meet",
++  zoom: "Zoom",
++  teams: "Microsoft Teams",
++  otro: "la reunión",
++};
++
++/** Por dominio, que es lo único que no cambia de una invitación a otra. */
++const SERVICIOS: { servicio: Exclude<Servicio, "otro">; dominios: string[] }[] = [
++  { servicio: "meet", dominios: ["meet.google.com"] },
++  { servicio: "zoom", dominios: ["zoom.us", "zoom.com"] },
++  { servicio: "teams", dominios: ["teams.microsoft.com", "teams.live.com"] },
++];
++
++// Una dirección http(s) dentro de un texto cualquiera. Se corta en el primer
++// espacio o salto; los cierres pegados al final los limpia `podar`.
++const RE_URL = /https?:\/\/[^\s<>"']+/gi;
++
++/**
++ * Le saca a una dirección lo que se le pegó al final al copiarla: el punto
++ * de la frase, el paréntesis que la envolvía, la coma de la lista.
++ */
++export function podar(url: string): string {
++  let limpia = url.replace(/[.,;:!?]+$/, "");
++  // Un paréntesis de cierre solo sobra si no venía abierto adentro, como en
++  // ".../meetup-join/19%3ameeting_(algo)" — ahí es parte de la dirección.
++  while (/[)\]}>]$/.test(limpia)) {
++    const cierre = limpia.slice(-1);
++    const apertura = { ")": "(", "]": "[", "}": "{", ">": "<" }[cierre]!;
++    const abiertos = limpia.split(apertura).length - 1;
++    const cerrados = limpia.split(cierre).length - 1;
++    if (cerrados <= abiertos) break;
++    limpia = limpia.slice(0, -1);
++  }
++  return limpia;
++}
++
++/** A qué servicio pertenece una dirección. */
++export function servicioDe(url: string): Servicio {
++  const anfitrion = anfitrionDe(url);
++  if (!anfitrion) return "otro";
++  for (const { servicio, dominios } of SERVICIOS) {
++    // Con el punto delante para que "nozoom.us" no pase por Zoom.
++    if (dominios.some((d) => anfitrion === d || anfitrion.endsWith(`.${d}`))) {
++      return servicio;
++    }
++  }
++  return "otro";
++}
++
++function anfitrionDe(url: string): string | null {
++  const m = /^https?:\/\/([^/?#]+)/i.exec(url.trim());
++  if (!m?.[1]) return null;
++  // Sin usuario, sin puerto y en minúsculas: es lo que se compara.
++  return m[1].toLowerCase().replace(/^[^@]*@/, "").replace(/:\d+$/, "");
++}
++
++/**
++ * Saca el enlace de la reunión de un texto cualquiera: una dirección sola,
++ * o la invitación completa pegada del calendario.
++ *
++ * Si hay varias direcciones se queda con la de un servicio conocido, no con
++ * la primera: las invitaciones de Google traen antes el enlace de la propia
++ * agenda, y el de ayuda, y el de "más opciones de marcado".
++ */
++export function leerEnlace(texto: string): Enlace | null {
++  const encontradas = (texto.match(RE_URL) ?? []).map(podar).filter(Boolean);
++  if (encontradas.length === 0) return null;
++
++  const conocida = encontradas.find((u) => servicioDe(u) !== "otro");
++  const url = conocida ?? encontradas[0]!;
++  const servicio = servicioDe(url);
++  return { url, servicio, nombre: NOMBRES[servicio] };
++}
++
++/** Lo que dice el botón para entrar. */
++export const comoEntrar = (enlace: Enlace): string =>
++  enlace.servicio === "otro" ? "Entrar a la reunión" : `Entrar a ${enlace.nombre}`;
++
++/**
++ * La dirección como se muestra en pantalla: sin el "https://" ni la ristra
++ * de parámetros, que en un enlace de Teams ocupa tres renglones.
++ */
++export function comoSeVe(url: string, largo = 44): string {
++  const corta = url.replace(/^https?:\/\//i, "").replace(/\/$/, "");
++  return corta.length <= largo ? corta : `${corta.slice(0, largo - 1)}…`;
++}
+diff --git a/app/src/lib/datos-reuniones.ts b/app/src/lib/datos-reuniones.ts
+index e369bc8..c470202 100644
+--- a/app/src/lib/datos-reuniones.ts
++++ b/app/src/lib/datos-reuniones.ts
+@@ -49,6 +49,7 @@ const SEMILLAS: Semilla[] = [
+     // adentro. Es el estado en que queda una sala la mayor parte del tiempo.
+     codigo: "KRD497", sala_abierta: false, sala_abierta_en: null,
+     programada_para: null, repite: "nunca",
++    enlace: null,
+     sala: [
+       { id: "p-luis", nombre: "Luis Pinto", puede_editar: true },
+       { id: "p-sonia", nombre: "Sonia Cerda", puede_editar: false },
+@@ -97,6 +98,7 @@ const SEMILLAS: Semilla[] = [
+     codigo: "TWQ863", sala_abierta: true, sala_abierta_en: haceHoras(3),
+     // La de obra es semanal: es el caso que justifica agendar.
+     programada_para: haceHoras(3), repite: "cada_semana",
++    enlace: "https://meet.google.com/xkq-rmvd-tzo",
+     sala: [{ id: "p-pedro", nombre: "Pedro Lagos", puede_editar: false }],
+     documento: null,
+     transcripcion: null,
+@@ -138,6 +140,7 @@ const SEMILLAS: Semilla[] = [
+     tabla: ["Estado de la posesión efectiva", "Inventario de bienes", "Honorarios"],
+     codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
+     programada_para: null, repite: "nunca",
++    enlace: null,
+     documento: null,
+     transcripcion: null,
+     resumen:
+@@ -172,6 +175,7 @@ const SEMILLAS: Semilla[] = [
+     tabla: ["Cierre de marzo", "Dotación", "Proveedor de logística", "Presupuesto de abril"],
+     codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
+     programada_para: null, repite: "nunca",
++    enlace: "https://us02web.zoom.us/j/84512309876",
+     documento: null,
+     transcripcion: null,
+     resumen:
+@@ -261,6 +265,7 @@ export async function crearReunion(nueva: ReunionNueva): Promise<Reunion> {
+     codigo: null, sala_abierta: false, sala_abierta_en: null, sala: [],
+     programada_para: nueva.programada_para ?? null,
+     repite: nueva.repite ?? "nunca",
++    enlace: nueva.enlace ?? null,
+     documento: null, transcripcion: null, resumen: "",
+     acuerdos: [], tareas: [], pendientes: [],
+     sinTratar: [], aportes: [], contradicciones: [],
+diff --git a/app/src/lib/reuniones-supabase.ts b/app/src/lib/reuniones-supabase.ts
+index 6514e03..de33d6c 100644
+--- a/app/src/lib/reuniones-supabase.ts
++++ b/app/src/lib/reuniones-supabase.ts
+@@ -18,7 +18,7 @@ function reventar(queHacia: string, error: { message: string } | null): void {
+ 
+ // En una sola línea a propósito: partida en dos con un `+`, Supabase deja de
+ // inferir el tipo de la fila y todo lo que sigue queda en `any` disfrazado.
+-const CABECERA = "id, titulo, rubro, estado, ocurrio_en, duracion_seg, participantes, tabla, dueno_id, codigo, sala_abierta, sala_abierta_en, programada_para, repite";
++const CABECERA = "id, titulo, rubro, estado, ocurrio_en, duracion_seg, participantes, tabla, dueno_id, codigo, sala_abierta, sala_abierta_en, programada_para, repite, enlace";
+ 
+ /** Quién soy, para saber qué tareas quedaron a mi nombre. */
+ export async function quienSoy(): Promise<string> {
+@@ -81,6 +81,7 @@ function armarCabecera(fila: FilaConInvitados, yo: string): Reunion {
+     sala_abierta: fila.sala_abierta === true,
+     sala_abierta_en: (fila.sala_abierta_en as string | null) ?? null,
+     programada_para: (fila.programada_para as string | null) ?? null,
++    enlace: (fila.enlace as string | null) ?? null,
+     repite: (fila.repite as Reunion["repite"]) ?? "nunca",
+   };
+ }
+@@ -146,6 +147,7 @@ export async function crearReunion(nueva: ReunionNueva): Promise<Reunion> {
+       participantes: nueva.participantes,
+       tabla: nueva.tabla,
+       programada_para: nueva.programada_para ?? null,
++      enlace: nueva.enlace ?? null,
+       repite: nueva.repite ?? "nunca",
+     })
+     .select(CABECERA)
+diff --git a/app/src/lib/tipos-reunion.ts b/app/src/lib/tipos-reunion.ts
+index 2861a53..6411d0d 100644
+--- a/app/src/lib/tipos-reunion.ts
++++ b/app/src/lib/tipos-reunion.ts
+@@ -30,6 +30,11 @@ export type Reunion = {
+   /** Cuándo empieza y cada cuánto se repite. Sin agendar, null y "nunca". */
+   programada_para: string | null;
+   repite: Repeticion;
++  /**
++   * La reunión en línea a la que hay que entrar, si la hay. Null cuando es
++   * presencial, que sigue siendo la mitad de los casos.
++   */
++  enlace: string | null;
+ };
+ 
+ export type EnLaSala = { id: string; nombre: string; puede_editar: boolean };
+@@ -71,6 +76,8 @@ export type ReunionNueva = {
+   /** Cuándo empieza, si se agendó. Null para grabar ahora mismo. */
+   programada_para?: string | null;
+   repite?: Repeticion;
++  /** La reunión en línea, si es por Meet, Zoom o Teams. */
++  enlace?: string | null;
+ };
+ 
+ /** Una tarea con de qué reunión salió, para la lista de todas mis tareas. */
+diff --git a/app/src/pantallas/reuniones/EnLinea.prueba.tsx b/app/src/pantallas/reuniones/EnLinea.prueba.tsx
+new file mode 100644
+index 0000000..3c46b49
+--- /dev/null
++++ b/app/src/pantallas/reuniones/EnLinea.prueba.tsx
+@@ -0,0 +1,76 @@
++import { Linking } from "react-native";
++import { fireEvent, waitFor } from "@testing-library/react-native";
++import { COMPLETA, YO, renderPantalla } from "../../../pruebas/dobles.tsx";
++
++jest.mock("../../lib/consultas.ts", () => ({
++  reunionPorId: jest.fn(),
++  quienSoy: jest.fn(),
++  marcarTarea: jest.fn(),
++  agregarTarea: jest.fn(),
++  abrirSala: jest.fn(),
++  cerrarSala: jest.fn(),
++}));
++
++import * as consultas from "../../lib/consultas.ts";
++import Reunion from "./Reunion.tsx";
++
++const mock = consultas as jest.Mocked<typeof consultas>;
++
++const conReunion = (extra: Partial<typeof COMPLETA>) => {
++  mock.reunionPorId.mockResolvedValue({ ...COMPLETA, ...extra } as never);
++  mock.quienSoy.mockResolvedValue(YO as never);
++};
++
++const abrir = () => renderPantalla(Reunion, { reunionId: COMPLETA.id });
++
++beforeEach(() => {
++  jest.clearAllMocks();
++  jest.spyOn(Linking, "openURL").mockResolvedValue(true as never);
++});
++
++describe("entrar a una reunión en línea", () => {
++  test("una reunión sin grabar con enlace ofrece entrar, con el nombre del servicio", async () => {
++    conReunion({ estado: "borrador", enlace: "https://meet.google.com/abc-defg-hij" });
++    const t = await abrir();
++
++    await waitFor(() => expect(t.getByText("Entrar a Google Meet")).toBeTruthy());
++    // Y dice a dónde lleva, sin el https:// que no aporta.
++    expect(t.getByText("meet.google.com/abc-defg-hij")).toBeTruthy();
++  });
++
++  test("tocar el botón abre el enlace en la aplicación que corresponda", async () => {
++    conReunion({ estado: "borrador", enlace: "https://us02web.zoom.us/j/845123" });
++    const t = await abrir();
++
++    await waitFor(() => expect(t.getByText("Entrar a Zoom")).toBeTruthy());
++    fireEvent.press(t.getByLabelText("Entrar a Zoom"));
++    expect(Linking.openURL).toHaveBeenCalledWith("https://us02web.zoom.us/j/845123");
++  });
++
++  test("una reunión presencial no muestra nada de esto", async () => {
++    conReunion({ estado: "borrador", enlace: null });
++    const t = await abrir();
++
++    await waitFor(() => expect(t.getByText(/todavía no se graba/)).toBeTruthy());
++    expect(t.queryByText(/^Entrar a /)).toBeNull();
++  });
++
++  test("se dice que no se oye a los demás por el enlace, que es lo que se daría por supuesto", async () => {
++    conReunion({ estado: "borrador", enlace: "https://meet.google.com/abc-defg-hij" });
++    const t = await abrir();
++
++    await waitFor(() => expect(t.getByText(/no oye a los demás/)).toBeTruthy());
++  });
++
++  test("si la invitación venía entera, se guardó solo la dirección y se abre esa", async () => {
++    conReunion({
++      estado: "borrador",
++      enlace: "https://meet.google.com/xyz-mnop-qrs",
++    });
++    const t = await abrir();
++
++    await waitFor(() => expect(t.getByText("Entrar a Google Meet")).toBeTruthy());
++    fireEvent.press(t.getByLabelText("Entrar a Google Meet"));
++    expect(Linking.openURL).toHaveBeenCalledWith("https://meet.google.com/xyz-mnop-qrs");
++  });
++});
+diff --git a/app/src/pantallas/reuniones/EnLinea.tsx b/app/src/pantallas/reuniones/EnLinea.tsx
+new file mode 100644
+index 0000000..cc16302
+--- /dev/null
++++ b/app/src/pantallas/reuniones/EnLinea.tsx
+@@ -0,0 +1,77 @@
++import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
++import { Icono } from "../../ui/Icono.tsx";
++import { FILETE, color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
++import { comoEntrar, comoSeVe, leerEnlace } from "../../dominio/enlace.ts";
++
++/**
++ * La reunión en línea: a dónde hay que entrar y el botón para hacerlo.
++ *
++ * Abre la aplicación que corresponda —Meet, Zoom, Teams— o el navegador si
++ * no está instalada. Acta no entra a la reunión por dentro: ni Android ni
++ * iOS dejan que una aplicación capture el audio de otra, así que lo que se
++ * grabe será lo que suene en la sala donde uno esté. Eso se dice acá abajo
++ * y no en una nota de la ayuda, porque es justo lo que alguien podría dar
++ * por supuesto y descubrir demasiado tarde.
++ */
++export default function EnLinea({ enlace }: { enlace: string | null }) {
++  const leido = enlace ? leerEnlace(enlace) : null;
++  if (!leido) return null;
++
++  const entrar = async () => {
++    try {
++      await Linking.openURL(leido.url);
++    } catch {
++      Alert.alert(
++        "No pude abrir el enlace",
++        "Cópialo y ábrelo en el navegador:\n\n" + leido.url,
++      );
++    }
++  };
++
++  return (
++    <View style={e.caja}>
++      <View style={e.fila}>
++        <View style={e.sello}>
++          <Icono nombre="enLinea" tamano={20} tono={color.marca} />
++        </View>
++        <View style={{ flex: 1, gap: 2 }}>
++          <Text style={e.titulo}>{leido.nombre}</Text>
++          <Text style={tipo.detalle} numberOfLines={1}>{comoSeVe(leido.url)}</Text>
++        </View>
++      </View>
++
++      <Pressable accessibilityRole="link" accessibilityLabel={comoEntrar(leido)}
++        onPress={() => void entrar()}
++        style={({ pressed }) => [e.boton, pressed ? { opacity: 0.85 } : null]}>
++        <Icono nombre="abrir" tamano={18} tono={color.sobreMarca} />
++        <Text style={e.botonTexto}>{comoEntrar(leido)}</Text>
++      </Pressable>
++
++      <Text style={e.aviso}>
++        Acta no oye a los demás por el enlace: graba lo que suene donde estás.
++        En una reunión en línea, deja el altavoz puesto.
++      </Text>
++    </View>
++  );
++}
++
++const e = StyleSheet.create({
++  caja: {
++    gap: espacio.m, padding: espacio.m,
++    backgroundColor: color.papel, borderRadius: radio.tarjeta,
++    borderWidth: FILETE, borderColor: color.borde,
++  },
++  fila: { flexDirection: "row", alignItems: "center", gap: espacio.m },
++  sello: {
++    width: 42, height: 42, borderRadius: radio.campo,
++    alignItems: "center", justifyContent: "center",
++    backgroundColor: tenue(color.marca),
++  },
++  titulo: { ...tipo.fila },
++  boton: {
++    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: espacio.s,
++    backgroundColor: color.marca, borderRadius: radio.boton, paddingVertical: 15,
++  },
++  botonTexto: { color: color.sobreMarca, fontSize: 15.5, fontWeight: "700", letterSpacing: -0.2 },
++  aviso: { ...tipo.detalle, lineHeight: 19 },
++});
+diff --git a/app/src/pantallas/reuniones/Grabar.tsx b/app/src/pantallas/reuniones/Grabar.tsx
+index c16c7e7..9ff4af2 100644
+--- a/app/src/pantallas/reuniones/Grabar.tsx
++++ b/app/src/pantallas/reuniones/Grabar.tsx
+@@ -6,6 +6,7 @@ import { FILETE, color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+ import { analizarReunion, reunionPorId } from "../../lib/consultas.ts";
+ import { usarCarga } from "../../lib/usarCarga.ts";
+ import { equipoDe } from "../../dominio/rubros.ts";
++import EnLinea from "./EnLinea.tsx";
+ import type { PropsPila } from "../../lib/rutas.ts";
+ 
+ type Props = PropsPila<"Grabar">;
+@@ -70,6 +71,14 @@ export default function Grabar({ route, navigation }: Props) {
+         </View>
+       ) : null}
+ 
++      {/* Si la reunión es en línea, se entra desde acá mismo: esta es la
++          pantalla donde uno está cuando la reunión empieza. */}
++      {reunion.enlace ? (
++        <View style={e.margen}>
++          <EnLinea enlace={reunion.enlace} />
++        </View>
++      ) : null}
++
+       <Text style={[tipo.etiqueta, e.margen]}>Lo que se dijo</Text>
+       <TextInput
+         style={e.papel}
+diff --git a/app/src/pantallas/reuniones/NuevaReunion.tsx b/app/src/pantallas/reuniones/NuevaReunion.tsx
+index 62f0486..f7ad322 100644
+--- a/app/src/pantallas/reuniones/NuevaReunion.tsx
++++ b/app/src/pantallas/reuniones/NuevaReunion.tsx
+@@ -7,6 +7,7 @@ import { EQUIPOS, equipoDe, type Rubro } from "../../dominio/rubros.ts";
+ import type { ReunionNueva } from "../../lib/tipos-reunion.ts";
+ import { SIN_AGENDA, type Agenda } from "../../dominio/agenda.ts";
+ import Agendar from "./Agendar.tsx";
++import { comoSeVe, leerEnlace } from "../../dominio/enlace.ts";
+ 
+ /**
+  * El encabezado de la reunión, antes de grabar.
+@@ -28,11 +29,12 @@ export default function NuevaReunion({
+   const [participantes, setParticipantes] = useState("");
+   const [tabla, setTabla] = useState("");
+   const [agenda, setAgenda] = useState<Agenda>(SIN_AGENDA);
++  const [enlace, setEnlace] = useState("");
+   const [ocupado, setOcupado] = useState(false);
+ 
+   const limpiar = () => {
+     setTitulo(""); setRubro(null); setParticipantes(""); setTabla("");
+-    setAgenda(SIN_AGENDA); setOcupado(false);
++    setAgenda(SIN_AGENDA); setEnlace(""); setOcupado(false);
+   };
+ 
+   const sePuede = titulo.trim().length > 0 && rubro !== null && !ocupado;
+@@ -48,6 +50,9 @@ export default function NuevaReunion({
+         tabla: enLineas(tabla),
+         programada_para: agenda.programada_para,
+         repite: agenda.repite,
++        // Se guarda solo la dirección: lo pegado suele traer la invitación
++        // entera, con su párrafo de instrucciones y su aviso legal.
++        enlace: leerEnlace(enlace)?.url ?? null,
+       });
+       limpiar();
+       cerrar();
+@@ -57,6 +62,7 @@ export default function NuevaReunion({
+   };
+ 
+   const elegido = rubro ? equipoDe(rubro) : null;
++  const leido = leerEnlace(enlace);
+ 
+   return (
+     <HojaModal abierto={abierta} cerrar={cerrar} titulo="Nueva reunión">
+@@ -132,6 +138,28 @@ export default function NuevaReunion({
+             accessibilityLabel="Tabla de la reunión"
+           />
+ 
++          <Text style={tipo.etiqueta}>¿Es en línea?</Text>
++          <Campo
++            style={e.varias}
++            placeholder={"Pega acá el enlace de Meet, Zoom o Teams.\nPuedes pegar la invitación completa: saco la dirección."}
++            value={enlace} onChangeText={setEnlace}
++            multiline textAlignVertical="top"
++            autoCapitalize="none" autoCorrect={false}
++            accessibilityLabel="Enlace de la reunión"
++          />
++          {leido ? (
++            <View style={e.enlaceLeido}>
++              <Icono nombre="listo" tamano={16} tono={color.ok} />
++              <Text style={e.enlaceTexto} numberOfLines={1}>
++                {leido.nombre} · {comoSeVe(leido.url, 30)}
++              </Text>
++            </View>
++          ) : enlace.trim() ? (
++            <Text style={e.enlaceMalo}>
++              No encontré ninguna dirección ahí. Tiene que empezar con https://
++            </Text>
++          ) : null}
++
+           <Agendar agenda={agenda} cambiar={setAgenda} />
+ 
+       <Boton
+@@ -154,6 +182,14 @@ export function enLineas(texto: string): string[] {
+ const e = StyleSheet.create({
+   pista: { ...tipo.detalle, lineHeight: 19, marginTop: -6 },
+ 
++  // Lo que se leyó del enlace se confirma en el momento, no al guardar:
++  // pegar la invitación entera y no saber si sirvió es media pantalla de duda.
++  enlaceLeido: {
++    flexDirection: "row", alignItems: "center", gap: espacio.s, marginTop: -6,
++  },
++  enlaceTexto: { ...tipo.detalle, color: color.ok, flex: 1 },
++  enlaceMalo: { ...tipo.detalle, color: color.ambar, marginTop: -6, lineHeight: 19 },
++
+   rubro: {
+     flexDirection: "row", alignItems: "center", gap: espacio.m,
+     borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.tarjeta,
+diff --git a/app/src/pantallas/reuniones/Reunion.tsx b/app/src/pantallas/reuniones/Reunion.tsx
+index 34caaa2..ce879fe 100644
+--- a/app/src/pantallas/reuniones/Reunion.tsx
++++ b/app/src/pantallas/reuniones/Reunion.tsx
+@@ -9,6 +9,7 @@ import {
+   abrirSala, agregarTarea, cerrarSala, marcarTarea, quienSoy, reunionPorId,
+ } from "../../lib/consultas.ts";
+ import Sala from "./Sala.tsx";
++import EnLinea from "./EnLinea.tsx";
+ import { usarCarga } from "../../lib/usarCarga.ts";
+ import { equipoDe } from "../../dominio/rubros.ts";
+ import {
+@@ -68,6 +69,12 @@ export default function Reunion({ route, navigation }: Props) {
+             </View>
+           ) : null}
+         </View>
++
++        {/* Antes de grabar es cuando el enlace sirve: es la reunión que
++            está por empezar. */}
++        <View style={{ paddingHorizontal: espacio.m }}>
++          <EnLinea enlace={r.enlace} />
++        </View>
+       </Pantalla>
+     );
+   }
+@@ -260,6 +267,15 @@ export default function Reunion({ route, navigation }: Props) {
+         </>
+       ) : null}
+ 
++      {r.enlace && r.repite !== "nunca" ? (
++        <>
++          <Encabezado texto="La próxima" />
++          <View style={{ paddingHorizontal: espacio.m }}>
++            <EnLinea enlace={r.enlace} />
++          </View>
++        </>
++      ) : null}
++
+       <Sala
+         reunion={r}
+         abrir={async () => { await abrirSala(reunionId); recargar(); }}
+diff --git a/app/src/pantallas/reuniones/Reuniones.prueba.tsx b/app/src/pantallas/reuniones/Reuniones.prueba.tsx
+index 55175bc..e53b3af 100644
+--- a/app/src/pantallas/reuniones/Reuniones.prueba.tsx
++++ b/app/src/pantallas/reuniones/Reuniones.prueba.tsx
+@@ -95,6 +95,54 @@ describe("la lista de reuniones", () => {
+     expect(t.navigation.navigate).toHaveBeenCalledWith("Grabar", { reunionId: REUNION.id });
+   });
+ 
++  test("pegar la invitación entera guarda solo la dirección de la reunión", async () => {
++    conDatos();
++    const t = await renderPantalla(Reuniones);
++    await waitFor(() => expect(t.getByLabelText("Nueva reunión")).toBeTruthy());
++
++    await tocar(() => fireEvent.press(t.getByLabelText("Nueva reunión")));
++    await tocar(() => fireEvent.changeText(
++      t.getByLabelText("Título de la reunión"), "Comité del jueves"));
++    await tocar(() => fireEvent.press(t.getByLabelText("Ingeniería y obras")));
++
++    // Lo que de verdad se pega: la invitación completa del calendario.
++    await tocar(() => fireEvent.changeText(t.getByLabelText("Enlace de la reunión"), [
++      "Comité del jueves",
++      "Ver en Google Calendar: https://calendar.google.com/calendar/event?eid=abc",
++      "",
++      "Información para unirse por videollamada",
++      "Enlace: https://meet.google.com/xyz-mnop-qrs",
++      "¿Más ayuda? https://support.google.com/a/users/answer/9282720",
++    ].join("\n")));
++
++    // Antes de guardar ya confirma qué entendió.
++    expect(t.getByText(/Google Meet · meet\.google\.com/)).toBeTruthy();
++
++    await tocar(() => fireEvent.press(t.getByRole("button", { name: "Empezar" })));
++
++    await waitFor(() => expect(mock.crearReunion).toHaveBeenCalledWith(
++      expect.objectContaining({ enlace: "https://meet.google.com/xyz-mnop-qrs" })));
++  });
++
++  test("un texto sin ninguna dirección lo dice y no se guarda como enlace", async () => {
++    conDatos();
++    const t = await renderPantalla(Reuniones);
++    await waitFor(() => expect(t.getByLabelText("Nueva reunión")).toBeTruthy());
++
++    await tocar(() => fireEvent.press(t.getByLabelText("Nueva reunión")));
++    await tocar(() => fireEvent.changeText(
++      t.getByLabelText("Título de la reunión"), "Reunión en la sala 3"));
++    await tocar(() => fireEvent.press(t.getByLabelText("Ingeniería y obras")));
++    await tocar(() => fireEvent.changeText(
++      t.getByLabelText("Enlace de la reunión"), "meet.google.com/abc-defg-hij"));
++
++    expect(t.getByText(/No encontré ninguna dirección/)).toBeTruthy();
++
++    await tocar(() => fireEvent.press(t.getByRole("button", { name: "Empezar" })));
++    await waitFor(() => expect(mock.crearReunion).toHaveBeenCalledWith(
++      expect.objectContaining({ enlace: null })));
++  });
++
+   test("sin elegir el rubro no se puede empezar: de eso depende el equipo", async () => {
+     conDatos();
+     const t = await renderPantalla(Reuniones);
+diff --git a/app/src/ui/Icono.tsx b/app/src/ui/Icono.tsx
+index 23bbd20..34ad1be 100644
+--- a/app/src/ui/Icono.tsx
++++ b/app/src/ui/Icono.tsx
+@@ -57,6 +57,8 @@ export const ICONOS = {
+   equipo: "layers-outline",
+   grabar: "radio-button-on",
+   detener: "stop",
++  enLinea: "videocam-outline",
++  abrir: "open-outline",
+ } as const;
+ 
+ export function Icono({
+diff --git a/supabase/migrations/20260828000400_reunion_en_linea.sql b/supabase/migrations/20260828000400_reunion_en_linea.sql
+new file mode 100644
+index 0000000..a4bb21b
+--- /dev/null
++++ b/supabase/migrations/20260828000400_reunion_en_linea.sql
+@@ -0,0 +1,25 @@
++-- La reunión en línea: a dónde hay que entrar.
++--
++-- Es una columna y no una tabla porque una reunión tiene un enlace, no
++-- varios: el de Meet, el de Zoom o el de Teams por el que entra la gente.
++--
++-- Se guarda solo la dirección, ya extraída de la invitación. Guardar la
++-- invitación completa —con su párrafo de instrucciones, sus teléfonos de
++-- marcado y su aviso legal— sería guardar texto de otro sistema en una
++-- columna que dice ser un enlace, y al leerla nadie sabría qué esperar.
++
++alter table public.reuniones
++  add column enlace text;
++
++-- Que sea una dirección abrible y no cualquier texto. Sin esto, el día que
++-- alguien pegue la invitación entera la app intentaría abrirla como URL y
++-- fallaría en el aparato, que es el peor lugar donde descubrirlo.
++alter table public.reuniones
++  add constraint enlace_es_una_direccion
++  check (enlace is null or enlace ~ '^https?://[^[:space:]]+$');
++
++comment on column public.reuniones.enlace is
++  'La reunión en línea (Meet, Zoom, Teams). Null si es presencial. '
++  'Acta no graba a los participantes remotos: ni Android ni iOS dejan que '
++  'una aplicación capture el audio de otra, así que el micrófono solo oye '
++  'lo que suene en la sala. El enlace sirve para entrar, no para grabar.';
