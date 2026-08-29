@@ -97,8 +97,8 @@ jobs:
             const config = JSON.parse(fs.readFileSync(ruta, "utf8"));
             config.expo.android.package = "cl.acta.app";
             config.expo.ios.bundleIdentifier = "cl.acta.app";
-            config.expo.android.versionCode = 1;
-            config.expo.version = "1.0.0";
+            config.expo.android.versionCode = 2;
+            config.expo.version = "1.1.0";
             fs.writeFileSync(ruta, JSON.stringify(config, null, 2) + "\n");
           '
           node -e '
@@ -106,7 +106,7 @@ jobs:
             if (c.android.package === "cl.studia.app") throw new Error("sigue pisando a StudIA");
             console.log(`${c.name} ${c.version} · ${c.android.package}`);
           '
-          echo "sufijo=1.0.0-${ACTA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "sufijo=1.1.0-${ACTA:0:7}" >> "$GITHUB_OUTPUT"
 
       - name: Generar el proyecto Android
         working-directory: app
@@ -175,6 +175,17 @@ jobs:
           triple. Solo hace falta si el otro dice que no se puede instalar.
 
           Trae datos de ejemplo, así que funciona sin servidor. El micrófono no
-          se enciende solo: a la hora agendada llega un aviso y se empieza a
-          grabar con un toque." \
-            --target "$ACTA"
+          Si la reunión es por **Meet, Zoom o Teams**, se pega el enlace al crearla
+          —o la invitación completa, que de ahí saco la dirección— y se entra de un
+          toque desde la app. Ojo con una cosa: Acta no oye a los demás por el
+          enlace. Ni Android ni iOS dejan que una aplicación capture el audio de
+          otra, así que graba lo que suene donde estás; para lo dicho en línea,
+          pega la transcripción que entregan Meet o Teams.
+
+          El micrófono tampoco se enciende solo: a la hora agendada llega un aviso
+          y se empieza a grabar con un toque."
+
+          # Sin --target a propósito. El token no puede crear una etiqueta en un
+          # commit que no sea punta de una rama: con `--target $ACTA` la API
+          # responde 403 "Resource not accessible by integration". Qué commit se
+          # compiló queda dicho arriba, en las notas, que es donde se busca.
