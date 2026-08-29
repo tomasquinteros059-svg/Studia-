@@ -114,3 +114,35 @@ test("la materia de un ramo propio sale por la misma consulta que la del colegio
   const lectura = await demo.lecturaPorId(material.id);
   assert.equal(lectura?.titulo, "Phrasal verbs");
 });
+
+// ── Dónde cae un material que se sube sin elegir unidad ─────────────────
+
+test("el primer material crea la unidad solo: nadie tiene que inventarla", async () => {
+  const ramo = await propios.crearRamoPropio("Inglés", "#2563C9");
+  const moduloId = await propios.moduloParaMaterial(ramo.id);
+
+  const modulos = propios.modulosPropiosDe(ramo.id);
+  assert.equal(modulos.length, 1);
+  assert.equal(modulos[0]!.id, moduloId);
+  assert.equal(modulos[0]!.titulo, "Mi material");
+});
+
+test("subir varios materiales no llena el ramo de unidades repetidas", async () => {
+  const ramo = await propios.crearRamoPropio("Inglés", "#2563C9");
+
+  const primera = await propios.moduloParaMaterial(ramo.id);
+  const segunda = await propios.moduloParaMaterial(ramo.id);
+  const tercera = await propios.moduloParaMaterial(ramo.id);
+
+  assert.equal(primera, segunda);
+  assert.equal(segunda, tercera);
+  assert.equal(propios.modulosPropiosDe(ramo.id).length, 1);
+});
+
+test("si el ramo ya tenía una unidad, el material entra ahí", async () => {
+  const ramo = await propios.crearRamoPropio("Inglés", "#2563C9");
+  const mia = await propios.crearModulo(ramo.id, "Unidad 1 · Verbos");
+
+  assert.equal(await propios.moduloParaMaterial(ramo.id), mia);
+  assert.equal(propios.modulosPropiosDe(ramo.id).length, 1);
+});

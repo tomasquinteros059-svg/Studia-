@@ -9,9 +9,9 @@ import {
   inicialesDeRamo, nombreDia, radio, tenue, tipo, velado,
 } from "../ui/tema.ts";
 import {
-  clasesDe, companerosDe, crearApunte, crearMaterial, crearModulo,
-  evaluacionesDe, foroDe, marcarMaterial, materiaDe, miHorario, misApuntes,
-  misAsignaturas, misTareas,
+  clasesDe, companerosDe, crearApunte, crearMaterial, evaluacionesDe, foroDe,
+  marcarMaterial, materiaDe, miHorario, misApuntes, misAsignaturas, misTareas,
+  moduloParaMaterial,
 } from "../lib/consultas.ts";
 import NuevoMaterial, { type MaterialArmado } from "./propio/NuevoMaterial.tsx";
 import { usarCarga } from "../lib/usarCarga.ts";
@@ -117,13 +117,12 @@ export default function Asignatura({ route, navigation }: Props) {
     : [actual, ...enLaFila];
 
   /**
-   * Guardar material en un ramo propio. Si todavía no hay ninguna unidad se
-   * crea una sola vez: pedirle a alguien que invente una unidad antes de
-   * poder pegar un texto es un paso de más.
+   * Guardar material en un ramo propio. La unidad la decide la capa de
+   * datos: pedirle a alguien que invente una unidad antes de poder pegar un
+   * texto es un paso de más.
    */
   const guardarMaterial = async (nuevo: MaterialArmado) => {
-    const moduloId = datos.modulos[0]?.id ?? await crearModulo(asignaturaId, "Mi material");
-    await crearMaterial({ moduloId, ...nuevo });
+    await crearMaterial({ moduloId: await moduloParaMaterial(asignaturaId), ...nuevo });
     recargar();
   };
 

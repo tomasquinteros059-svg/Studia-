@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { Boton, Campo, HojaModal } from "../../ui/componentes.tsx";
+import { Baldosa, Boton, Campo, HojaModal } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
-import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
+import {
+  FILETE, color, colorDeRamo, espacio, inicialesDeRamo, radio, tenue, tipo,
+} from "../../ui/tema.ts";
 import {
   detalleDe, minutosDeLectura, revisar, tituloDesdeNombre,
   type TipoDeMaterial,
@@ -21,6 +23,16 @@ export type MaterialArmado = {
 };
 
 /**
+ * A qué ramo va el material, cuando se sube desde el inicio y no desde
+ * adentro de un ramo. Puede ser uno que ya existe o uno que se crea en el
+ * momento: quien todavía no tiene ninguno no debería tener que salir a
+ * crear un ramo y volver.
+ */
+export type DestinoDelMaterial =
+  | { tipo: "ramo"; id: string }
+  | { tipo: "nuevo"; nombre: string };
+
+/**
  * Cargar material en un ramo propio, de dos maneras.
  *
  * Escribir o pegar el texto funciona hoy y es lo que alimenta el lector.
@@ -29,21 +41,38 @@ export type MaterialArmado = {
  * haría que nadie pueda planificar con él.
  */
 export default function NuevoMaterial({
-  abierto, cerrar, guardar,
+  abierto, cerrar, guardar, ramos,
 }: {
   abierto: boolean;
   cerrar: () => void;
-  guardar: (material: MaterialArmado) => Promise<void>;
+  guardar: (material: MaterialArmado, destino: DestinoDelMaterial | null) => Promise<void>;
+  /**
+   * Los ramos entre los que elegir. Sin esto —abierto desde un ramo— no se
+   * pregunta nada, porque ya se sabe dónde va.
+   */
+  ramos?: { id: string; nombre: string; color: string | null }[];
 }) {
   const [titulo, setTitulo] = useState("");
   const [texto, setTexto] = useState("");
+  // null = ramo nuevo, con el nombre que se escriba.
+  const [destino, setDestino] = useState<string | null>(null);
+  const [ramoNuevo, setRamoNuevo] = useState("");
   const [adjunto, setAdjunto] = useState<AdjuntoElegido | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
   const limpiar = () => {
     setTitulo(""); setTexto(""); setAdjunto(null); setAviso(null); setOcupado(false);
+    setDestino(null); setRamoNuevo("");
   };
+
+  const hayQueElegir = ramos !== undefined;
+  // Se elige un ramo de la lista, o se escribe el nombre de uno nuevo.
+  const destinoElegido: DestinoDelMaterial | null =
+    !hayQueElegir ? null
+      : destino !== null ? { tipo: "ramo", id: destino }
+        : ramoNuevo.trim() ? { tipo: "nuevo", nombre: ramoNuevo.trim() }
+          : null;
 
   const elegir = async () => {
     setAviso(null);
@@ -61,7 +90,9 @@ export default function NuevoMaterial({
   };
 
   const hayTexto = texto.trim().length > 0;
-  const sePuedeGuardar = titulo.trim().length > 0 && (hayTexto || (adjunto !== null && HAY_ALMACENAMIENTO));
+  const hayDonde = !hayQueElegir || destinoElegido !== null;
+  const sePuedeGuardar = titulo.trim().length > 0 && hayDonde
+    && (hayTexto || (adjunto !== null && HAY_ALMACENAMIENTO));
 
   /**
    * Un texto escrito es siempre una lectura. Un archivo vale lo que diga su
@@ -92,7 +123,7 @@ export default function NuevoMaterial({
           : adjunto ? detalleDe(adjunto) : "",
         texto: hayTexto ? texto.trim() : null,
         url,
-      });
+      }, destinoElegido);
       limpiar();
       cerrar();
     } finally {
@@ -102,6 +133,42 @@ export default function NuevoMaterial({
 
   return (
     <HojaModal abierto={abierto} cerrar={cerrar} titulo="Agregar material">
+        {/* Solo cuando se sube desde el inicio: adentro de un ramo ya se sabe
+            de cuál es y preguntarlo sería un paso de más. */}
+        {hayQueElegir ? (
+          <>
+            <Text style={tipo.etiqueta}>¿De qué ramo es?</Text>
+            <View style={e.ramos}>
+              {ramos!.map((r) => {
+                const activo = destino === r.id;
+                const tono = colorDeRamo(r.id, r.color);
+                return (
+                  <Pressable key={r.id} accessibilityRole="radio"
+                    accessibilityState={{ selected: activo }}
+                    accessibilityLabel={r.nombre}
+                    onPress={() => { setDestino(r.id); setRamoNuevo(""); }}
+                    style={({ pressed }) => [
+                      e.ramo,
+                      activo ? { borderColor: tono, backgroundColor: tenue(tono) } : null,
+                      pressed && !activo ? { backgroundColor: color.elemento } : null,
+                    ]}>
+                    <Baldosa tono={tono} texto={inicialesDeRamo(r.nombre)} tamano={32} />
+                    <Text style={e.ramoNombre} numberOfLines={1}>{r.nombre}</Text>
+                    {activo ? <Icono nombre="listo" tamano={18} tono={tono} /> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Campo
+              placeholder={ramos!.length ? "…o escribe un ramo nuevo" : "¿De qué ramo es?"}
+              value={ramoNuevo}
+              onChangeText={(t) => { setRamoNuevo(t); if (t.trim()) setDestino(null); }}
+              autoCapitalize="sentences" accessibilityLabel="Ramo nuevo"
+            />
+          </>
+        ) : null}
+
+        <Text style={tipo.etiqueta}>El material</Text>
         <Campo placeholder="¿Cómo se llama?" value={titulo} onChangeText={setTitulo}
           autoCapitalize="sentences" accessibilityLabel="Título del material" />
 
@@ -162,6 +229,14 @@ export default function NuevoMaterial({
 }
 
 const e = StyleSheet.create({
+  ramos: { gap: espacio.s },
+  ramo: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.tarjeta,
+    backgroundColor: color.papel, padding: espacio.s + 2,
+  },
+  ramoNombre: { ...tipo.fila, flex: 1 },
+
   pantalla: { flex: 1, backgroundColor: color.fondo },
   barra: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",

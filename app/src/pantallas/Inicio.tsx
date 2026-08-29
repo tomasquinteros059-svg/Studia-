@@ -9,11 +9,13 @@ import {
   nombreDia, radio, tenue, tipo,
 } from "../ui/tema.ts";
 import {
-  claseEnVivo, crearHorarioPropio, crearRamoPropio, miHorario, misAsignaturas,
-  misNotificaciones, misTareas, todasLasEvaluaciones,
+  claseEnVivo, crearHorarioPropio, crearMaterial, crearRamoPropio, miHorario,
+  misAsignaturas, misNotificaciones, misTareas, moduloParaMaterial,
+  todasLasEvaluaciones,
 } from "../lib/consultas.ts";
 import NuevoRamo, { colorSugerido } from "./propio/NuevoRamo.tsx";
 import CargarHorario from "./propio/CargarHorario.tsx";
+import NuevoMaterial from "./propio/NuevoMaterial.tsx";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { SEPARACION_TARJETAS, anchoDeTarjeta } from "../dominio/disposicion.ts";
@@ -32,6 +34,7 @@ export default function Inicio({ navigation }: Props) {
   const { yo } = usarQuienSoy();
   const [creando, setCreando] = useState(false);
   const [cargandoHorario, setCargando] = useState(false);
+  const [subiendo, setSubiendo] = useState(false);
 
   const traer = useCallback(async () => {
     const [asignaturas, tareas, horario, vivo, notificaciones, evaluaciones] = await Promise.all([
@@ -255,35 +258,27 @@ export default function Inicio({ navigation }: Props) {
       )}
       </> : null}
 
-      {/* Sin ramos todavía, los dos caminos van en la tarjeta de abajo con
-          su explicación. Repetirlos acá arriba sería ofrecer lo mismo dos
-          veces en la misma pantalla. */}
-      <Encabezado texto="Lo mío" accion={mios.length === 0 ? undefined : (
-        <View style={{ flexDirection: "row", gap: espacio.m }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cargar mi horario"
-            onPress={() => setCargando(true)}>
-            <Text style={e.enlace}>Cargar horario</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Nuevo ramo"
-            onPress={() => setCreando(true)}>
-            <Text style={e.enlace}>Nuevo ramo</Text>
-          </Pressable>
-        </View>)} />
-      {mios.length === 0 ? (
-        <Hoja>
-          <Text style={e.vacio}>
-            {hayColegio
-              ? "Acá puedes armar tus propios ramos, con lo que quieras estudiar aparte."
-              : "Todavía no tienes nada. Carga tu horario de una vez y quedan todos tus ramos creados, o arma uno solo si prefieres."}
-          </Text>
-          {hayColegio ? null : (
-            <>
-              <Boton texto="Cargar mi horario" onPress={() => setCargando(true)} />
-              <Boton texto="Crear un ramo" variante="suave" onPress={() => setCreando(true)} />
-            </>
-          )}
-        </Hoja>
-      ) : (
+      <Encabezado texto="Lo mío" />
+
+      {/*
+        Las tres maneras de empezar, juntas y desde el primer momento: el
+        horario entero, un ramo suelto, o directamente el material. Antes
+        había que crear un ramo y recién adentro se podía subir algo, y quien
+        llega con un PDF en la mano no quiere pasar por un formulario antes
+        de poder abrirlo.
+
+        Sin ramos todavía van explicadas; con ramos, en una fila corta que no
+        le quita el sitio a la lista.
+      */}
+      <Empezar
+        detallado={mios.length === 0}
+        primeraVez={mios.length === 0 && !hayColegio}
+        horario={() => setCargando(true)}
+        ramo={() => setCreando(true)}
+        material={() => setSubiendo(true)}
+      />
+
+      {mios.length === 0 ? null : (
         <Hoja ceñida>
           {mios.map((a, i) => (
             <Pressable key={a.id} accessibilityRole="button"
@@ -302,6 +297,23 @@ export default function Inicio({ navigation }: Props) {
           ))}
         </Hoja>
       )}
+
+      <NuevoMaterial
+        abierto={subiendo}
+        cerrar={() => setSubiendo(false)}
+        ramos={mios.map((a) => ({ id: a.id, nombre: a.nombre, color: a.color }))}
+        guardar={async (material, destino) => {
+          // Si el ramo todavía no existe, se crea con el material: quien
+          // llega con un archivo no debería tener que salir a crear un ramo
+          // y volver.
+          const ramoId = destino?.tipo === "nuevo"
+            ? (await crearRamoPropio(destino.nombre, colorSugerido(mios.length))).id
+            : destino?.id;
+          if (!ramoId) return;
+          await crearMaterial({ moduloId: await moduloParaMaterial(ramoId), ...material });
+          await recargar();
+        }}
+      />
 
       <CargarHorario
         abierto={cargandoHorario}
@@ -323,6 +335,99 @@ export default function Inicio({ navigation }: Props) {
         }}
       />
     </Pantalla>
+  );
+}
+
+const MANERAS = [
+  {
+    id: "horario",
+    icono: "horario",
+    titulo: "Cargar mi horario",
+    corto: "Horario",
+    bajada: "Pega el horario completo y quedan todos tus ramos creados de una vez.",
+  },
+  {
+    id: "ramo",
+    icono: "documento",
+    titulo: "Crear un ramo",
+    corto: "Ramo",
+    bajada: "Uno solo, para empezar por algo.",
+  },
+  {
+    id: "material",
+    icono: "descargar",
+    titulo: "Subir material",
+    corto: "Material",
+    bajada: "Un texto o un archivo. Si el ramo no existe, se crea con él.",
+  },
+] as const satisfies readonly {
+  id: string;
+  icono: Parameters<typeof Icono>[0]["nombre"];
+  titulo: string;
+  corto: string;
+  bajada: string;
+}[];
+
+/**
+ * Las tres maneras de empezar, en un solo lugar.
+ *
+ * Cuando no hay nada van explicadas: es la primera pantalla que ve alguien
+ * que llega sin institución y tiene que entender qué puede hacer. Cuando ya
+ * hay ramos van cortas, porque ahí lo que importa es la lista.
+ */
+function Empezar({
+  detallado, primeraVez, horario, ramo, material,
+}: {
+  detallado: boolean;
+  /** Nadie tiene nada todavía: conviene decir por dónde se parte. */
+  primeraVez: boolean;
+  horario: () => void;
+  ramo: () => void;
+  material: () => void;
+}) {
+  const alTocar = { horario, ramo, material };
+
+  if (!detallado) {
+    return (
+      <View style={e.atajos}>
+        {MANERAS.map((m) => (
+          <Pressable key={m.id} accessibilityRole="button" accessibilityLabel={m.titulo}
+            onPress={alTocar[m.id]}
+            style={({ pressed }) => [e.atajo, pressed ? { backgroundColor: color.elemento } : null]}>
+            <Icono nombre={m.icono} tamano={19} tono={color.marca} />
+            <Text style={e.atajoTexto}>{m.corto}</Text>
+          </Pressable>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ gap: espacio.s }}>
+      {primeraVez ? (
+        <Text style={e.bienvenida}>
+          Todavía no tienes nada. Puedes empezar por donde te acomode:
+        </Text>
+      ) : null}
+      <Hoja ceñida>
+        {MANERAS.map((m, i) => (
+          <Pressable key={m.id} accessibilityRole="button" accessibilityLabel={m.titulo}
+            onPress={alTocar[m.id]}
+            style={({ pressed }) => [
+              e.manera, i > 0 ? e.conFilete : null,
+              pressed ? { backgroundColor: color.elemento } : null,
+            ]}>
+            <View style={e.selloManera}>
+              <Icono nombre={m.icono} tamano={21} tono={color.marca} />
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={tipo.fila}>{m.titulo}</Text>
+              <Text style={[tipo.detalle, { lineHeight: 19 }]}>{m.bajada}</Text>
+            </View>
+          </Pressable>
+        ))}
+      </Hoja>
+    </View>
   );
 }
 
@@ -376,6 +481,30 @@ const e = StyleSheet.create({
 
   enlace: { color: color.texto, fontWeight: "700", fontSize: 13 },
   vacio: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 22 },
+
+  bienvenida: {
+    ...tipo.cuerpo, color: color.textoSuave, lineHeight: 22,
+    paddingHorizontal: espacio.m,
+  },
+  manera: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: 15,
+  },
+  selloManera: {
+    width: 44, height: 44, borderRadius: radio.campo,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: color.elemento,
+  },
+  atajos: {
+    flexDirection: "row", gap: espacio.s,
+    paddingHorizontal: espacio.m, paddingBottom: espacio.s,
+  },
+  atajo: {
+    flex: 1, alignItems: "center", gap: 6, paddingVertical: espacio.m,
+    backgroundColor: color.papel, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.borde,
+  },
+  atajoTexto: { fontSize: 13, fontWeight: "700", color: color.texto, letterSpacing: -0.1 },
 
   rejilla: { flexDirection: "row", flexWrap: "wrap", gap: `${SEPARACION_TARJETAS}%`, rowGap: espacio.m },
   tarjeta: {

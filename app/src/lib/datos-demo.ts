@@ -583,10 +583,12 @@ export {
 // misma razón: son sus ramos, no los de una institución.
 import {
   borrarRamoPropio, crearHorarioPropio, crearMaterial, crearModulo, crearRamoPropio,
+  moduloParaMaterial,
 } from "./datos-propios.ts";
 
 export {
   borrarRamoPropio, crearHorarioPropio, crearMaterial, crearModulo, crearRamoPropio,
+  moduloParaMaterial,
 };
 
 // Si en `consultas-supabase.ts` aparece una consulta nueva, esto deja de
@@ -600,5 +602,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
   cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
+  moduloParaMaterial,
 };
 void _cobertura;

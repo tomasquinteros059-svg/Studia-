@@ -8,6 +8,8 @@ import {
 jest.mock("../lib/consultas.ts", () => ({
   misAsignaturas: jest.fn(),
   crearHorarioPropio: jest.fn(),
+  crearMaterial: jest.fn(),
+  moduloParaMaterial: jest.fn(),
   misTareas: jest.fn(),
   miHorario: jest.fn(),
   claseEnVivo: jest.fn(),
@@ -146,11 +148,79 @@ describe("Inicio · lo que la persona arma por su cuenta", () => {
     expect(t.queryByText("Hoy")).toBeNull();
     expect(t.queryByText("Próximas entregas")).toBeNull();
     expect(t.queryByText("Mis asignaturas")).toBeNull();
-    // En vez de secciones vacías, le dice por dónde empezar y le da los dos
-    // caminos: el horario entero de una vez, o un ramo suelto.
+    // En vez de secciones vacías, le dice por dónde empezar y le da los tres
+    // caminos, cada uno explicado en una línea.
     expect(t.getByText(/Todavía no tienes nada/)).toBeTruthy();
     expect(t.getByRole("button", { name: "Cargar mi horario" })).toBeTruthy();
     expect(t.getByRole("button", { name: "Crear un ramo" })).toBeTruthy();
+    expect(t.getByRole("button", { name: "Subir material" })).toBeTruthy();
+  });
+
+  test("subir material sin tener ningún ramo crea el ramo con el material", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([] as never);
+    mock.miHorario.mockResolvedValue([] as never);
+    mock.claseEnVivo.mockResolvedValue(null as never);
+    mock.crearRamoPropio.mockResolvedValue(RAMO_PROPIO as never);
+    mock.moduloParaMaterial.mockResolvedValue("mod-1" as never);
+    mock.crearMaterial.mockResolvedValue(undefined as never);
+    const t = await renderPantalla(Inicio);
+
+    const abrir = () => t.getByRole("button", { name: "Subir material" });
+    await waitFor(() => expect(abrir()).toBeTruthy());
+    await act(async () => { fireEvent.press(abrir()); });
+
+    // Sin ramos, el ramo se escribe acá mismo: no hay que salir a crearlo.
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Ramo nuevo"), "Inglés");
+    });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Título del material"), "Phrasal verbs");
+    });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Texto del material"), "Look up means to search.");
+    });
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Guardar" }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mock.crearMaterial).toHaveBeenCalled());
+    expect(mock.crearRamoPropio).toHaveBeenCalledWith("Inglés", expect.any(String));
+    expect(mock.moduloParaMaterial).toHaveBeenCalledWith(RAMO_PROPIO.id);
+    expect(mock.crearMaterial).toHaveBeenCalledWith(expect.objectContaining({
+      moduloId: "mod-1", titulo: "Phrasal verbs", texto: "Look up means to search.",
+    }));
+  });
+
+  test("con ramos ya creados, se elige a cuál va el material", async () => {
+    conDatos();
+    mock.misAsignaturas.mockResolvedValue([RAMO_PROPIO] as never);
+    mock.miHorario.mockResolvedValue([] as never);
+    mock.claseEnVivo.mockResolvedValue(null as never);
+    mock.moduloParaMaterial.mockResolvedValue("mod-9" as never);
+    mock.crearMaterial.mockResolvedValue(undefined as never);
+    const t = await renderPantalla(Inicio);
+
+    await waitFor(() => expect(t.getByLabelText("Subir material")).toBeTruthy());
+    await act(async () => { fireEvent.press(t.getByLabelText("Subir material")); });
+
+    await act(async () => { fireEvent.press(t.getByLabelText(RAMO_PROPIO.nombre)); });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Título del material"), "Otro");
+    });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Texto del material"), "Algo.");
+    });
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Guardar" }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mock.crearMaterial).toHaveBeenCalled());
+    // El ramo ya existía: no se crea ninguno.
+    expect(mock.crearRamoPropio).not.toHaveBeenCalled();
+    expect(mock.moduloParaMaterial).toHaveBeenCalledWith(RAMO_PROPIO.id);
   });
 
   test("con horario propio sí ve su día, aunque no tenga institución", async () => {

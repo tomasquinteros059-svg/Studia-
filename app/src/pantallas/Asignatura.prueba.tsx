@@ -9,7 +9,7 @@ jest.mock("../lib/consultas.ts", () => ({
   misTareas: jest.fn(), foroDe: jest.fn(), evaluacionesDe: jest.fn(),
   miHorario: jest.fn(), companerosDe: jest.fn(), misApuntes: jest.fn(),
   marcarMaterial: jest.fn(), crearApunte: jest.fn(),
-  crearModulo: jest.fn(), crearMaterial: jest.fn(),
+  crearModulo: jest.fn(), crearMaterial: jest.fn(), moduloParaMaterial: jest.fn(),
 }));
 
 jest.mock("../lib/archivos.ts", () => ({
@@ -240,7 +240,7 @@ describe("Asignatura · un ramo propio", () => {
     conDatos();
     mock.misAsignaturas.mockResolvedValue([RAMO_PROPIO] as never);
     mock.materiaDe.mockResolvedValue([] as never);
-    mock.crearModulo.mockResolvedValue("mod-1" as never);
+    mock.moduloParaMaterial.mockResolvedValue("mod-1" as never);
     mock.crearMaterial.mockResolvedValue(undefined as never);
     const t = await renderPantalla(Asignatura, { asignaturaId: RAMO_PROPIO.id });
     await waitFor(() => expect(t.getAllByText("Inglés").length).toBeGreaterThan(0));
@@ -267,7 +267,7 @@ describe("Asignatura · un ramo propio", () => {
     expect(t.getByRole("button", { name: "Agregar material" })).toBeTruthy();
   });
 
-  test("el primer material crea la unidad solo: nadie tiene que inventarla", async () => {
+  test("no se pide inventar una unidad: la elige la capa de datos", async () => {
     const t = await abrirPropio();
     await act(async () => { fireEvent.press(t.getByRole("button", { name: "Agregar material" })); });
 
@@ -283,18 +283,19 @@ describe("Asignatura · un ramo propio", () => {
     });
 
     await waitFor(() => expect(mock.crearMaterial).toHaveBeenCalled());
-    expect(mock.crearModulo).toHaveBeenCalledWith(RAMO_PROPIO.id, "Mi material");
+    expect(mock.moduloParaMaterial).toHaveBeenCalledWith(RAMO_PROPIO.id);
     expect(mock.crearMaterial).toHaveBeenCalledWith(expect.objectContaining({
       moduloId: "mod-1", titulo: "Phrasal verbs", tipo: "documento",
       texto: "Look up means to search.",
     }));
   });
 
-  test("si ya hay una unidad, el material entra ahí y no se crea otra", async () => {
+  test("el material va a la unidad que dijo la capa de datos, sin inventar otra", async () => {
     conDatos();
     mock.misAsignaturas.mockResolvedValue([RAMO_PROPIO] as never);
     mock.materiaDe.mockResolvedValue([{ ...MODULO, materiales: [] }] as never);
     mock.crearMaterial.mockResolvedValue(undefined as never);
+    mock.moduloParaMaterial.mockResolvedValue(MODULO.id as never);
     const t = await renderPantalla(Asignatura, { asignaturaId: RAMO_PROPIO.id });
     await waitFor(() => expect(t.getAllByText("Inglés").length).toBeGreaterThan(0));
 
@@ -311,6 +312,7 @@ describe("Asignatura · un ramo propio", () => {
     });
 
     await waitFor(() => expect(mock.crearMaterial).toHaveBeenCalled());
+    // La pantalla no decide unidades: no crea ninguna por su cuenta.
     expect(mock.crearModulo).not.toHaveBeenCalled();
     expect(mock.crearMaterial).toHaveBeenCalledWith(
       expect.objectContaining({ moduloId: MODULO.id }));

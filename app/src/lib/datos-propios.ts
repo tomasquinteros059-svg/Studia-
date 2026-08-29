@@ -104,6 +104,16 @@ export async function borrarRamoPropio(asignaturaId: string): Promise<void> {
   delete MODULOS_PROPIOS[asignaturaId];
 }
 
+/**
+ * La unidad donde va a caer un material que se sube sin elegir dónde: la
+ * primera que exista, o una nueva si el ramo está vacío. Crear siempre una
+ * dejaría una unidad "Mi material" por cada archivo.
+ */
+export async function moduloParaMaterial(asignaturaId: string): Promise<string> {
+  const primera = MODULOS_PROPIOS[asignaturaId]?.[0]?.id;
+  return primera ?? await crearModulo(asignaturaId, "Mi material");
+}
+
 export async function crearModulo(asignaturaId: string, titulo: string): Promise<string> {
   await dormir();
   const lista = MODULOS_PROPIOS[asignaturaId] ?? [];

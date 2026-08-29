@@ -2,7 +2,7 @@
   "expo": {
     "name": "StudIA",
     "slug": "studia",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "default",
     "scheme": "studia",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     "android": {
       "package": "cl.studia.app",
       "resizeableActivity": true,
-      "versionCode": 3
+      "versionCode": 4
     },
     "extra": {
       "supabaseUrl": "",

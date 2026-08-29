@@ -679,6 +679,25 @@ export async function borrarRamoPropio(asignaturaId: string): Promise<void> {
 }
 
 /** Un módulo dentro de un ramo propio, al final de la lista. */
+/**
+ * La unidad donde va a caer un material que se sube sin elegir dónde.
+ *
+ * Devuelve la primera que ya exista y solo crea una si el ramo está vacío.
+ * Crear siempre una nueva dejaría el ramo con una unidad "Mi material" por
+ * cada archivo subido, que es peor que no tener unidades.
+ */
+export async function moduloParaMaterial(asignaturaId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("modulos")
+    .select("id")
+    .eq("asignatura_id", asignaturaId)
+    .order("orden", { ascending: true })
+    .limit(1);
+  reventar("No pude ver las unidades del ramo", error);
+  const primera = data?.[0]?.id as string | undefined;
+  return primera ?? await crearModulo(asignaturaId, "Mi material");
+}
+
 export async function crearModulo(asignaturaId: string, titulo: string): Promise<string> {
   const { data: existentes } = await supabase
     .from("modulos").select("orden").eq("asignatura_id", asignaturaId);
