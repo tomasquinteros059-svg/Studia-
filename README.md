@@ -19,6 +19,18 @@ por diseño, **nunca resuelve el ejercicio**.
 | [`docs/studia-spec.md`](docs/studia-spec.md) | Especificación de producto: navegación, pantallas, sistema visual y decisiones abiertas |
 | [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo — sigue siendo la referencia de diseño |
 
+## La otra aplicación de este repositorio
+
+En la rama [`acta`](../../tree/acta) vive **Acta**, una aplicación de reuniones
+profesionales. No es una versión de StudIA ni un experimento paralelo: es lo
+que este mismo proyecto fue durante un tiempo, antes de volver a ser StudIA.
+Cuando volvió, Acta quedó viva solo en el historial, y esa rama la rescata.
+
+Las dos comparten historia hasta `7b2f048` y de ahí en adelante son
+independientes: dos productos, dos identificadores de paquete
+(`cl.studia.app` y `cl.acta.app`), dos APK que se pueden tener instalados a
+la vez. No se mezclan.
+
 ## Levantarlo
 
 ```bash
