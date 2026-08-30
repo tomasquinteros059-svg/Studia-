@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CUANTAS_POR_DEFECTO, cuantasPedir, leerPreguntas, promptQuiz, suficientes,
+  CUANTAS_POR_DEFECTO, cuantasPedir, leerFichas, leerPreguntas, promptFichas,
+  promptQuiz, suficientes, suficientesFichas,
 } from "./quiz-nucleo.ts";
 
 const CTX = {
@@ -135,4 +136,42 @@ test("la cantidad pedida se acota a algo que alguien termine", () => {
 test("con menos de tres preguntas sanas no hay quiz que valga", () => {
   assert.equal(suficientes([BUENA, BUENA]), false);
   assert.equal(suficientes([BUENA, BUENA, BUENA]), true);
+});
+
+// ── Las fichas ──────────────────────────────────────────────────────────
+
+test("el prompt de fichas pide memoria, no desarrollo", () => {
+  const p = promptFichas({ ...CTX, cuantas: 10 });
+  assert.match(p, /10 fichas/);
+  assert.match(p, /de memoria/);
+  assert.match(p, /Nada de preguntas que necesiten desarrollar/);
+  assert.match(p, /«Integrales»/);
+});
+
+const FICHA = { pregunta: "¿Fórmula de integración por partes?", respuesta: "∫u dv = uv − ∫v du" };
+
+test("un arreglo de fichas limpio se lee tal cual", () => {
+  assert.deepEqual(leerFichas(JSON.stringify([FICHA])), [FICHA]);
+});
+
+test("una ficha sin respuesta se descarta: no es media ficha", () => {
+  assert.deepEqual(leerFichas(JSON.stringify([{ ...FICHA, respuesta: "" }])), []);
+  assert.deepEqual(leerFichas(JSON.stringify([{ ...FICHA, pregunta: "¿?" }])), []);
+});
+
+test("las que no cabrían en la tabla se descartan acá, no en la base", () => {
+  assert.deepEqual(leerFichas(JSON.stringify([{ ...FICHA, pregunta: "¿".repeat(301) }])), []);
+  assert.deepEqual(leerFichas(JSON.stringify([{ ...FICHA, respuesta: "x".repeat(601) }])), []);
+});
+
+test("dos fichas con la misma pregunta son una ficha y una molestia", () => {
+  const leidas = leerFichas(JSON.stringify([
+    FICHA, { ...FICHA, pregunta: FICHA.pregunta.toUpperCase(), respuesta: "otra cosa" },
+  ]));
+  assert.equal(leidas.length, 1);
+});
+
+test("con menos de cuatro fichas no vale la pena un mazo", () => {
+  assert.equal(suficientesFichas([FICHA, FICHA, FICHA]), false);
+  assert.equal(suficientesFichas([FICHA, FICHA, FICHA, FICHA]), true);
 });

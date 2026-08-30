@@ -14,10 +14,12 @@ import {
 import {
   borrarQuizDemo, quicesDemo, quizDemoPorId, responderQuizDemo,
 } from "./quiz-demo.ts";
+import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
-  Quiz, Registro, Respuesta, ResumenGuardado, SesionEstudio, TareaConEstado,
+  Ficha, Quiz, Registro, Respuesta, ResumenGuardado, SesionEstudio,
+  TareaConEstado,
 } from "./tipos.ts";
 
 const ahora = Date.now();
@@ -771,6 +773,19 @@ export async function borrarQuiz(quizId: string): Promise<void> {
   borrarQuizDemo(quizId);
 }
 
+
+// ── Las fichas ────────────────────────────────────────────────────────────
+
+export async function misFichas(asignaturaId: string, tema?: string): Promise<Ficha[]> {
+  await respirar();
+  return fichasDemo(asignaturaId, tema);
+}
+
+export async function repasarFicha(fichaId: string, acerto: boolean): Promise<void> {
+  await respirar();
+  repasarFichaDemo(fichaId, acerto);
+}
+
 export {
   borrarRamoPropio, crearHorarioPropio, crearMaterial, crearModulo, crearRamoPropio,
   moduloParaMaterial,
@@ -790,5 +805,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
   misSesiones, crearSesion, marcarSesion, borrarSesion,
   misQuices, quizPorId, responderQuiz, borrarQuiz,
+  misFichas, repasarFicha,
 };
 void _cobertura;

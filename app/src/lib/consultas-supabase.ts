@@ -6,7 +6,8 @@ import { supabase } from "./supabase.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, MensajeTutor, Modulo, Notificacion, Perfil,
-  Quiz, Registro, ResumenGuardado, Respuesta, SesionEstudio, TareaConEstado,
+  Ficha, Quiz, Registro, ResumenGuardado, Respuesta, SesionEstudio,
+  TareaConEstado,
 } from "./tipos.ts";
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
@@ -889,4 +890,30 @@ export async function responderQuiz(
 export async function borrarQuiz(quizId: string): Promise<void> {
   const { error } = await supabase.from("quices").delete().eq("id", quizId);
   reventar("No pude borrar el quiz", error);
+}
+
+// ── Las fichas ────────────────────────────────────────────────────────────
+
+const CAMPOS_FICHA = "id, tema, pregunta, respuesta, aciertos, fallos, vuelve_en";
+
+export async function misFichas(asignaturaId: string, tema?: string): Promise<Ficha[]> {
+  let consulta = supabase
+    .from("fichas").select(CAMPOS_FICHA).eq("asignatura_id", asignaturaId)
+    .order("vuelve_en", { ascending: true, nullsFirst: true });
+  if (tema) consulta = consulta.eq("tema", tema);
+
+  const { data, error } = await consulta;
+  reventar("No pude cargar tus fichas", error);
+  return data ?? [];
+}
+
+/**
+ * Anotar si se supo o no. El próximo plazo lo calcula la base: si lo hiciera
+ * el cliente, se podría adelantar, y una repetición que se adelanta no repite.
+ */
+export async function repasarFicha(fichaId: string, acerto: boolean): Promise<void> {
+  const { error } = await supabase.rpc("repasar_ficha", {
+    p_ficha: fichaId, p_acerto: acerto,
+  });
+  reventar("No pude anotar el repaso", error);
 }

@@ -4,7 +4,8 @@
 import { MODO_DEMO } from "./config.ts";
 import { supabase, urlFuncion } from "./supabase.ts";
 import { quizDemo } from "./quiz-demo.ts";
-import type { Quiz } from "./tipos.ts";
+import { generarFichasDemo } from "./fichas-demo.ts";
+import type { Ficha, Quiz } from "./tipos.ts";
 
 /**
  * Pedir preguntas de un tema.
@@ -46,4 +47,38 @@ export async function generarQuiz(entrada: {
   }
 
   return cuerpo.quiz;
+}
+
+/**
+ * Pedir un mazo de fichas de un tema. Reemplaza el que hubiera de ese mismo
+ * tema: pedirlas de nuevo es querer otras, no querer el doble.
+ */
+export async function generarFichas(entrada: {
+  moduloId: string;
+  asignaturaId: string;
+  tema: string;
+}): Promise<Ficha[]> {
+  if (MODO_DEMO) {
+    await new Promise<void>((listo) => setTimeout(listo, 900));
+    return generarFichasDemo(entrada.asignaturaId, entrada.tema);
+  }
+
+  const { data: sesion } = await supabase.auth.getSession();
+  const token = sesion.session?.access_token;
+  if (!token) throw new Error("Tu sesión venció. Vuelve a entrar.");
+
+  const respuesta = await fetch(urlFuncion("fichas"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ modulo_id: entrada.moduloId }),
+  });
+
+  const cuerpo = (await respuesta.json().catch(() => null)) as
+    | { fichas?: Ficha[]; error?: string }
+    | null;
+
+  if (!respuesta.ok || !cuerpo?.fichas) {
+    throw new Error(cuerpo?.error ?? "El evaluador no está disponible en este momento.");
+  }
+  return cuerpo.fichas;
 }

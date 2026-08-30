@@ -201,3 +201,17 @@ export type Quiz = {
   terminado_en: string | null;
   creado_en: string;
 };
+
+/**
+ * Una ficha de repaso. Vuelve sola: cuanto más se acierta, más tarda en
+ * volver; al fallar, vuelve hoy mismo.
+ */
+export type Ficha = {
+  id: string;
+  tema: string;
+  pregunta: string;
+  respuesta: string;
+  aciertos: number;
+  fallos: number;
+  vuelve_en: string | null;
+};

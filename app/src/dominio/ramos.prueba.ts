@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { COLORES_DE_RAMO, colorDeRamo, inicialesDeRamo } from "./ramos.ts";
+import { COLORES_DE_RAMO, colorDeRamo, inicialesDeRamo, porcentajeVisto,
+} from "./ramos.ts";
 
 test("los colores son todos distintos y bien formados", () => {
   assert.equal(new Set(COLORES_DE_RAMO).size, COLORES_DE_RAMO.length);
@@ -58,4 +59,23 @@ test("los signos no se cuelan en las iniciales", () => {
 test("un nombre sin letras no revienta", () => {
   assert.equal(inicialesDeRamo("!!!"), "?");
   assert.equal(inicialesDeRamo(""), "?");
+});
+
+// ── Cuánto llevas visto ─────────────────────────────────────────────────
+
+test("el avance sale de lo que está marcado, y se redondea", () => {
+  const m = (completados: number, total: number) => ({
+    materiales: Array.from({ length: total }, (_, i) => ({ completado: i < completados })),
+  });
+  assert.equal(porcentajeVisto([m(0, 4)]), 0);
+  assert.equal(porcentajeVisto([m(4, 4)]), 100);
+  assert.equal(porcentajeVisto([m(1, 3)]), 33);
+  // Se suma entre módulos, no se promedia: dos módulos de tamaños distintos
+  // no pesan igual, y promediarlos diría que sí.
+  assert.equal(porcentajeVisto([m(1, 1), m(0, 3)]), 25);
+});
+
+test("un ramo sin material no lleva 0%: no lleva nada", () => {
+  assert.equal(porcentajeVisto([]), null);
+  assert.equal(porcentajeVisto([{ materiales: [] }]), null);
 });

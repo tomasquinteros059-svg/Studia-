@@ -52,3 +52,19 @@ export function inicialesDeRamo(nombre: string): string {
 
 /** Palabras que no aportan a unas iniciales. */
 const MENUDAS = new Set(["de", "del", "la", "el", "los", "las", "y", "e", "a", "en"]);
+
+/**
+ * Cuánto del material de un ramo está marcado como visto, en porcentaje.
+ *
+ * Es la única cifra de avance que la aplicación puede dar sin inventar: sale
+ * de lo que la persona marcó, no de una estimación de cuánto «debería» llevar.
+ * Un ramo sin material cargado no lleva 0% ni 100%: no lleva nada, y por eso
+ * devuelve null en vez de un número que no significa nada.
+ */
+export function porcentajeVisto(
+  modulos: readonly { materiales: readonly { completado: boolean }[] }[],
+): number | null {
+  const todos = modulos.flatMap((m) => m.materiales);
+  if (todos.length === 0) return null;
+  return Math.round((todos.filter((x) => x.completado).length / todos.length) * 100);
+}

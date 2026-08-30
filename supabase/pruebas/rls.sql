@@ -912,3 +912,97 @@ reset role;
 delete from public.quices where id = '11111111-0000-4000-8000-000000000001';
 
 select '— también pasaron las pruebas del quiz —' as resultado;
+
+-- ============== las fichas vuelven, y la que fallas vuelve antes ===========
+reset role;
+insert into public.fichas (id, estudiante_id, asignatura_id, tema, pregunta, respuesta)
+values ('22222222-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000001',
+        (select id from public.asignaturas where codigo = 'MAT1610'),
+        'Integrales', '¿Fórmula de integración por partes?', 'uv − ∫v du');
+
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+select pg_temp.afirmar('veo mi ficha', (select count(*) from public.fichas)::int, 1);
+select pg_temp.afirmar('una ficha nueva no tiene fecha: toca ya',
+  (select vuelve_en is null from public.fichas
+    where id = '22222222-0000-4000-8000-000000000001'), true);
+
+-- Acertar la aleja: un día, después tres, después siete.
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select pg_temp.afirmar('al primer acierto vuelve en un día',
+  (select round(extract(epoch from vuelve_en - now()) / 86400)::int
+     from public.fichas where id = '22222222-0000-4000-8000-000000000001'), 1);
+
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select pg_temp.afirmar('al segundo, en tres',
+  (select round(extract(epoch from vuelve_en - now()) / 86400)::int
+     from public.fichas where id = '22222222-0000-4000-8000-000000000001'), 3);
+
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select pg_temp.afirmar('al tercero, en siete',
+  (select round(extract(epoch from vuelve_en - now()) / 86400)::int
+     from public.fichas where id = '22222222-0000-4000-8000-000000000001'), 7);
+
+-- Fallar la trae de vuelta hoy y borra la racha, que es todo el punto.
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', false);
+select pg_temp.afirmar('fallar la trae de vuelta hoy',
+  (select round(extract(epoch from vuelve_en - now()) / 86400)::int
+     from public.fichas where id = '22222222-0000-4000-8000-000000000001'), 0);
+select pg_temp.afirmar('y la racha vuelve a cero',
+  (select aciertos from public.fichas where id = '22222222-0000-4000-8000-000000000001'), 0);
+select pg_temp.afirmar('el fallo queda anotado',
+  (select fallos from public.fichas where id = '22222222-0000-4000-8000-000000000001'), 1);
+
+-- El intervalo tiene techo: cinco aciertos seguidos son 35 días, y de ahí no
+-- sube más. Una ficha que nunca vuelve es una ficha que se olvidó.
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+select pg_temp.afirmar('el intervalo se topa en 35 días',
+  (select round(extract(epoch from vuelve_en - now()) / 86400)::int
+     from public.fichas where id = '22222222-0000-4000-8000-000000000001'), 35);
+
+-- Lo que no se puede: fabricarse fichas, o cambiarles la respuesta.
+do $$
+begin
+  insert into public.fichas (estudiante_id, asignatura_id, tema, pregunta, respuesta)
+  values ('e0000000-0000-4000-8000-000000000001',
+          (select id from public.asignaturas where codigo = 'MAT1610'), 'x', 'y', 'z');
+  raise exception 'FALLA · pude fabricarme una ficha';
+exception when insufficient_privilege then
+  raise notice 'ok · no puedo fabricarme una ficha';
+end $$;
+
+do $$
+begin
+  update public.fichas set respuesta = 'lo que yo diga', vuelve_en = now()
+   where id = '22222222-0000-4000-8000-000000000001';
+  raise exception 'FALLA · pude reescribir una ficha';
+exception when insufficient_privilege then
+  raise notice 'ok · no puedo reescribir una ficha ni adelantarle la fecha';
+end $$;
+
+-- Y no son de nadie más: ni del otro estudiante, ni de quien dicta el ramo.
+set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('Ana dicta el ramo y no ve mis fichas',
+  (select count(*) from public.fichas)::int, 0);
+
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.repasar_ficha('22222222-0000-4000-8000-000000000001', true);
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('ni las puede repasar por mí', v_falló, true);
+end $$;
+
+reset role;
+delete from public.fichas where id = '22222222-0000-4000-8000-000000000001';
+
+select '— también pasaron las pruebas de las fichas —' as resultado;

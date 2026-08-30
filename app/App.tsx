@@ -35,6 +35,7 @@ import Apunte from "./src/pantallas/Apunte.tsx";
 import Lectura from "./src/pantallas/Lectura.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
 import Quiz from "./src/pantallas/Quiz.tsx";
+import Fichas from "./src/pantallas/Fichas.tsx";
 import MisApuntes from "./src/pantallas/MisApuntes.tsx";
 import InicioDocente from "./src/pantallas/docente/InicioDocente.tsx";
 import RamoDocente from "./src/pantallas/docente/RamoDocente.tsx";
@@ -166,6 +167,7 @@ export default function App() {
             <Pila.Screen name="Lectura" component={Lectura} options={{ title: "Lectura" }} />
             <Pila.Screen name="Consejos" component={Consejos} options={{ title: "Cómo vas estudiando" }} />
             <Pila.Screen name="Quiz" component={Quiz} options={{ title: "Ponerme a prueba" }} />
+            <Pila.Screen name="Fichas" component={Fichas} options={{ title: "Fichas de repaso" }} />
             <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />
             <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}
               options={{ headerShown: false, presentation: "fullScreenModal" }} />

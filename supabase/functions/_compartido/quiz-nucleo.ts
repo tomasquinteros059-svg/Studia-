@@ -152,3 +152,72 @@ export function cuantasPedir(pedidas: unknown): number {
 export function suficientes(preguntas: readonly Pregunta[]): boolean {
   return preguntas.length >= MINIMO_DE_PREGUNTAS;
 }
+
+// ── Las fichas ────────────────────────────────────────────────────────────
+//
+// Son primas de las preguntas del quiz: mismo material, misma exigencia al
+// leer lo que devuelve el modelo. Cambia para qué sirven —una ficha vuelve, y
+// vuelve más seguido la que fallaste— y por eso cambia lo que se le pide: una
+// pregunta que se responda de memoria en dos segundos, no una de alternativas.
+
+export type FichaNueva = { pregunta: string; respuesta: string };
+
+export const CUANTAS_FICHAS = 10;
+export const MINIMO_DE_FICHAS = 4;
+
+export function promptFichas(ctx: ContextoQuiz): string {
+  return [
+    `Eres el evaluador de StudIA. Preparas fichas de repaso para un estudiante de ${ctx.asignatura} (${ctx.codigo}) sobre el tema «${ctx.tema}».`,
+
+    `Una ficha es una pregunta corta y su respuesta corta. Se usan para repasar de memoria: la persona lee la pregunta, intenta responder de cabeza, y da vuelta la ficha para comprobar. Si falla, esa ficha le vuelve a aparecer antes que las demás.`,
+
+    `Escribe ${ctx.cuantas} fichas sobre ESE material y nada más. Cada una prueba UNA sola cosa: una fórmula, una condición, una definición, cuándo se usa una técnica. Nada de preguntas que necesiten desarrollar un ejercicio, porque no se responden de memoria.`,
+
+    `La respuesta va en una o dos frases, con lo justo para comprobar si se sabía. Si hay una fórmula, escríbela. Cuando venga al caso, agrega en la misma respuesta el error típico, que es lo que hace que la ficha enseñe algo y no solo mida.`,
+
+    `Responde SOLO con un arreglo JSON, sin texto antes ni después, sin bloque de código. Cada elemento:
+{"pregunta": "...", "respuesta": "..."}`,
+
+    `Escribes en español de Chile, tratando de tú.`,
+
+    `Material del tema:\n${ctx.materiales.map((m) => `- ${m}`).join("\n") || "- (sin material cargado)"}`,
+
+    ctx.texto.trim()
+      ? `Contenido de las lecturas:\n${ctx.texto.trim().slice(0, LARGO_MAXIMO_TEXTO)}`
+      : "No hay lecturas cargadas de este tema, así que trabaja con los títulos del material y lo que es estándar en un curso de este nivel. No inventes contenido específico del ramo.",
+  ].join("\n\n");
+}
+
+/**
+ * Lee las fichas que devolvió el modelo, con la misma desconfianza que las
+ * preguntas: una ficha sin respuesta no es media ficha, es basura.
+ */
+export function leerFichas(texto: string): FichaNueva[] {
+  const crudo = extraerArreglo(texto);
+  if (!Array.isArray(crudo)) return [];
+
+  const vistas = new Set<string>();
+  const fichas: FichaNueva[] = [];
+
+  for (const x of crudo) {
+    if (!x || typeof x !== "object") continue;
+    const o = x as Record<string, unknown>;
+    const pregunta = typeof o.pregunta === "string" ? o.pregunta.trim() : "";
+    const respuesta = typeof o.respuesta === "string" ? o.respuesta.trim() : "";
+    // Los topes son los mismos que los de la tabla: lo que no cabría se
+    // descarta acá y no en un error de la base a mitad de la escritura.
+    if (pregunta.length < 8 || pregunta.length > 300) continue;
+    if (respuesta.length < 2 || respuesta.length > 600) continue;
+
+    // Dos fichas con la misma pregunta son una ficha y una molestia.
+    const llave = pregunta.toLowerCase();
+    if (vistas.has(llave)) continue;
+    vistas.add(llave);
+
+    fichas.push({ pregunta, respuesta });
+  }
+  return fichas;
+}
+
+export const suficientesFichas = (fichas: readonly FichaNueva[]): boolean =>
+  fichas.length >= MINIMO_DE_FICHAS;

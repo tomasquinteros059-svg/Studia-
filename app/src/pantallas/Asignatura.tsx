@@ -14,11 +14,12 @@ import {
   moduloParaMaterial,
 } from "../lib/consultas.ts";
 import NuevoMaterial, { type MaterialArmado } from "./propio/NuevoMaterial.tsx";
-import { generarQuiz } from "../lib/quiz.ts";
+import { generarFichas, generarQuiz } from "../lib/quiz.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
 import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts";
+import { porcentajeVisto } from "../dominio/ramos.ts";
 import { unir } from "../dominio/horario-escrito.ts";
 import { inicialesDePersona } from "../dominio/personas.ts";
 import { type PropsPila } from "../lib/rutas.ts";
@@ -127,6 +128,12 @@ export default function Asignatura({ route, navigation }: Props) {
     recargar();
   };
 
+  const visto = porcentajeVisto(datos.modulos);
+  // Lo próximo que vence de este ramo, que es lo que aprieta. Las
+  // evaluaciones no traen fecha en la base, así que la fecha sale de las
+  // tareas, que es la que existe de verdad.
+  const proxima = ordenarTareas(datos.tareas.filter((t) => t.entregada_en === null))[0];
+
   return (
     <View style={{ flex: 1, backgroundColor: color.fondo }}>
       {/* El color del ramo es dueño de la cabecera: es cómo sabes dónde
@@ -140,7 +147,26 @@ export default function Asignatura({ route, navigation }: Props) {
           <Text style={e.nombre} numberOfLines={2}>{ramo.nombre}</Text>
           <Text style={e.profesor} numberOfLines={1}>{ramo.profesor}</Text>
         </View>
+
+        {/* Cuánto llevas visto. Solo sale si hay material que contar: un
+            «0%» sobre un ramo vacío no dice que vas atrasado, dice que
+            todavía no han subido nada, y no es lo mismo. */}
+        {visto !== null ? (
+          <View style={e.avance}>
+            <Text style={[e.avanceCifra, cifras]}>{visto}%</Text>
+            <Text style={e.avanceEtiqueta}>visto</Text>
+          </View>
+        ) : null}
       </View>
+
+      {proxima ? (
+        <View style={e.proxima}>
+          <Icono nombre="aviso" tamano={16} tono={color.ambar} />
+          <Text style={e.proximaTexto} numberOfLines={1}>
+            {proxima.titulo} · {cuandoVence(proxima)}
+          </Text>
+        </View>
+      ) : null}
 
       {barraDeSecciones ? null : (
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -250,7 +276,10 @@ export default function Asignatura({ route, navigation }: Props) {
                   hace después de pasar el material, y ofrecerlo antes invita a
                   saltárselo. */}
               <Ponerme modulo={m} tono={tono} asignaturaId={asignaturaId}
-                abrir={(quizId) => navigation.navigate("Quiz", { quizId, tono })} />
+                abrirQuiz={(quizId) => navigation.navigate("Quiz", { quizId, tono })}
+                abrirFichas={() => navigation.navigate("Fichas", {
+                  asignaturaId, tema: m.titulo, tono,
+                })} />
             </View>
           ))
         ) : null}
@@ -540,53 +569,71 @@ function SeccionNotas({ evaluaciones }: { evaluaciones: { id: string; titulo: st
 
 
 /**
- * «Ponerme a prueba» al pie de un tema.
+ * Las dos formas de repasar un tema, al pie del tema.
  *
- * Pedir el quiz tarda —hay que escribir las preguntas— así que el botón dice
- * qué está pasando en vez de quedarse mudo. Y si el evaluador no está
- * disponible, se dice; no se abre una pantalla vacía.
+ * Al pie y no arriba: repasar es lo que se hace después de pasar el material,
+ * y ofrecerlo antes invita a saltárselo. Son dos y no una porque hacen cosas
+ * distintas: el quiz dice cómo vas hoy, las fichas te lo dejan grabado. Pedir
+ * cualquiera de las dos tarda —hay que escribirlas— así que el botón dice qué
+ * está pasando en vez de quedarse mudo.
  */
 function Ponerme({
-  modulo, tono, asignaturaId, abrir,
+  modulo, tono, asignaturaId, abrirQuiz, abrirFichas,
 }: {
   modulo: { id: string; titulo: string };
   tono: string;
   asignaturaId: string;
-  abrir: (quizId: string) => void;
+  abrirQuiz: (quizId: string) => void;
+  abrirFichas: () => void;
 }) {
-  const [pidiendo, setPidiendo] = useState(false);
+  const [pidiendo, setPidiendo] = useState<"quiz" | "fichas" | null>(null);
   const [falla, setFalla] = useState<string | null>(null);
 
-  const pedir = async () => {
-    setPidiendo(true);
+  const pedir = async (que: "quiz" | "fichas") => {
+    setPidiendo(que);
     setFalla(null);
     try {
-      const q = await generarQuiz({
-        moduloId: modulo.id, asignaturaId, tema: modulo.titulo,
-      });
-      abrir(q.id);
+      const comun = { moduloId: modulo.id, asignaturaId, tema: modulo.titulo };
+      if (que === "quiz") abrirQuiz((await generarQuiz(comun)).id);
+      else { await generarFichas(comun); abrirFichas(); }
     } catch (err) {
-      setFalla(err instanceof globalThis.Error ? err.message : "No pude preparar el quiz.");
+      setFalla(err instanceof globalThis.Error ? err.message : "No pude prepararlo.");
     } finally {
-      setPidiendo(false);
+      setPidiendo(null);
     }
   };
 
   return (
     <View style={e.ponerme}>
-      <Pressable accessibilityRole="button"
-        accessibilityLabel={`Ponerme a prueba en ${modulo.titulo}`}
-        disabled={pidiendo} onPress={() => void pedir()}
-        style={({ pressed }) => [
-          e.ponermeBoton,
-          pressed ? { backgroundColor: color.elemento } : null,
-          pidiendo ? { opacity: 0.6 } : null,
-        ]}>
-        <Icono nombre="tutor" tamano={17} tono={tono} />
-        <Text style={e.ponermeTexto}>
-          {pidiendo ? "Preparando preguntas…" : "Ponerme a prueba"}
-        </Text>
-      </Pressable>
+      <View style={e.ponermeFila}>
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={`Ponerme a prueba en ${modulo.titulo}`}
+          disabled={pidiendo !== null} onPress={() => void pedir("quiz")}
+          style={({ pressed }) => [
+            e.ponermeBoton,
+            pressed ? { backgroundColor: color.elemento } : null,
+            pidiendo !== null ? { opacity: 0.6 } : null,
+          ]}>
+          <Icono nombre="tutor" tamano={17} tono={tono} />
+          <Text style={e.ponermeTexto} numberOfLines={1}>
+            {pidiendo === "quiz" ? "Preparando…" : "Ponerme a prueba"}
+          </Text>
+        </Pressable>
+
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={`Fichas de repaso de ${modulo.titulo}`}
+          disabled={pidiendo !== null} onPress={() => void pedir("fichas")}
+          style={({ pressed }) => [
+            e.ponermeBoton,
+            pressed ? { backgroundColor: color.elemento } : null,
+            pidiendo !== null ? { opacity: 0.6 } : null,
+          ]}>
+          <Icono nombre="documento" tamano={17} tono={tono} />
+          <Text style={e.ponermeTexto} numberOfLines={1}>
+            {pidiendo === "fichas" ? "Preparando…" : "Fichas de repaso"}
+          </Text>
+        </Pressable>
+      </View>
       {falla ? <Text style={e.ponermeFalla}>{falla}</Text> : null}
     </View>
   );
@@ -594,10 +641,29 @@ function Ponerme({
 
 const e = StyleSheet.create({
   ponerme: { paddingHorizontal: espacio.m, paddingTop: espacio.s, paddingBottom: espacio.l, gap: 6 },
+  ponermeFila: { flexDirection: "row", gap: espacio.s },
+
+  avance: {
+    alignItems: "center", borderRadius: radio.campo,
+    backgroundColor: "rgba(255,255,255,0.18)", paddingHorizontal: espacio.m, paddingVertical: 8,
+  },
+  avanceCifra: { color: "#fff", fontSize: 21, fontWeight: "800", letterSpacing: -0.6 },
+  avanceEtiqueta: {
+    color: "rgba(255,255,255,0.8)", fontSize: 10, fontWeight: "700",
+    letterSpacing: 0.8, textTransform: "uppercase",
+  },
+  proxima: {
+    flexDirection: "row", alignItems: "center", gap: espacio.s,
+    marginHorizontal: espacio.m, marginTop: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: 8,
+    borderRadius: radio.pastilla,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, backgroundColor: tenue(color.ambar),
+  },
+  proximaTexto: { fontSize: 13.5, fontWeight: "600", color: color.texto, flex: 1 },
   ponermeBoton: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: espacio.s,
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: espacio.s,
     borderWidth: FILETE, borderColor: color.bordeFuerte, borderStyle: "dashed",
-    borderRadius: radio.boton, paddingVertical: 11,
+    borderRadius: radio.boton, paddingVertical: 11, paddingHorizontal: espacio.s,
   },
   ponermeTexto: { fontSize: 14.5, fontWeight: "600", color: color.texto },
   ponermeFalla: { ...tipo.detalle, color: color.vivo, lineHeight: 19 },

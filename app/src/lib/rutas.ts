@@ -26,6 +26,7 @@ export type RutasPila = {
   Consejos: undefined;
   /** El tono es el del ramo: la pantalla lo recibe hecho para no volver a pedirlo. */
   Quiz: { quizId: string; tono?: string };
+  Fichas: { asignaturaId: string; tema: string; tono?: string };
   ClaseEnVivo: {
     titulo: string;
     asignatura: string;

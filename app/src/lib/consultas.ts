@@ -70,3 +70,7 @@ export const misQuices = fuente.misQuices;
 export const quizPorId = fuente.quizPorId;
 export const responderQuiz = fuente.responderQuiz;
 export const borrarQuiz = fuente.borrarQuiz;
+
+
+export const misFichas = fuente.misFichas;
+export const repasarFicha = fuente.repasarFicha;
