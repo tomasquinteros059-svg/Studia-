@@ -13,3 +13,9 @@ ios/
 
 # Lo genera `npm run importar`.
 datos/importado.sql
+
+# El sitio de GitHub Pages, que arma `node herramientas/web.mjs`. Expo cuelga
+# los recursos de `assets/node_modules/…` —de ahí salen el archivo de íconos y
+# las flechas de la navegación—, y la regla de arriba se los llevaba por
+# delante: el sitio se publicaba sin un solo ícono y nada avisaba.
+!docs/assets/node_modules/
