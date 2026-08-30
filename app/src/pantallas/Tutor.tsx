@@ -6,10 +6,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Campo, Cargando, Error as ErrorUI } from "../ui/componentes.tsx";
 import {
-  FILETE, color, colorDeRamo, espacio, inicialesDeRamo, radio, tipo,
+  FILETE, color, colorDeRamo, espacio, inicialesDeRamo, letra, radio, sombra, tipo,
 } from "../ui/tema.ts";
-import { misAsignaturas } from "../lib/consultas.ts";
+import { materiaDe, misAsignaturas, misQuices, misTareas } from "../lib/consultas.ts";
 import { preguntarAlTutor } from "../lib/tutor.ts";
+import { fallasDelUltimoQuiz, sugerenciasDe } from "../dominio/sugerencias.ts";
+import { usarDisposicion } from "../lib/pantalla.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 import type { Asignatura } from "../lib/tipos.ts";
@@ -17,9 +19,23 @@ import type { Asignatura } from "../lib/tipos.ts";
 type Props = PropsPestana<"Tutor">;
 type Burbuja = { rol: "estudiante" | "tutor"; texto: string };
 
+/**
+ * El tutor: la conversación, con un ramo a la vez.
+ *
+ * Es el único agente de StudIA, y conviene decirlo acá porque la pantalla
+ * podría dar a entender que hay varios. Hay uno, y hace una cosa: preguntar
+ * de vuelta hasta que la respuesta la encuentres tú. Lo que en otras
+ * aplicaciones serían más agentes, acá son pantallas: el planificador es el
+ * horario, el evaluador es el quiz. Un menú de personajes que en el fondo son
+ * botones sería un disfraz, y uno que se nota.
+ *
+ * Lo que sí cambia entre conversaciones es el ramo, y por eso el ramo es lo
+ * que se elige a la izquierda: el tutor toma su color, su material y su
+ * pregunta de apertura.
+ */
 export default function Tutor({ route }: Props) {
   const margenes = useSafeAreaInsets();
-  const { datos: asignaturas, cargando, error, recargar } = usarCarga(misAsignaturas, []);
+  const { ancho } = usarDisposicion();
   const [elegida, setElegida] = useState<Asignatura | null>(null);
   const [conversacionId, setConversacionId] = useState<string | null>(null);
   const [burbujas, setBurbujas] = useState<Burbuja[]>([]);
@@ -30,6 +46,24 @@ export default function Tutor({ route }: Props) {
 
   const contexto = route.params?.contexto ?? null;
   const pedida = route.params?.asignaturaId;
+
+  const traer = useCallback(async () => {
+    const [asignaturas, tareas, quices] = await Promise.all([
+      misAsignaturas(), misTareas(), misQuices(),
+    ]);
+    return { asignaturas, tareas, quices };
+  }, []);
+  const { datos, cargando, error, recargar } = usarCarga(traer, []);
+
+  // El material del ramo elegido, para poder proponer un tema concreto. Se
+  // pide aparte porque cambia al cambiar de ramo y no vale la pena traerlo
+  // todo de una: son seis ramos y solo se mira uno.
+  const traerMateria = useCallback(
+    async () => (elegida ? await materiaDe(elegida.id) : []),
+    [elegida],
+  );
+  const { datos: modulos } = usarCarga(traerMateria, [elegida?.id]);
+
   // El tutor no tiene color propio: toma el del ramo del que se está
   // hablando, para que se note de qué se está hablando sin leer nada.
   const tono = elegida ? colorDeRamo(elegida.id, elegida.color) : color.marca;
@@ -44,23 +78,24 @@ export default function Tutor({ route }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!asignaturas?.length || elegida) return;
-    abrir(asignaturas.find((a) => a.id === pedida) ?? asignaturas[0]!);
-  }, [asignaturas, elegida, pedida, abrir]);
+    const lista = datos?.asignaturas;
+    if (!lista?.length || elegida) return;
+    abrir(lista.find((a) => a.id === pedida) ?? lista[0]!);
+  }, [datos, elegida, pedida, abrir]);
 
-  async function enviar() {
-    const texto = borrador.trim();
-    if (!texto || !elegida || pensando) return;
+  async function enviar(texto = borrador) {
+    const limpio = texto.trim();
+    if (!limpio || !elegida || pensando) return;
 
     setBorrador("");
     setFallo(null);
-    setBurbujas((b) => [...b, { rol: "estudiante", texto }]);
+    setBurbujas((b) => [...b, { rol: "estudiante", texto: limpio }]);
     setPensando(true);
 
     try {
       const r = await preguntarAlTutor({
         asignaturaId: elegida.id,
-        mensaje: texto,
+        mensaje: limpio,
         conversacionId,
         contexto,
       });
@@ -76,143 +111,289 @@ export default function Tutor({ route }: Props) {
   if (cargando) return <Cargando />;
   if (error) return <ErrorUI mensaje={error} reintentar={recargar} />;
 
+  const asignaturas = datos?.asignaturas ?? [];
+  // Recién acá cabe la lista de ramos al lado sin apretar la conversación.
+  const conColumna = ancho >= 980;
+
+  // Las sugerencias salen de lo que a esta persona le pasó en este ramo. Solo
+  // se muestran mientras no haya conversación: una vez que se está hablando,
+  // proponer temas nuevos interrumpe.
+  const sugerencias = elegida && burbujas.length <= 1
+    ? sugerenciasDe({
+        fallas: fallasDelUltimoQuiz(datos?.quices ?? [], elegida.id),
+        pendientes: (datos?.tareas ?? []).filter(
+          (t) => t.asignatura_id === elegida.id && t.entregada_en === null,
+        ),
+        temas: (modulos ?? [])
+          .filter((m) => m.materiales.some((x) => !x.completado))
+          .map((m) => ({ titulo: m.titulo })),
+      })
+    : [];
+
+  const listaDeRamos = (
+    <ListaDeRamos ramos={asignaturas} elegida={elegida} abrir={abrir} enColumna={conColumna} />
+  );
+
   return (
     <KeyboardAvoidingView
       style={e.pantalla}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={margenes.top + 44}
     >
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={e.chips}
-        contentContainerStyle={{ gap: espacio.s, paddingHorizontal: espacio.m, paddingVertical: espacio.m }}>
-        {(asignaturas ?? []).map((a) => {
-          const activa = a.id === elegida?.id;
-          const suyo = colorDeRamo(a.id, a.color);
-          return (
-            <Pressable key={a.id} accessibilityRole="tab" accessibilityState={{ selected: activa }}
-              onPress={() => abrir(a)}
-              style={[e.chip, activa && { backgroundColor: suyo, borderColor: suyo }]}>
-              <View style={[e.puntoRamo, { backgroundColor: activa ? "rgba(255,255,255,0.55)" : suyo }]} />
-              <Text style={[e.chipTexto, activa && { color: color.sobreMarca, fontWeight: "700" }]}
-                numberOfLines={1}>
-                {a.nombre}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <View style={[e.marco, conColumna ? e.marcoAncho : null]}>
+        {conColumna ? <View style={e.columna}>{listaDeRamos}</View> : listaDeRamos}
 
-      <ScrollView ref={scroll} style={{ flex: 1 }}
-        contentContainerStyle={{ padding: espacio.m, gap: espacio.s }}
-        onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}>
-        {elegida ? (
-          <View style={e.presentacion}>
+        <View style={[e.conversacion, conColumna ? e.conversacionAncha : null]}>
+          <View style={e.cabeza}>
             <View style={[e.sello, { backgroundColor: tono }]}>
-              <Text style={e.selloTexto}>{inicialesDeRamo(elegida.nombre)}</Text>
+              <Text style={e.selloTexto}>
+                {elegida ? inicialesDeRamo(elegida.nombre) : "?"}
+              </Text>
             </View>
-            <Text style={e.presentacionRamo} numberOfLines={2}>{elegida.nombre}</Text>
-            <Text style={e.presentacionBajada}>
-              Pregúntale lo que quieras de este ramo. Lo que hablen acá se queda acá.
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={e.papel} numberOfLines={1}>
+                {conColumna ? "te pregunta de vuelta" : "te pregunta"}
+              </Text>
+              <Text style={e.nombre} numberOfLines={1}>El Tutor</Text>
+            </View>
+            {elegida ? (
+              <View style={e.contextoChip}>
+                <Text style={e.contextoTexto} numberOfLines={1}>
+                  {elegida.nombre} · con su material
+                </Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
 
-        {contexto ? <Text style={e.contexto}>{contexto}</Text> : null}
-        {burbujas.map((b, i) => (
-          <View key={i} style={[e.burbuja, b.rol === "estudiante" ? e.mia : e.suya]}>
-            <Text style={[e.burbujaTexto, b.rol === "estudiante" && { color: color.sobreMarca }]}>
-              {b.texto}
-            </Text>
+          <ScrollView ref={scroll} style={{ flex: 1 }}
+            contentContainerStyle={e.hilo}
+            onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}>
+            {contexto ? <Text style={e.contextoSuelto}>{contexto}</Text> : null}
+
+            {burbujas.map((b, i) => (
+              <View key={i} style={[e.burbuja, b.rol === "estudiante" ? e.mia : e.suya]}>
+                {b.rol === "tutor" ? <Text style={e.quien}>Tutor:</Text> : null}
+                <Text style={e.burbujaTexto}>{b.texto}</Text>
+              </View>
+            ))}
+
+            {pensando ? <Text style={e.escribiendo}>escribiendo…</Text> : null}
+            {fallo ? <Text style={e.fallo}>{fallo}</Text> : null}
+          </ScrollView>
+
+          {sugerencias.length > 0 ? (
+            <View style={e.sugerencias}>
+              {sugerencias.map((s) => (
+                <Pressable key={s} accessibilityRole="button" accessibilityLabel={s}
+                  onPress={() => void enviar(s)}
+                  style={({ pressed }) => [
+                    e.sugerencia,
+                    pressed ? { borderStyle: "solid", borderColor: tono } : null,
+                  ]}>
+                  <Text style={e.sugerenciaTexto} numberOfLines={1}>{s}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {/* El margen de abajo es lo que impedía escribirle al tutor: la app
+              dibuja de borde a borde y la barra de gestos del sistema tapaba
+              el campo entero. */}
+          <View style={[e.compositor, { paddingBottom: espacio.s + (conColumna ? 0 : margenes.bottom) }]}>
+            <Campo
+              style={{ flex: 1 }}
+              placeholder="Escríbele al Tutor…"
+              accessibilityLabel="Tu mensaje"
+              value={borrador}
+              onChangeText={setBorrador}
+              onSubmitEditing={() => void enviar()}
+              returnKeyType="send"
+              multiline
+            />
+            <Pressable accessibilityRole="button" accessibilityLabel="Enviar"
+              onPress={() => void enviar()} disabled={pensando || !borrador.trim()}
+              style={({ pressed }) => [
+                e.enviar,
+                pressed ? e.enviarApretado : null,
+                (pensando || !borrador.trim()) ? { opacity: 0.45 } : null,
+              ]}>
+              {pensando
+                ? <ActivityIndicator size="small" color={color.sobreMarca} />
+                : <Text style={e.enviarTexto}>Enviar</Text>}
+            </Pressable>
           </View>
-        ))}
-        {fallo ? <Text style={e.fallo}>{fallo}</Text> : null}
-      </ScrollView>
-
-      {pensando ? (
-        <View style={e.pensando}>
-          <ActivityIndicator size="small" color={tono} />
-          <Text style={tipo.detalle}>El tutor está pensando…</Text>
         </View>
-      ) : null}
-
-      {/* El margen de abajo es lo que impedía escribirle al tutor: la app
-          dibuja de borde a borde y la barra de gestos del sistema tapaba el
-          campo entero. */}
-      <View style={[e.compositor, { paddingBottom: espacio.s + margenes.bottom }]}>
-        <Campo
-          style={{ flex: 1 }}
-          placeholder="Escribe tu duda…"
-          accessibilityLabel="Tu mensaje"
-          value={borrador}
-          onChangeText={setBorrador}
-          onSubmitEditing={enviar}
-          returnKeyType="send"
-          multiline
-        />
-        <Pressable accessibilityRole="button" accessibilityLabel="Enviar"
-          onPress={enviar} disabled={pensando || !borrador.trim()}
-          style={({ pressed }) => [
-            e.enviar, { backgroundColor: tono },
-            (pressed || pensando || !borrador.trim()) && { opacity: 0.45 },
-          ]}>
-          <Text style={e.enviarTexto}>Enviar</Text>
-        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
+// ── Los ramos ─────────────────────────────────────────────────────────────
+
+/**
+ * De qué ramo se está hablando.
+ *
+ * En una pantalla ancha es una columna con una tarjeta por ramo, donde caben
+ * el color y el código. En una angosta es la misma lista tendida, que es lo
+ * único que cabe sin comerse la conversación.
+ */
+function ListaDeRamos({
+  ramos, elegida, abrir, enColumna,
+}: {
+  ramos: Asignatura[];
+  elegida: Asignatura | null;
+  abrir: (a: Asignatura) => void;
+  enColumna: boolean;
+}) {
+  const contenido = ramos.map((a) => {
+    const activa = a.id === elegida?.id;
+    const suyo = colorDeRamo(a.id, a.color);
+    return (
+      <Pressable key={a.id} accessibilityRole="tab" accessibilityState={{ selected: activa }}
+        accessibilityLabel={`Hablar de ${a.nombre}`}
+        onPress={() => abrir(a)}
+        style={({ pressed }) => [
+          enColumna ? e.tarjetaRamo : e.chip,
+          activa ? e.ramoActivo : null,
+          pressed ? { borderColor: suyo } : null,
+        ]}>
+        <View style={[e.puntoRamo, { backgroundColor: suyo }]} />
+        <View style={{ flex: enColumna ? 1 : undefined, minWidth: 0 }}>
+          <Text style={[e.ramoTexto, activa ? e.ramoTextoActivo : null]} numberOfLines={1}>
+            {a.nombre}
+          </Text>
+          {enColumna ? <Text style={e.ramoCodigo}>{a.codigo}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  });
+
+  if (enColumna) {
+    return (
+      <>
+        <Text style={[tipo.etiqueta, { marginBottom: espacio.s }]}>De qué ramo</Text>
+        {contenido}
+      </>
+    );
+  }
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={e.chips}
+      contentContainerStyle={e.chipsDentro}>
+      {contenido}
+    </ScrollView>
+  );
+}
+
 const e = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: color.fondo },
+  marco: { flex: 1 },
+  marcoAncho: {
+    flexDirection: "row", gap: espacio.l,
+    padding: espacio.l, width: "100%", maxWidth: 1180, alignSelf: "center",
+  },
+  columna: { width: 250, gap: espacio.s },
+
+  // ── Los ramos ──
   chips: {
     flexGrow: 0, backgroundColor: color.papel,
     borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
   },
+  chipsDentro: { gap: espacio.s, paddingHorizontal: espacio.m, paddingVertical: espacio.m },
   chip: {
     flexDirection: "row", alignItems: "center", gap: espacio.s, maxWidth: 230,
-    borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 9,
+    borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 8,
     backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.bordeFuerte,
   },
-  puntoRamo: { width: 8, height: 8, borderRadius: 4 },
-  chipTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave, flexShrink: 1 },
+  tarjetaRamo: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    borderRadius: radio.campo, paddingHorizontal: espacio.m, paddingVertical: 12,
+    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.bordeFuerte,
+  },
+  // El destacador marca dónde estás, igual que en el planificador: no es el
+  // color de ningún ramo, es la marca de «acá».
+  ramoActivo: { backgroundColor: color.destacador, boxShadow: sombra(3) },
+  puntoRamo: { width: 9, height: 9, borderRadius: 999 },
+  ramoTexto: { fontSize: 14.5, fontWeight: "600", color: color.textoSuave, flexShrink: 1 },
+  ramoTextoActivo: { color: color.texto, fontWeight: "700" },
+  ramoCodigo: { ...tipo.detalle, fontSize: 11.5, marginTop: 1 },
 
-  // Antes de la primera pregunta la pantalla estaba en blanco. Presentarse
-  // cuesta cuatro líneas y evita la duda de qué se puede preguntar.
-  presentacion: { alignItems: "center", gap: espacio.s, paddingVertical: espacio.l },
+  // ── La conversación ──
+  conversacion: { flex: 1, minWidth: 0 },
+  conversacionAncha: {
+    backgroundColor: color.papel, borderRadius: 18,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
+    overflow: "hidden", boxShadow: sombra(5),
+  },
+  cabeza: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    paddingHorizontal: espacio.m, paddingVertical: espacio.s + 2,
+    backgroundColor: color.fondo,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
+  },
   sello: {
-    width: 56, height: 56, borderRadius: 18,
+    width: 40, height: 40, borderRadius: 12,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
     alignItems: "center", justifyContent: "center",
   },
-  selloTexto: { color: "#fff", fontSize: 20, fontWeight: "800", letterSpacing: -0.5 },
-  presentacionRamo: { ...tipo.subtitulo, textAlign: "center" },
-  presentacionBajada: {
-    ...tipo.detalle, textAlign: "center", lineHeight: 20, maxWidth: 300,
+  selloTexto: { color: "#fff", fontSize: 15, fontWeight: "800", letterSpacing: -0.4 },
+  // El papel del agente, escrito a mano: es lo que hace la cabecera en vez de
+  // una barra de título más.
+  papel: { fontFamily: letra.mano, fontSize: 19, color: color.anotacion, lineHeight: 20 },
+  nombre: { ...tipo.subtitulo, fontSize: 16 },
+  contextoChip: {
+    maxWidth: 260, borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 4,
+    backgroundColor: color.papel, borderWidth: 1.5, borderColor: color.bordeFuerte,
   },
+  contextoTexto: { ...tipo.detalle, fontSize: 12, fontWeight: "600" },
 
-  contexto: {
+  hilo: { padding: espacio.m, gap: espacio.s },
+  contextoSuelto: {
     alignSelf: "center", ...tipo.detalle, backgroundColor: color.elemento,
     paddingHorizontal: espacio.m, paddingVertical: 6,
     borderRadius: radio.pastilla, overflow: "hidden",
   },
-  burbuja: { maxWidth: "84%", paddingHorizontal: espacio.m, paddingVertical: 11, borderRadius: radio.burbuja },
-  mia: { alignSelf: "flex-end", backgroundColor: color.marca, borderBottomRightRadius: 6 },
-  suya: {
-    alignSelf: "flex-start", backgroundColor: color.papel, borderBottomLeftRadius: 6,
-    borderWidth: FILETE, borderColor: color.bordeFuerte,
+
+  burbuja: {
+    maxWidth: "84%", paddingHorizontal: espacio.m, paddingVertical: 11,
+    borderRadius: radio.burbuja, borderWidth: FILETE, borderColor: color.bordeFuerte,
   },
+  mia: {
+    alignSelf: "flex-end", backgroundColor: color.destacadoSuave,
+    borderBottomRightRadius: 5,
+  },
+  suya: { alignSelf: "flex-start", backgroundColor: color.papel, borderBottomLeftRadius: 5 },
+  quien: { fontFamily: letra.mano, fontSize: 18, color: color.anotacion, marginBottom: 1 },
   burbujaTexto: { fontSize: 15.5, lineHeight: 23, color: color.texto },
+
+  escribiendo: { ...tipo.detalle, fontStyle: "italic", paddingLeft: espacio.xs },
   fallo: { ...tipo.detalle, color: color.vivo, textAlign: "center" },
-  pensando: {
-    flexDirection: "row", alignItems: "center", gap: espacio.s,
+
+  // ── Lo que se puede preguntar ──
+  sugerencias: {
+    flexDirection: "row", flexWrap: "wrap", gap: espacio.s,
     paddingHorizontal: espacio.m, paddingBottom: espacio.s,
   },
+  sugerencia: {
+    maxWidth: "100%",
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderStyle: "dashed",
+    borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 5,
+  },
+  sugerenciaTexto: { fontSize: 12.5, fontWeight: "600", color: color.textoSuave },
+
   compositor: {
     flexDirection: "row", alignItems: "flex-end", gap: espacio.s,
     paddingHorizontal: espacio.m, paddingTop: espacio.s,
-    backgroundColor: color.papel,
+    backgroundColor: color.fondo,
     borderTopWidth: FILETE, borderTopColor: color.bordeFuerte,
   },
   enviar: {
-    borderRadius: radio.campo, paddingHorizontal: 18, height: 48, justifyContent: "center",
+    borderRadius: radio.campo, paddingHorizontal: 18, height: 46,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: color.marca,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, boxShadow: sombra(3),
+  },
+  enviarApretado: {
+    transform: [{ translateX: 2 }, { translateY: 2 }], boxShadow: sombra(0),
   },
   enviarTexto: { color: color.sobreMarca, fontWeight: "700", fontSize: 15 },
 });

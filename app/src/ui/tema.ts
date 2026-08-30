@@ -66,6 +66,9 @@ export const color = {
      que en un cuaderno. Marca el día de hoy y nada más; el día que marque
      dos cosas distintas habrá dejado de servir. */
   destacador:  "#FFE14D",
+  /* El destacador ya pasado sobre el papel: lo que queda cuando se raya algo
+     y se lee el texto por encima. Es relleno, no marca. */
+  destacadoSuave: "#FFF2AF",
 } as const;
 
 /* Más redondo que un panel de trabajo: esto lo usa alguien estudiando en su
