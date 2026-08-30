@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icono } from "../ui/Icono.tsx";
+import { LETRAS, pintaDe } from "../dominio/quiz.ts";
 import { espacio, letra } from "../ui/tema.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { VERSION_VISIBLE } from "../lib/version.ts";
@@ -29,8 +30,10 @@ const p = {
   azul: "#2F45D4",
   azulClaro: "#CFD5F6",
   destacador: "#FFE14D",
+  destacadoSuave: "#FFF2AF",
   verde: "#1FA97C",
   verdeClaro: "#A9E6CE",
+  rojo: "#E4574B",
   gris: "#6B6F85",
   raya: "rgba(47,69,212,0.13)",
 } as const;
@@ -169,6 +172,30 @@ export default function Portada({
           </View>
         </View>
 
+        {/* ── El repaso ───────────────────────────────────────────── */}
+        <View onLayout={anotar("repaso")} style={[e.seccion, { paddingHorizontal: margen }]}>
+          <View style={e.centro}>
+            <Text style={[e.titulo2, media ? e.titulo2Grande : null]}>
+              Saber si lo sabes, <Text style={e.resaltado}>antes de la prueba</Text>
+            </Text>
+            <Text style={e.entrada}>
+              Releer el apunte da la sensación de estar estudiando. Contestar una
+              pregunta te dice si es cierto. StudIA arma el quiz con el material
+              de tu propio ramo, corrige apenas respondes y te explica por qué.
+            </Text>
+
+            <View style={[e.repaso, ancha ? e.repasoAncho : null]}>
+              <QuizMuestra ancha={ancha} />
+              <View style={e.pasos}>
+                {PASOS.map((s, i) => (
+                  <Paso key={s.titulo} numero={i + 1} titulo={s.titulo} texto={s.texto} />
+                ))}
+                <Text style={e.pasosMano}>y no lo ve nadie más ↷</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* ── Los agentes ─────────────────────────────────────────── */}
         <View onLayout={anotar("agentes")} style={[e.nocturno, { paddingHorizontal: margen }]}>
           <View style={e.centro}>
@@ -293,6 +320,7 @@ function Barra({
           {media ? (
             <>
               <Enlace texto="Qué hace" onPress={() => irA("funciones")} />
+              <Enlace texto="El repaso" onPress={() => irA("repaso")} />
               <Enlace texto="Los agentes" onPress={() => irA("agentes")} />
               <Enlace texto="Precios" onPress={() => irA("precios")} />
             </>
@@ -451,6 +479,114 @@ const LINEAS_MUESTRA = [
   { texto: "Tarea 3 · entrega el viernes", cuando: "en 3 días", listo: false },
   { texto: "Lectura del capítulo 4", cuando: "18 min", listo: false },
 ];
+
+// ── El quiz de muestra ────────────────────────────────────────────────────
+
+/**
+ * Una pregunta ya contestada —y contestada mal—, que es el momento que hay
+ * que mostrar. Un quiz con la respuesta correcta marcada en verde no dice
+ * nada que no diga cualquier formulario; lo que distingue a este es que el
+ * error y la explicación llegan juntos, y eso solo se ve cuando alguien se
+ * equivoca.
+ *
+ * Se dibuja con el mismo vocabulario de la pantalla de verdad: la letra en su
+ * cuadrado, el verde de la correcta, el rojo de la elegida y la explicación
+ * debajo. No es una captura, por lo mismo que la ventana de arriba.
+ */
+function QuizMuestra({ ancha }: { ancha: boolean }) {
+  return (
+    <View style={[e.quiz, ancha ? e.quizAncho : null]}>
+      <View style={e.quizCabeza}>
+        <Text style={e.quizTema}>Límites y continuidad</Text>
+        <View style={e.quizSello}>
+          <Text style={e.quizSelloTexto}>repaso</Text>
+        </View>
+      </View>
+
+      <View style={e.quizBarra}>
+        <View style={e.quizBarraLlena} />
+      </View>
+      <Text style={e.quizMano}>pregunta 2 de 5</Text>
+
+      <Text style={e.quizEnunciado}>{MUESTRA.pregunta}</Text>
+
+      {MUESTRA.opciones.map((texto, i) => {
+        const pinta = pintaDe(i, MUESTRA.correcta, MUESTRA.elegida);
+        return (
+          <View key={texto} style={[
+            e.quizOpcion,
+            pinta === "correcta" ? e.quizOpcionBuena : null,
+            pinta === "equivocada" ? e.quizOpcionMala : null,
+            pinta === "apagada" ? { opacity: 0.45 } : null,
+          ]}>
+            <View style={[
+              e.quizLetra,
+              pinta === "correcta" ? { backgroundColor: p.verde, borderColor: p.verde } : null,
+              pinta === "equivocada" ? { backgroundColor: p.rojo, borderColor: p.rojo } : null,
+            ]}>
+              <Text style={[
+                e.quizLetraTexto,
+                pinta === "correcta" || pinta === "equivocada" ? { color: "#fff" } : null,
+              ]}>{LETRAS[i]}</Text>
+            </View>
+            <Text style={e.quizOpcionTexto}>{texto}</Text>
+          </View>
+        );
+      })}
+
+      <View style={e.quizExplicacion}>
+        <Text style={e.quizExplicacionTexto}>
+          <Text style={e.quizExplicacionQuien}>La correcta era otra. </Text>
+          {MUESTRA.explicacion}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const MUESTRA = {
+  pregunta: "¿Qué pasa con f(x) = (x² − 1)/(x − 1) cuando x tiende a 1?",
+  opciones: [
+    "No existe: se indetermina en 0/0",
+    "Tiende a 2",
+    "Tiende a infinito",
+    "Vale 1, porque f(1) = 1",
+  ],
+  correcta: 1,
+  elegida: 0,
+  explicacion:
+    "0/0 dice que hay que seguir trabajando, no que no exista. Al factorizar, "
+    + "(x² − 1)/(x − 1) = x + 1 para todo x ≠ 1, y esa expresión tiende a 2.",
+} as const;
+
+const PASOS = [
+  {
+    titulo: "Sale de tu material",
+    texto: "Las preguntas se arman con los apuntes y las lecturas de ese módulo, no de un banco genérico. Preguntan lo que pasaron en clase.",
+  },
+  {
+    titulo: "Corrige al momento",
+    texto: "La explicación llega junto con el error, que es cuando sirve. Por eso tampoco se puede cambiar una respuesta ya dada: no es para subir el puntaje.",
+  },
+  {
+    titulo: "Lo que fallas vuelve",
+    texto: "Cada tema deja además un mazo de fichas. Las que aciertas tardan cada vez más en volver —1, 3, 7, 16 y 35 días—; las que fallas vuelven hoy mismo.",
+  },
+];
+
+function Paso({ numero, titulo, texto }: { numero: number; titulo: string; texto: string }) {
+  return (
+    <View style={e.paso}>
+      <View style={e.pasoNumero}>
+        <Text style={e.pasoNumeroTexto}>{numero}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={e.pasoTitulo}>{titulo}</Text>
+        <Text style={e.pasoTexto}>{texto}</Text>
+      </View>
+    </View>
+  );
+}
 
 // ── Fichas y agentes ──────────────────────────────────────────────────────
 
@@ -879,6 +1015,74 @@ const e = StyleSheet.create({
     maxWidth: 600, marginTop: 14, marginBottom: 44,
   },
   entradaClara: { color: "rgba(251,250,245,0.72)" },
+
+
+  // ── El repaso ──
+  repaso: { gap: 28 },
+  repasoAncho: { flexDirection: "row", alignItems: "flex-start", gap: 40 },
+
+  quiz: {
+    borderWidth: BORDE, borderColor: p.tinta, borderRadius: 16,
+    backgroundColor: p.papel, padding: 22, gap: 10,
+    boxShadow: `6px 6px 0 ${p.tinta}`,
+  },
+  quizAncho: { flex: 1.15 },
+  quizCabeza: { flexDirection: "row", alignItems: "center", gap: 10 },
+  quizTema: {
+    flex: 1, fontFamily: letra.titulo, fontSize: 17, fontWeight: "800",
+    color: p.tinta, letterSpacing: -0.4,
+  },
+  quizSello: {
+    borderWidth: 1.5, borderColor: p.tinta, borderRadius: 999,
+    backgroundColor: p.destacador, paddingHorizontal: 10, paddingVertical: 2,
+  },
+  quizSelloTexto: { fontSize: 11, fontWeight: "700", color: p.tinta, letterSpacing: 0.3 },
+
+  quizBarra: {
+    height: 10, borderRadius: 999, backgroundColor: p.papelHondo,
+    borderWidth: 1.5, borderColor: p.tinta, overflow: "hidden",
+  },
+  quizBarraLlena: { width: "40%", height: "100%", backgroundColor: p.azul },
+  quizMano: { fontFamily: letra.mano, fontSize: 18, color: p.azul, textAlign: "right" },
+
+  quizEnunciado: {
+    fontFamily: letra.cuerpo, fontSize: 16, lineHeight: 24, fontWeight: "700",
+    color: p.tinta, marginBottom: 4,
+  },
+  quizOpcion: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    borderWidth: 1.5, borderColor: "rgba(23,28,63,0.18)", borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 11, backgroundColor: p.papel,
+  },
+  quizOpcionBuena: { borderColor: p.verde, backgroundColor: "rgba(31,169,124,0.08)" },
+  quizOpcionMala: { borderColor: p.rojo, backgroundColor: "rgba(228,87,75,0.07)" },
+  quizLetra: {
+    width: 26, height: 26, borderRadius: 8, alignItems: "center", justifyContent: "center",
+    borderWidth: 1.5, borderColor: "rgba(23,28,63,0.18)", backgroundColor: p.papelHondo,
+  },
+  quizLetraTexto: { fontSize: 12.5, fontWeight: "800", color: p.tinta },
+  quizOpcionTexto: { flex: 1, fontFamily: letra.cuerpo, fontSize: 14.5, color: p.tinta },
+
+  quizExplicacion: {
+    marginTop: 4, borderRadius: 12, borderWidth: 1.5, borderColor: p.tinta,
+    backgroundColor: p.destacadoSuave, padding: 14,
+  },
+  quizExplicacionTexto: { fontFamily: letra.cuerpo, fontSize: 14, lineHeight: 22, color: p.tinta },
+  quizExplicacionQuien: { fontWeight: "800" },
+
+  pasos: { gap: 26, flex: 1 },
+  paso: { flexDirection: "row", gap: 14, alignItems: "flex-start" },
+  pasoNumero: {
+    width: 30, height: 30, borderRadius: 999, alignItems: "center", justifyContent: "center",
+    borderWidth: BORDE, borderColor: p.tinta, backgroundColor: p.destacador,
+  },
+  pasoNumeroTexto: { fontSize: 13.5, fontWeight: "800", color: p.tinta },
+  pasoTitulo: {
+    fontFamily: letra.titulo, fontSize: 17, fontWeight: "700",
+    color: p.tinta, letterSpacing: -0.3, marginBottom: 4,
+  },
+  pasoTexto: { fontFamily: letra.cuerpo, fontSize: 14.5, lineHeight: 22, color: p.gris },
+  pasosMano: { fontFamily: letra.mano, fontSize: 20, color: p.azul, marginLeft: 44 },
 
   // ── Fichas ──
   fichas: { gap: 20 },

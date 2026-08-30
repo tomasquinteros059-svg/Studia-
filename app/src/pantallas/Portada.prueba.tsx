@@ -6,6 +6,7 @@ jest.mock("../lib/proveedores.ts", () => ({ entrarCon: jest.fn() }));
 
 import * as proveedores from "../lib/proveedores.ts";
 import Portada from "./Portada.tsx";
+import { SALTOS } from "../dominio/fichas.ts";
 
 const mock = proveedores as jest.Mocked<typeof proveedores>;
 
@@ -36,10 +37,49 @@ describe("la portada", () => {
 
     // Existen y se pueden apretar sin que nada reviente: el desplazamiento
     // en sí lo hace el ScrollView, que en las pruebas no tiene alto.
-    for (const nombre of ["Qué hace", "Los agentes"]) {
+    for (const nombre of ["Qué hace", "El repaso", "Los agentes"]) {
       const enlace = t.getByRole("link", { name: nombre });
       await act(async () => { fireEvent.press(enlace); });
     }
+  });
+
+  test("muestra el quiz, que es lo que distingue esto de un drive ordenado", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    expect(t.getByText(/antes de la prueba/)).toBeTruthy();
+    expect(t.getByText(/^¿Qué pasa con f\(x\)/)).toBeTruthy();
+    // Las cuatro opciones, con su letra: es una pregunta de verdad y no un
+    // dibujo de una.
+    for (const letra of ["A", "B", "C", "D"]) expect(t.getByText(letra)).toBeTruthy();
+  });
+
+  test("la pregunta de muestra está contestada, y contestada mal", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    // Es el momento que hay que mostrar: una respuesta correcta marcada en
+    // verde no dice nada que no diga cualquier formulario. Lo que distingue a
+    // este quiz es que el error y la explicación llegan juntos.
+    expect(t.getByText("La correcta era otra. ")).toBeTruthy();
+    expect(t.getByText(/tiende a 2/)).toBeTruthy();
+  });
+
+  test("dice que el quiz sale del material del ramo y que no lo ve nadie", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    expect(t.getByText("Sale de tu material")).toBeTruthy();
+    expect(t.getByText("Corrige al momento")).toBeTruthy();
+    expect(t.getByText("Lo que fallas vuelve")).toBeTruthy();
+    expect(t.getByText(/no lo ve nadie más/)).toBeTruthy();
+  });
+
+  test("los plazos de las fichas son los que usa la aplicación de verdad", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    // Prometer en la portada un espaciado distinto del que hace el código es
+    // la clase de mentira que nadie revisa hasta que un alumno la nota.
+    const dicho = t.getByText(/1, 3, 7, 16 y 35 días/);
+    expect(dicho).toBeTruthy();
+    expect(SALTOS).toEqual([1, 3, 7, 16, 35]);
   });
 
   test("iniciar sesión desde la barra es la misma puerta que la de abajo", async () => {
