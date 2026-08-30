@@ -212,6 +212,52 @@ exception when insufficient_privilege then
   raise notice 'ok · el estudiante no puede fabricar resúmenes';
 end $$;
 
+-- ── Escribir a mano ──────────────────────────────────────────────────────
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+update public.apuntes
+   set trazos = '{"v":1,"trazos":[{"id":"t1","util":"lapiz","color":"#171C3F","grosor":3,
+                  "puntos":[{"x":1,"y":1,"t":0},{"x":9,"y":9,"t":8}]}]}'::jsonb;
+
+select pg_temp.afirmar('puedo dibujar en mi propio apunte',
+  (select count(*) from public.apuntes where trazos is not null)::int, 1);
+
+-- La columna la calcula la base: nadie tiene que acordarse de mantenerla.
+select pg_temp.afirmar('el apunte queda marcado como escrito a mano',
+  (select tiene_trazos from public.apuntes limit 1), true);
+
+do $$
+begin
+  update public.apuntes set tiene_trazos = false;
+  raise exception 'FALLA · pude mentir sobre si el apunte tiene dibujo';
+exception when generated_always then
+  raise notice 'ok · la marca de escrito a mano la decide la base';
+end $$;
+
+-- Medio mega de puntos desde un cliente modificado dejaría la lista de
+-- apuntes de esa persona lenta para siempre.
+do $$
+begin
+  update public.apuntes
+     set trazos = jsonb_build_object('v', 1, 'trazos',
+           (select jsonb_agg(jsonb_build_object('id', 'x', 'util', 'lapiz',
+              'color', '#171C3F', 'grosor', 3, 'puntos',
+              jsonb_build_array(jsonb_build_object('x', g, 'y', g, 't', g))))
+            from generate_series(1, 20000) g));
+  raise exception 'FALLA · pude guardar un tablero sin límite de tamaño';
+exception when check_violation then
+  raise notice 'ok · el tamaño del dibujo está acotado';
+end $$;
+
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+do $$
+begin
+  update public.apuntes set trazos = null;
+  if found then raise exception 'FALLA · pude borrarle el dibujo a otro'; end if;
+  raise notice 'ok · no puedo tocar el dibujo de otro';
+end $$;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
 -- La transcripción se lee, no se escribe desde el cliente.
 do $$
 begin

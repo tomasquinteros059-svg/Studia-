@@ -17,7 +17,7 @@ import { usarCarga } from "../lib/usarCarga.ts";
 import { filtrarApuntes, ordenarTablero, vistaPrevia } from "../dominio/tablero.ts";
 import { columnasDelTablero } from "../dominio/tablero.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
-import type { Apunte, Asignatura } from "../lib/tipos.ts";
+import type { ApunteEnLista, Asignatura } from "../lib/tipos.ts";
 
 /** El nombre del cuaderno que se crea solo cuando no hay ningún ramo. */
 const CUADERNO_SUELTO = "Mis apuntes";
@@ -84,7 +84,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
     }
   }
 
-  async function alternarFijado(a: Apunte) {
+  async function alternarFijado(a: ApunteEnLista) {
     try {
       await fijarApunte(a.id, !a.fijado);
       refrescar();
@@ -95,7 +95,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
 
   // El tablero se arma por columnas para que las tarjetas de distinto alto
   // encajen sin dejar huecos, como en un muro de notas.
-  const columnasDeApuntes: Apunte[][] = Array.from({ length: columnas }, () => []);
+  const columnasDeApuntes: ApunteEnLista[][] = Array.from({ length: columnas }, () => []);
   visibles.forEach((a, i) => columnasDeApuntes[i % columnas]!.push(a));
 
   return (
@@ -140,7 +140,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
                       // Sin nombre, un lector de pantalla anuncia «botón» y
                       // recién después lee la tarjeta entera. Con nombre se
                       // sabe cuál es antes de entrar.
-                      accessibilityLabel={`Abrir ${a.titulo}`}
+                      accessibilityLabel={`Abrir ${a.titulo}${a.tiene_trazos ? ", tiene algo escrito a mano" : ""}`}
                       onPress={() => navigation.navigate("Apunte", { apunteId: a.id })}
                       style={({ pressed }) => [
                         e.tarjeta,
@@ -164,6 +164,11 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
 
                       {a.contenido.trim() ? (
                         <Text style={e.tarjetaCuerpo}>{vistaPrevia(a.contenido)}</Text>
+                      ) : a.tiene_trazos ? (
+                        // Un apunte solo dibujado no está vacío, y decirle
+                        // «sin escribir todavía» a alguien que llenó la hoja a
+                        // mano es decirle que su clase no cuenta.
+                        <Text style={e.tarjetaVacia}>Escrito a mano</Text>
                       ) : (
                         <Text style={e.tarjetaVacia}>Sin escribir todavía</Text>
                       )}
@@ -179,6 +184,9 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
                               {ramo.nombre}
                             </Text>
                           </View>
+                        ) : null}
+                        {a.tiene_trazos && a.contenido.trim() ? (
+                          <Icono nombre="lapiz" tamano={13} tono={color.textoTenue} />
                         ) : null}
                         <Text style={tipo.detalle}>{fechaCorta(a.actualizado_en)}</Text>
                       </View>

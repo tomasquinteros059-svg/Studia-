@@ -154,9 +154,24 @@ export type Apunte = {
   clase_id: string | null;
   titulo: string;
   contenido: string;
+  /**
+   * Lo escrito a mano, como lo deja `dominio/trazos.ts`. Nulo es «nunca se
+   * dibujó acá», que no es lo mismo que un tablero borrado.
+   */
+  trazos: string | null;
   fijado: boolean;
   actualizado_en: string;
 };
+
+/**
+ * Un apunte tal como sale en la lista: sin los trazos.
+ *
+ * Son lo pesado de la fila y en la lista solo se muestra un adelanto del
+ * texto. Traer la tinta de cincuenta apuntes para dibujar cincuenta títulos
+ * es lo que vuelve lenta una pantalla sin que se note por qué. `tiene_trazos`
+ * la calcula la base, y basta para marcar la tarjeta.
+ */
+export type ApunteEnLista = Omit<Apunte, "trazos"> & { tiene_trazos: boolean };
 
 export type ResumenGuardado = {
   cuerpo: string;

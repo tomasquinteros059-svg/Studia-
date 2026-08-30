@@ -98,7 +98,7 @@ export const NOTIFICACION = {
 export const APUNTE = {
   id: "a-1", asignatura_id: RAMO.id, clase_id: null, titulo: "Clase del valor medio",
   contenido: "El teorema dice que existe un c en (a,b) tal que la derivada es la pendiente media.",
-  fijado: false, actualizado_en: enDias(-1),
+  trazos: null, fijado: false, actualizado_en: enDias(-1),
 };
 
 export const LECTURA = {

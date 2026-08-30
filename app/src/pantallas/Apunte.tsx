@@ -6,7 +6,9 @@ import {
 import { Boton, Cargando, Error as ErrorUI } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { PanelTutor } from "../ui/PanelTutor.tsx";
-import { color, espacio, radio, tipo } from "../ui/tema.ts";
+import { Pizarra } from "../ui/Pizarra.tsx";
+import { FILETE, color, espacio, radio, tipo } from "../ui/tema.ts";
+import { guardar as guardarTrazos, hayTinta, leer as leerTrazos, type Trazo, type Util } from "../dominio/trazos.ts";
 import { apuntePorId, guardarApunte, misAsignaturas, resumenDe } from "../lib/consultas.ts";
 import { pedirResumen, type ResultadoResumen } from "../lib/resumen.ts";
 import { guardarTutorALaVista, leerTutorALaVista } from "../lib/preferencias.ts";
@@ -31,10 +33,18 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   const { datos, cargando, error, recargar } = usarCarga(traer, [apunteId]);
 
   const [contenido, setContenido] = useState<string | null>(null);
+
+  // Lo escrito a mano. Nulo mientras no se ha leído el apunte: así se
+  // distingue «todavía no sé» de «no hay nada dibujado», y no se guarda un
+  // tablero vacío encima de uno que sí tenía tinta.
+  const [trazos, setTrazos] = useState<Trazo[] | null>(null);
+  const [aMano, setAMano] = useState(false);
+  const [util, setUtil] = useState<Util>("lapiz");
   const [guardado, setGuardado] = useState<"limpio" | "escribiendo" | "guardando">("limpio");
   const [resumiendo, setResumiendo] = useState(false);
   const [resumen, setResumen] = useState<ResultadoResumen | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const temporizadorTinta = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // El tutor empieza guardado y se recuerda como se dejó. Nulo mientras se
   // lee la preferencia: sin eso, la columna aparecería y desaparecería de un
@@ -51,6 +61,10 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
     setTutorALaVista(aLaVista);
     void guardarTutorALaVista(aLaVista);
   };
+
+  useEffect(() => {
+    if (datos?.apunte) setTrazos(leerTrazos(datos.apunte.trazos));
+  }, [datos?.apunte]);
 
   useEffect(() => {
     if (datos?.resumen) {
@@ -77,9 +91,32 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
     }, ESPERA_GUARDADO);
   }, [apunteId]);
 
+  /**
+   * Los trazos se guardan aparte del texto, y enteros.
+   *
+   * Aparte porque un trazo no se «va escribiendo»: existe cuando se levanta
+   * el lápiz, y ahí ya está completo. Y enteros porque el tablero es una
+   * unidad: guardar la mitad de los trazos deja un dibujo que nadie hizo.
+   *
+   * Espera igual que el texto: en clase se dibuja una flecha tras otra, y
+   * un guardado por trazo sería una llamada por segundo.
+   */
+  const alDibujar = useCallback((nuevos: Trazo[]) => {
+    setTrazos(nuevos);
+    setGuardado("escribiendo");
+    if (temporizadorTinta.current) clearTimeout(temporizadorTinta.current);
+    temporizadorTinta.current = setTimeout(() => {
+      setGuardado("guardando");
+      guardarApunte(apunteId, { trazos: hayTinta(nuevos) ? guardarTrazos(nuevos) : null })
+        .then(() => setGuardado("limpio"))
+        .catch(() => setGuardado("escribiendo"));
+    }, ESPERA_GUARDADO);
+  }, [apunteId]);
+
   // Al salir de la pantalla se guarda lo que quedó pendiente.
   useEffect(() => () => {
     if (temporizador.current) clearTimeout(temporizador.current);
+    if (temporizadorTinta.current) clearTimeout(temporizadorTinta.current);
   }, []);
 
   const cerrarClase = useCallback(async () => {
@@ -114,19 +151,55 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
         <Text style={tipo.detalle}>
           {guardado === "limpio" ? "Guardado" : guardado === "guardando" ? "Guardando…" : "Sin guardar"}
         </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: aMano }}
+          accessibilityLabel={aMano ? "Escribir con el teclado" : "Escribir a mano"}
+          onPress={() => setAMano((v) => !v)}
+          style={({ pressed }) => [e.aMano, aMano ? e.aManoPuesto : null, pressed ? { opacity: 0.7 } : null]}>
+          <Icono nombre={aMano ? "teclado" : "lapiz"} tamano={17}
+            tono={aMano ? color.sobreMarca : color.texto} />
+        </Pressable>
       </View>
 
-      <TextInput
-        style={e.papel}
-        value={texto}
-        onChangeText={alEscribir}
-        multiline
-        autoCapitalize="sentences"
-        placeholder={"Escribe aquí lo que va diciendo el profesor…\n\nCon tus palabras: es lo que más ayuda a recordar."}
-        placeholderTextColor="#9AA0A6"
-        accessibilityLabel="Apuntes de la clase"
-        textAlignVertical="top"
-      />
+      {/*
+        La hoja de tinta va encima del texto y no al lado: un apunte de clase
+        es un texto con una flecha, un eje o una integral dibujada al medio, y
+        separarlos en dos pantallas obligaría a decidir de antemano cuál de
+        las dos cosas se va a hacer.
+
+        Cuando no se está escribiendo a mano deja pasar los toques, así que
+        escribir a máquina funciona igual que antes.
+      */}
+      <View style={e.zonaEscritura}>
+        <TextInput
+          style={e.papel}
+          value={texto}
+          onChangeText={alEscribir}
+          multiline
+          editable={!aMano}
+          autoCapitalize="sentences"
+          placeholder={"Escribe aquí lo que va diciendo el profesor…\n\nCon tus palabras: es lo que más ayuda a recordar."}
+          placeholderTextColor="#9AA0A6"
+          accessibilityLabel="Apuntes de la clase"
+          textAlignVertical="top"
+        />
+        <Pizarra
+          trazos={trazos ?? []}
+          util={util}
+          grosor={util === "destacador" ? 18 : 3}
+          cambiar={alDibujar}
+          sinTinta={!aMano}
+        />
+      </View>
+
+      {aMano ? (
+        <Utiles
+          util={util} elegir={setUtil}
+          deshacer={() => alDibujar((trazos ?? []).slice(0, -1))}
+          hayQueDeshacer={(trazos ?? []).length > 0}
+        />
+      ) : null}
 
       <View style={e.pie}>
         <Boton
@@ -253,6 +326,68 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   );
 }
 
+/**
+ * Los útiles: lápiz, destacador, goma y deshacer.
+ *
+ * Tres y no diez. Una paleta de colores acá pelearía con lo que ordena toda
+ * la aplicación —el color significa un ramo— y además nadie subraya una clase
+ * en seis colores: subraya en uno. El destacador amarillo es la excepción que
+ * ya existe en el resto de la aplicación y significa lo mismo acá: «esto es
+ * lo importante».
+ *
+ * Deshacer va junto a los útiles y no escondido en un menú porque es el botón
+ * que más se usa: escribir a mano en una pantalla sale mal seguido, y tener
+ * que buscar cómo arreglarlo es lo que hace que alguien deje de escribir a
+ * mano.
+ */
+function Utiles({
+  util, elegir, deshacer, hayQueDeshacer,
+}: {
+  util: Util;
+  elegir: (u: Util) => void;
+  deshacer: () => void;
+  hayQueDeshacer: boolean;
+}) {
+  const cuales: { id: Util; icono: "lapiz" | "destacador" | "goma"; nombre: string }[] = [
+    { id: "lapiz", icono: "lapiz", nombre: "Lápiz" },
+    { id: "destacador", icono: "destacador", nombre: "Destacador" },
+    { id: "goma", icono: "goma", nombre: "Goma" },
+  ];
+
+  return (
+    <View style={e.utiles}>
+      {cuales.map((c) => (
+        <Pressable
+          key={c.id}
+          accessibilityRole="button"
+          accessibilityState={{ selected: util === c.id }}
+          accessibilityLabel={c.nombre}
+          onPress={() => elegir(c.id)}
+          style={({ pressed }) => [
+            e.util, util === c.id ? e.utilPuesto : null, pressed ? { opacity: 0.7 } : null,
+          ]}>
+          <Icono nombre={c.icono} tamano={19}
+            tono={util === c.id ? color.sobreMarca : color.texto} />
+        </Pressable>
+      ))}
+
+      <View style={{ flex: 1 }} />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Deshacer el último trazo"
+        accessibilityState={{ disabled: !hayQueDeshacer }}
+        disabled={!hayQueDeshacer}
+        onPress={deshacer}
+        style={({ pressed }) => [
+          e.util, !hayQueDeshacer ? { opacity: 0.35 } : null, pressed ? { opacity: 0.7 } : null,
+        ]}>
+        <Icono nombre="deshacer" tamano={19} tono={color.texto} />
+      </Pressable>
+    </View>
+  );
+}
+
 const e = StyleSheet.create({
   dosColumnas: { flex: 1, flexDirection: "row", backgroundColor: color.fondo },
   columnaApuntes: { flex: 3 },
@@ -278,6 +413,29 @@ const e = StyleSheet.create({
   },
 
   editor: { flex: 1 },
+  zonaEscritura: { flex: 1 },
+
+  // El interruptor de escribir a mano, en la misma barra que dice si está
+  // guardado: es donde ya se mira antes de empezar.
+  aMano: {
+    marginLeft: espacio.s, padding: 7, borderRadius: radio.campo,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, backgroundColor: color.papel,
+  },
+  aManoPuesto: { backgroundColor: color.marca, borderColor: color.marca },
+
+  utiles: {
+    flexDirection: "row", alignItems: "center", gap: espacio.s,
+    paddingHorizontal: espacio.m, paddingVertical: espacio.s,
+    borderTopWidth: FILETE, borderTopColor: color.bordeFuerte,
+    backgroundColor: color.papel,
+  },
+  util: {
+    padding: 9, borderRadius: radio.campo,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, backgroundColor: color.papel,
+  },
+  utilPuesto: { backgroundColor: color.marca, borderColor: color.marca },
+
+
   barra: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: espacio.m, paddingVertical: 11,

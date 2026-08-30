@@ -16,7 +16,7 @@ import {
 } from "./quiz-demo.ts";
 import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
 import type {
-  Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
+  Apunte, ApunteEnLista, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
   Ficha, Quiz, Registro, Respuesta, ResumenGuardado, SesionEstudio,
   TareaConEstado,
@@ -293,7 +293,7 @@ const notificaciones: Notificacion[] = [
 const apuntes: Apunte[] = [
   { id: "ap1", asignatura_id: "cal", clase_id: "c-viva", titulo: "Teorema del valor medio",
     contenido: "Si f es continua en [a,b] y derivable en (a,b), existe c en (a,b) donde f'(c) es la pendiente de la recta que une los extremos.\n\nOjo: hace falta continuidad en el cerrado y derivabilidad en el abierto.",
-    fijado: true, actualizado_en: enDias(-0.1) },
+    trazos: null, fijado: true, actualizado_en: enDias(-0.1) },
 ];
 
 const resumenes = new Map<string, ResumenGuardado>();
@@ -612,9 +612,11 @@ export async function mensajesDe(): Promise<MensajeTutor[]> {
   return [];
 }
 
-export async function misApuntes(asignaturaId?: string): Promise<Apunte[]> {
+export async function misApuntes(asignaturaId?: string): Promise<ApunteEnLista[]> {
   await respirar();
-  return copiar(asignaturaId ? apuntes.filter((a) => a.asignatura_id === asignaturaId) : apuntes);
+  const suyos = asignaturaId ? apuntes.filter((a) => a.asignatura_id === asignaturaId) : apuntes;
+  // Sin los trazos, igual que contra la base: la lista no los necesita.
+  return copiar(suyos).map(({ trazos, ...resto }) => ({ ...resto, tiene_trazos: trazos !== null }));
 }
 
 export async function apuntePorId(apunteId: string): Promise<Apunte | null> {
@@ -628,14 +630,15 @@ export async function crearApunte(
 ): Promise<Apunte> {
   const nuevo: Apunte = {
     id: nuevoId("ap"), asignatura_id: asignaturaId, clase_id: claseId ?? null,
-    titulo, contenido: "", fijado: false, actualizado_en: new Date().toISOString(),
+    titulo, contenido: "", trazos: null, fijado: false,
+    actualizado_en: new Date().toISOString(),
   };
   apuntes.unshift(nuevo);
   return { ...nuevo };
 }
 
 export async function guardarApunte(
-  apunteId: string, campos: { titulo?: string; contenido?: string },
+  apunteId: string, campos: { titulo?: string; contenido?: string; trazos?: string | null },
 ): Promise<void> {
   const a = apuntes.find((x) => x.id === apunteId);
   if (!a) return;
