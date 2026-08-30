@@ -60,3 +60,8 @@ export const registros = fuente.registros;
 export const cambiarRol = fuente.cambiarRol;
 export const moduloParaMaterial = fuente.moduloParaMaterial;
 export const crearMaterial = fuente.crearMaterial;
+
+export const misSesiones = fuente.misSesiones;
+export const crearSesion = fuente.crearSesion;
+export const marcarSesion = fuente.marcarSesion;
+export const borrarSesion = fuente.borrarSesion;

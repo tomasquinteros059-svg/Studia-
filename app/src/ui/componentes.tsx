@@ -312,5 +312,11 @@ const e = StyleSheet.create({
     borderBottomWidth: FILETE, borderBottomColor: color.borde,
   },
   modalTitulo: { ...tipo.subtitulo },
-  modalHoja: { padding: espacio.l, gap: espacio.m },
+  // En una tablet, un campo de texto de treinta centímetros de ancho es
+  // incómodo de llenar y no se ve como un formulario: se ve como un error.
+  // La columna se limita igual que en el resto de las pantallas.
+  modalHoja: {
+    padding: espacio.l, gap: espacio.m,
+    width: "100%", maxWidth: 620, alignSelf: "center",
+  },
 });

@@ -6,7 +6,7 @@ import { supabase } from "./supabase.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, MensajeTutor, Modulo, Notificacion, Perfil,
-  Registro, ResumenGuardado, Respuesta, TareaConEstado,
+  Registro, ResumenGuardado, Respuesta, SesionEstudio, TareaConEstado,
 } from "./tipos.ts";
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
@@ -792,4 +792,62 @@ export async function crearMaterial(nuevo: MaterialNuevo): Promise<void> {
     orden,
   });
   reventar("No pude guardar el material", error);
+}
+
+// ── El planificador ───────────────────────────────────────────────────────
+
+const CAMPOS_SESION = "id, asignatura_id, titulo, empieza_en, minutos, hecha_en";
+
+/**
+ * Las sesiones de un tramo de fechas. Se piden por semana y no todas: son
+ * del año entero y la pantalla muestra siete días.
+ */
+export async function misSesiones(desde: Date, hasta: Date): Promise<SesionEstudio[]> {
+  const { data, error } = await supabase
+    .from("sesiones_estudio")
+    .select(CAMPOS_SESION)
+    .gte("empieza_en", desde.toISOString())
+    .lt("empieza_en", hasta.toISOString())
+    .order("empieza_en");
+  reventar("No pude cargar tu planificación", error);
+  return data ?? [];
+}
+
+export async function crearSesion(nueva: {
+  asignaturaId: string | null;
+  titulo: string;
+  empiezaEn: Date;
+  minutos: number;
+}): Promise<SesionEstudio> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+
+  const { data, error } = await supabase
+    .from("sesiones_estudio")
+    .insert({
+      estudiante_id: sesion.user.id,
+      asignatura_id: nueva.asignaturaId,
+      titulo: nueva.titulo,
+      empieza_en: nueva.empiezaEn.toISOString(),
+      minutos: nueva.minutos,
+    })
+    .select(CAMPOS_SESION)
+    .single();
+  reventar("No pude guardar la sesión", error);
+  if (!data) throw new Error("No pude guardar la sesión.");
+  return data;
+}
+
+/** Marcarla hecha o volver a dejarla pendiente: lo segundo pasa seguido. */
+export async function marcarSesion(sesionId: string, hecha: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("sesiones_estudio")
+    .update({ hecha_en: hecha ? new Date().toISOString() : null })
+    .eq("id", sesionId);
+  reventar("No pude marcar la sesión", error);
+}
+
+export async function borrarSesion(sesionId: string): Promise<void> {
+  const { error } = await supabase.from("sesiones_estudio").delete().eq("id", sesionId);
+  reventar("No pude borrar la sesión", error);
 }

@@ -722,3 +722,93 @@ end $$;
 select public.cambiar_rol('e0000000-0000-4000-8000-000000000001', 'estudiante');
 
 select '— también pasaron las pruebas del registro —' as resultado;
+
+-- ================= las sesiones de estudio son de quien las escribe ========
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+insert into public.sesiones_estudio (estudiante_id, asignatura_id, titulo, empieza_en, minutos)
+values ('e0000000-0000-4000-8000-000000000001', pg_temp.id_de('MAT1610'),
+        'Ejercicios guía N°5', '2026-09-01 17:00-04', 60),
+       ('e0000000-0000-4000-8000-000000000001', pg_temp.id_de('MAT1610'),
+        'Integrales impropias con el tutor', '2026-09-01 18:30-04', 45);
+
+select pg_temp.afirmar('veo mis sesiones', (select count(*) from public.sesiones_estudio)::int, 2);
+
+-- Una sesión suelta, sin ramo: quien estudia por su cuenta también planifica.
+insert into public.sesiones_estudio (estudiante_id, titulo, empieza_en)
+values ('e0000000-0000-4000-8000-000000000001', 'Leer el capítulo 4', '2026-09-04 17:00-04');
+select pg_temp.afirmar('una sesión puede no ser de ningún ramo',
+  (select count(*) from public.sesiones_estudio where asignatura_id is null)::int, 1);
+
+-- Marcarla hecha es editarla, y editarla se puede.
+update public.sesiones_estudio set hecha_en = now()
+ where titulo = 'Ejercicios guía N°5';
+select pg_temp.afirmar('puedo marcar una sesión como hecha',
+  (select count(*) from public.sesiones_estudio where hecha_en is not null)::int, 1);
+
+-- El título vacío no entra: una sesión sin nombre no le sirve a nadie.
+do $$
+begin
+  insert into public.sesiones_estudio (estudiante_id, titulo, empieza_en)
+  values ('e0000000-0000-4000-8000-000000000001', '   ', now());
+  raise exception 'FALLA · pude guardar una sesión sin título';
+exception when check_violation then
+  raise notice 'ok · una sesión sin título se rechaza';
+end $$;
+
+-- Ni una que dure lo que no dura nada, ni una de veinte horas.
+do $$
+begin
+  insert into public.sesiones_estudio (estudiante_id, titulo, empieza_en, minutos)
+  values ('e0000000-0000-4000-8000-000000000001', 'un ratito', now(), 0);
+  raise exception 'FALLA · pude guardar una sesión de cero minutos';
+exception when check_violation then
+  raise notice 'ok · una sesión de cero minutos se rechaza';
+end $$;
+
+do $$
+begin
+  insert into public.sesiones_estudio (estudiante_id, titulo, empieza_en, minutos)
+  values ('e0000000-0000-4000-8000-000000000001', 'todo el día', now(), 600);
+  raise exception 'FALLA · pude guardar una sesión de diez horas';
+exception when check_violation then
+  raise notice 'ok · una sesión desmedida se rechaza';
+end $$;
+
+do $$
+begin
+  insert into public.sesiones_estudio (estudiante_id, titulo, empieza_en)
+  values ('e0000000-0000-4000-8000-000000000002', 'a nombre de otro', now());
+  raise exception 'FALLA · pude planificarle el estudio a otra persona';
+exception when insufficient_privilege then
+  raise notice 'ok · no puedo planificarle el estudio a otra persona';
+end $$;
+
+-- Y nadie más las ve. Ni quien dicta el ramo, ni la administración: a qué
+-- hora alguien pensaba ponerse a estudiar no es asunto de nadie. Es la única
+-- tabla del sistema sin ninguna excepción, y por eso se afirma de las tres.
+set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('Ana dicta ese ramo y aun así no ve las sesiones',
+  (select count(*) from public.sesiones_estudio)::int, 0);
+
+-- Para esta altura del archivo, el otro estudiante ya es la administración.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('la administración tampoco las ve',
+  (select rol from public.perfiles where id = auth.uid()), 'administrador');
+select pg_temp.afirmar('y cuenta cero sesiones',
+  (select count(*) from public.sesiones_estudio)::int, 0);
+
+do $$
+begin
+  update public.sesiones_estudio set titulo = 'secuestrada';
+  if found then raise exception 'FALLA · pude editar una sesión ajena'; end if;
+  raise notice 'ok · una sesión ajena no se puede editar';
+end $$;
+
+-- Se limpia: las siguientes pruebas cuentan filas y esto no es del seed.
+reset role;
+delete from public.sesiones_estudio
+ where estudiante_id = 'e0000000-0000-4000-8000-000000000001';
+
+select '— también pasaron las pruebas del planificador —' as resultado;

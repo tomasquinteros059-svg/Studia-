@@ -43,6 +43,8 @@ export const ICONOS = {
   cerrar: "close",
   lapiz: "create-outline",
   aviso: "alert-circle-outline",
+  anterior: "chevron-back",
+  siguiente: "chevron-forward",
 } as const;
 
 export function Icono({

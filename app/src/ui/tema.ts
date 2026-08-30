@@ -45,6 +45,12 @@ export const color = {
   ok:          "#1B7A4F",
 
   nocturno:    "#191A1F",
+
+  /* El destacador. Es la única excepción a la regla del color, y se sostiene
+     porque no significa una categoría: significa «acá estás mirando», igual
+     que en un cuaderno. Marca el día de hoy y nada más; el día que marque
+     dos cosas distintas habrá dejado de servir. */
+  destacador:  "#FFE14D",
 } as const;
 
 /* Más redondo que un panel de trabajo: esto lo usa alguien estudiando en su

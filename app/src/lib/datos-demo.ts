@@ -14,7 +14,7 @@ import {
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
-  Registro, Respuesta, ResumenGuardado, TareaConEstado,
+  Registro, Respuesta, ResumenGuardado, SesionEstudio, TareaConEstado,
 } from "./tipos.ts";
 
 const ahora = Date.now();
@@ -678,6 +678,67 @@ import {
   moduloParaMaterial,
 } from "./datos-propios.ts";
 
+
+// ── El planificador ───────────────────────────────────────────────────────
+
+/**
+ * Las sesiones de la demostración empiezan vacías y a propósito.
+ *
+ * Es la única parte de la aplicación que no tiene nada precargado: si
+ * viniera con una semana ya armada, no se vería lo que hace falta ver, que
+ * es lo fácil que es armarla uno. Y cuando alguien la arma, queda: son suyas
+ * mientras dure la sesión en el aparato.
+ */
+const sesiones: SesionEstudio[] = [];
+
+export async function misSesiones(desde: Date, hasta: Date): Promise<SesionEstudio[]> {
+  await respirar();
+  return sesiones
+    .filter((s) => {
+      const cuando = new Date(s.empieza_en);
+      return cuando >= desde && cuando < hasta;
+    })
+    .sort((a, b) => a.empieza_en.localeCompare(b.empieza_en))
+    .map((s) => ({ ...s }));
+}
+
+export async function crearSesion(nueva: {
+  asignaturaId: string | null;
+  titulo: string;
+  empiezaEn: Date;
+  minutos: number;
+}): Promise<SesionEstudio> {
+  await respirar();
+  // Las mismas dos reglas que la base, para que la demostración se rompa
+  // donde se rompe la de verdad y no en otro lado.
+  if (nueva.titulo.trim().length === 0) throw new Error("La sesión necesita un título.");
+  if (nueva.minutos < 5 || nueva.minutos > 480) {
+    throw new Error("Una sesión dura entre 5 minutos y 8 horas.");
+  }
+  const s: SesionEstudio = {
+    id: nuevoId("ses"),
+    asignatura_id: nueva.asignaturaId,
+    titulo: nueva.titulo.trim(),
+    empieza_en: nueva.empiezaEn.toISOString(),
+    minutos: nueva.minutos,
+    hecha_en: null,
+  };
+  sesiones.push(s);
+  return { ...s };
+}
+
+export async function marcarSesion(sesionId: string, hecha: boolean): Promise<void> {
+  await respirar();
+  const s = sesiones.find((x) => x.id === sesionId);
+  if (s) s.hecha_en = hecha ? new Date().toISOString() : null;
+}
+
+export async function borrarSesion(sesionId: string): Promise<void> {
+  await respirar();
+  const i = sesiones.findIndex((x) => x.id === sesionId);
+  if (i >= 0) sesiones.splice(i, 1);
+}
+
 export {
   borrarRamoPropio, crearHorarioPropio, crearMaterial, crearModulo, crearRamoPropio,
   moduloParaMaterial,
@@ -695,5 +756,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
   moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
+  misSesiones, crearSesion, marcarSesion, borrarSesion,
 };
 void _cobertura;

@@ -164,3 +164,19 @@ export type ResumenGuardado = {
   consejos: string[];
   creado_en: string;
 };
+
+/**
+ * Una sesión de estudio: lo que la persona se propuso hacer, y cuándo.
+ *
+ * Es lo único del planificador que no viene de la institución. Las clases
+ * las pone el horario y las entregas las ponen las tareas; esto lo pone
+ * quien estudia, y no lo ve nadie más.
+ */
+export type SesionEstudio = {
+  id: string;
+  asignatura_id: string | null;
+  titulo: string;
+  empieza_en: string;
+  minutos: number;
+  hecha_en: string | null;
+};
