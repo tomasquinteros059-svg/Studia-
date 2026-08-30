@@ -180,3 +180,24 @@ export type SesionEstudio = {
   minutos: number;
   hecha_en: string | null;
 };
+
+export type PreguntaDeQuiz = {
+  pregunta: string;
+  opciones: string[];
+  correcta: number;
+  explicacion: string;
+};
+
+/**
+ * Un quiz de repaso. Las preguntas las escribió el evaluador con el material
+ * del ramo; las respuestas son de quien lo está haciendo, y de nadie más.
+ */
+export type Quiz = {
+  id: string;
+  asignatura_id: string;
+  tema: string;
+  preguntas: PreguntaDeQuiz[];
+  respuestas: (number | null)[];
+  terminado_en: string | null;
+  creado_en: string;
+};

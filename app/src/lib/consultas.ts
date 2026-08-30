@@ -65,3 +65,8 @@ export const misSesiones = fuente.misSesiones;
 export const crearSesion = fuente.crearSesion;
 export const marcarSesion = fuente.marcarSesion;
 export const borrarSesion = fuente.borrarSesion;
+
+export const misQuices = fuente.misQuices;
+export const quizPorId = fuente.quizPorId;
+export const responderQuiz = fuente.responderQuiz;
+export const borrarQuiz = fuente.borrarQuiz;

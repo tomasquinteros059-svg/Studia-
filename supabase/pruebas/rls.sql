@@ -812,3 +812,103 @@ delete from public.sesiones_estudio
  where estudiante_id = 'e0000000-0000-4000-8000-000000000001';
 
 select '— también pasaron las pruebas del planificador —' as resultado;
+
+-- ===================== el quiz es un espejo, no una prueba =================
+-- Un quiz nace de la función `quiz`, que escribe con la clave de servicio.
+-- Acá se simula esa escritura, y después se comprueba lo que el estudiante
+-- puede y no puede hacer con él.
+reset role;
+insert into public.quices (id, estudiante_id, asignatura_id, tema, preguntas)
+values ('11111111-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000001',
+        (select id from public.asignaturas where codigo = 'MAT1610'),
+        'Integrales',
+        '[{"pregunta":"¿Cuál conviene?","opciones":["a","b","c","d"],"correcta":1,"explicacion":"porque sí"},
+          {"pregunta":"¿Y esta?","opciones":["a","b","c","d"],"correcta":0,"explicacion":"porque sí"},
+          {"pregunta":"¿Y esta otra?","opciones":["a","b","c","d"],"correcta":3,"explicacion":"porque sí"}]'::jsonb);
+
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+select pg_temp.afirmar('veo mi quiz', (select count(*) from public.quices)::int, 1);
+
+-- Responder es lo único que se escribe, y pasa por la función.
+select public.responder_quiz('11111111-0000-4000-8000-000000000001', '[1, null, null]'::jsonb);
+select pg_temp.afirmar('quedó lo que respondí',
+  (select respuestas from public.quices where id = '11111111-0000-4000-8000-000000000001'),
+  '[1, null, null]'::jsonb);
+select pg_temp.afirmar('y el quiz sigue sin terminar',
+  (select terminado_en is null from public.quices where id = '11111111-0000-4000-8000-000000000001'),
+  true);
+
+select public.responder_quiz('11111111-0000-4000-8000-000000000001', '[1, 0, 3]'::jsonb, true);
+select pg_temp.afirmar('terminarlo queda anotado',
+  (select terminado_en is not null from public.quices where id = '11111111-0000-4000-8000-000000000001'),
+  true);
+
+-- Repetirlo es mandar el arreglo vacío: vuelve a quedar sin terminar.
+select public.responder_quiz('11111111-0000-4000-8000-000000000001', '[]'::jsonb);
+select pg_temp.afirmar('repetirlo lo deja como nuevo',
+  (select terminado_en is null and jsonb_array_length(respuestas) = 0
+     from public.quices where id = '11111111-0000-4000-8000-000000000001'),
+  true);
+
+-- Lo que no se puede: fabricarse un quiz, o reescribir las preguntas para que
+-- todas queden correctas. Sin esto el puntaje no diría nada.
+do $$
+begin
+  insert into public.quices (estudiante_id, asignatura_id, tema, preguntas)
+  values ('e0000000-0000-4000-8000-000000000001',
+          (select id from public.asignaturas where codigo = 'MAT1610'), 'inventado',
+          '[{"pregunta":"a","opciones":["a","b","c","d"],"correcta":0,"explicacion":"x"},
+            {"pregunta":"b","opciones":["a","b","c","d"],"correcta":0,"explicacion":"x"},
+            {"pregunta":"c","opciones":["a","b","c","d"],"correcta":0,"explicacion":"x"}]'::jsonb);
+  raise exception 'FALLA · pude fabricarme un quiz';
+exception when insufficient_privilege then
+  raise notice 'ok · no puedo fabricarme un quiz';
+end $$;
+
+do $$
+begin
+  update public.quices set preguntas = '[]'::jsonb
+   where id = '11111111-0000-4000-8000-000000000001';
+  raise exception 'FALLA · pude reescribir las preguntas de mi quiz';
+exception when insufficient_privilege then
+  raise notice 'ok · no puedo reescribir las preguntas de mi quiz';
+end $$;
+
+-- Más respuestas que preguntas: la función lo rechaza en vez de guardar basura.
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.responder_quiz('11111111-0000-4000-8000-000000000001', '[0,1,2,3,0]'::jsonb);
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('no puedo mandar más respuestas que preguntas', v_falló, true);
+end $$;
+
+-- El quiz de otro no se ve, y tampoco se responde.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('otro no ve mi quiz', (select count(*) from public.quices)::int, 0);
+
+do $$
+declare v_falló boolean := false;
+begin
+  begin
+    perform public.responder_quiz('11111111-0000-4000-8000-000000000001', '[0,0,0]'::jsonb);
+  exception when others then v_falló := true;
+  end;
+  perform pg_temp.afirmar('ni lo puede responder por mí', v_falló, true);
+end $$;
+
+-- Ni quien dicta el ramo: en qué se equivoca alguien repasando no es materia
+-- de nota, y confundirlo con una prueba es lo que haría que nadie lo usara.
+set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('Ana dicta el ramo y tampoco ve el quiz',
+  (select count(*) from public.quices)::int, 0);
+
+reset role;
+delete from public.quices where id = '11111111-0000-4000-8000-000000000001';
+
+select '— también pasaron las pruebas del quiz —' as resultado;

@@ -6,7 +6,7 @@ import { supabase } from "./supabase.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, MensajeTutor, Modulo, Notificacion, Perfil,
-  Registro, ResumenGuardado, Respuesta, SesionEstudio, TareaConEstado,
+  Quiz, Registro, ResumenGuardado, Respuesta, SesionEstudio, TareaConEstado,
 } from "./tipos.ts";
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
@@ -850,4 +850,43 @@ export async function marcarSesion(sesionId: string, hecha: boolean): Promise<vo
 export async function borrarSesion(sesionId: string): Promise<void> {
   const { error } = await supabase.from("sesiones_estudio").delete().eq("id", sesionId);
   reventar("No pude borrar la sesión", error);
+}
+
+// ── Los quices ────────────────────────────────────────────────────────────
+
+const CAMPOS_QUIZ = "id, asignatura_id, tema, preguntas, respuestas, terminado_en, creado_en";
+
+export async function misQuices(asignaturaId?: string): Promise<Quiz[]> {
+  let consulta = supabase.from("quices").select(CAMPOS_QUIZ).order("creado_en", { ascending: false });
+  if (asignaturaId) consulta = consulta.eq("asignatura_id", asignaturaId);
+
+  const { data, error } = await consulta;
+  reventar("No pude cargar tus quices", error);
+  return data ?? [];
+}
+
+export async function quizPorId(quizId: string): Promise<Quiz | null> {
+  const { data, error } = await supabase
+    .from("quices").select(CAMPOS_QUIZ).eq("id", quizId).maybeSingle();
+  reventar("No pude cargar el quiz", error);
+  return data;
+}
+
+/**
+ * Guardar lo respondido. Pasa por una función de la base y no por un update
+ * suelto: si el cliente pudiera escribir la fila entera, podría reescribir
+ * sus propias preguntas y el puntaje dejaría de decir nada.
+ */
+export async function responderQuiz(
+  quizId: string, respuestas: (number | null)[], terminado: boolean,
+): Promise<void> {
+  const { error } = await supabase.rpc("responder_quiz", {
+    p_quiz: quizId, p_respuestas: respuestas, p_terminado: terminado,
+  });
+  reventar("No pude guardar tu respuesta", error);
+}
+
+export async function borrarQuiz(quizId: string): Promise<void> {
+  const { error } = await supabase.from("quices").delete().eq("id", quizId);
+  reventar("No pude borrar el quiz", error);
 }

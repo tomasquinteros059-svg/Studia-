@@ -11,10 +11,13 @@ import { PERFILES_DEMO, perfilActual } from "./perfiles-demo.ts";
 import {
   RAMOS_PROPIOS, horarioPropio, lecturaPropiaDe, modulosPropiosDe,
 } from "./datos-propios.ts";
+import {
+  borrarQuizDemo, quicesDemo, quizDemoPorId, responderQuizDemo,
+} from "./quiz-demo.ts";
 import type {
   Apunte, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
-  Registro, Respuesta, ResumenGuardado, SesionEstudio, TareaConEstado,
+  Quiz, Registro, Respuesta, ResumenGuardado, SesionEstudio, TareaConEstado,
 } from "./tipos.ts";
 
 const ahora = Date.now();
@@ -739,6 +742,35 @@ export async function borrarSesion(sesionId: string): Promise<void> {
   if (i >= 0) sesiones.splice(i, 1);
 }
 
+
+// ── Los quices ────────────────────────────────────────────────────────────
+//
+// Los guarda `quiz-demo.ts`, que es donde está el banco de preguntas. Acá
+// solo se les pone el respiro de red, para que la pantalla se comporte igual
+// con servidor y sin él.
+
+export async function misQuices(asignaturaId?: string): Promise<Quiz[]> {
+  await respirar();
+  return quicesDemo(asignaturaId);
+}
+
+export async function quizPorId(quizId: string): Promise<Quiz | null> {
+  await respirar();
+  return quizDemoPorId(quizId);
+}
+
+export async function responderQuiz(
+  quizId: string, respuestas: (number | null)[], terminado: boolean,
+): Promise<void> {
+  await respirar();
+  responderQuizDemo(quizId, respuestas, terminado);
+}
+
+export async function borrarQuiz(quizId: string): Promise<void> {
+  await respirar();
+  borrarQuizDemo(quizId);
+}
+
 export {
   borrarRamoPropio, crearHorarioPropio, crearMaterial, crearModulo, crearRamoPropio,
   moduloParaMaterial,
@@ -757,5 +789,6 @@ const _cobertura: Omit<typeof Real, "default"> = {
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
   moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
   misSesiones, crearSesion, marcarSesion, borrarSesion,
+  misQuices, quizPorId, responderQuiz, borrarQuiz,
 };
 void _cobertura;

@@ -14,6 +14,7 @@ import {
   moduloParaMaterial,
 } from "../lib/consultas.ts";
 import NuevoMaterial, { type MaterialArmado } from "./propio/NuevoMaterial.tsx";
+import { generarQuiz } from "../lib/quiz.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { formatearNota, notaDelRamo, proyeccionParaAprobar } from "../dominio/notas.ts";
@@ -244,6 +245,12 @@ export default function Asignatura({ route, navigation }: Props) {
                   />
                 );
               })}
+
+              {/* Al final del tema, no arriba: ponerse a prueba es lo que se
+                  hace después de pasar el material, y ofrecerlo antes invita a
+                  saltárselo. */}
+              <Ponerme modulo={m} tono={tono} asignaturaId={asignaturaId}
+                abrir={(quizId) => navigation.navigate("Quiz", { quizId, tono })} />
             </View>
           ))
         ) : null}
@@ -531,7 +538,69 @@ function SeccionNotas({ evaluaciones }: { evaluaciones: { id: string; titulo: st
   );
 }
 
+
+/**
+ * «Ponerme a prueba» al pie de un tema.
+ *
+ * Pedir el quiz tarda —hay que escribir las preguntas— así que el botón dice
+ * qué está pasando en vez de quedarse mudo. Y si el evaluador no está
+ * disponible, se dice; no se abre una pantalla vacía.
+ */
+function Ponerme({
+  modulo, tono, asignaturaId, abrir,
+}: {
+  modulo: { id: string; titulo: string };
+  tono: string;
+  asignaturaId: string;
+  abrir: (quizId: string) => void;
+}) {
+  const [pidiendo, setPidiendo] = useState(false);
+  const [falla, setFalla] = useState<string | null>(null);
+
+  const pedir = async () => {
+    setPidiendo(true);
+    setFalla(null);
+    try {
+      const q = await generarQuiz({
+        moduloId: modulo.id, asignaturaId, tema: modulo.titulo,
+      });
+      abrir(q.id);
+    } catch (err) {
+      setFalla(err instanceof globalThis.Error ? err.message : "No pude preparar el quiz.");
+    } finally {
+      setPidiendo(false);
+    }
+  };
+
+  return (
+    <View style={e.ponerme}>
+      <Pressable accessibilityRole="button"
+        accessibilityLabel={`Ponerme a prueba en ${modulo.titulo}`}
+        disabled={pidiendo} onPress={() => void pedir()}
+        style={({ pressed }) => [
+          e.ponermeBoton,
+          pressed ? { backgroundColor: color.elemento } : null,
+          pidiendo ? { opacity: 0.6 } : null,
+        ]}>
+        <Icono nombre="tutor" tamano={17} tono={tono} />
+        <Text style={e.ponermeTexto}>
+          {pidiendo ? "Preparando preguntas…" : "Ponerme a prueba"}
+        </Text>
+      </Pressable>
+      {falla ? <Text style={e.ponermeFalla}>{falla}</Text> : null}
+    </View>
+  );
+}
+
 const e = StyleSheet.create({
+  ponerme: { paddingHorizontal: espacio.m, paddingTop: espacio.s, paddingBottom: espacio.l, gap: 6 },
+  ponermeBoton: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: espacio.s,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderStyle: "dashed",
+    borderRadius: radio.boton, paddingVertical: 11,
+  },
+  ponermeTexto: { fontSize: 14.5, fontWeight: "600", color: color.texto },
+  ponermeFalla: { ...tipo.detalle, color: color.vivo, lineHeight: 19 },
   agregarCaja: { padding: espacio.m, paddingBottom: 0 },
   cabecera: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
