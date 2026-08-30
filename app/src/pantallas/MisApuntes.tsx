@@ -5,17 +5,27 @@ import {
 } from "react-native";
 import { Campo, Cargando, Error, Vacio } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  FILETE, color, colorDeRamo, espacio, fechaCorta, radio, tenue, tipo,
+  COLORES_DE_RAMO, FILETE, color, colorDeRamo, espacio, fechaCorta, radio,
+  tenue, tipo,
 } from "../ui/tema.ts";
-import { crearApunte, fijarApunte, misApuntes, misAsignaturas } from "../lib/consultas.ts";
+import {
+  crearApunte, crearRamoPropio, fijarApunte, misApuntes, misAsignaturas,
+} from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { filtrarApuntes, ordenarTablero, vistaPrevia } from "../dominio/tablero.ts";
 import { columnasDelTablero } from "../dominio/tablero.ts";
 import type { PropsPestana } from "../lib/rutas.ts";
 import type { Apunte, Asignatura } from "../lib/tipos.ts";
 
+/** El nombre del cuaderno que se crea solo cuando no hay ningún ramo. */
+const CUADERNO_SUELTO = "Mis apuntes";
+
 export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
+  // La barra de gestos tapa lo de más abajo: el botón flotante y la última
+  // opción de la hoja. Es el mismo borde a borde de siempre.
+  const margenes = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const columnas = columnasDelTablero(width);
 
@@ -27,6 +37,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
 
   const [busqueda, setBusqueda] = useState("");
   const [eligiendoRamo, setEligiendoRamo] = useState(false);
+  const [creandoCuaderno, setCreandoCuaderno] = useState(false);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -45,6 +56,31 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
       navigation.navigate("Apunte", { apunteId: creado.id });
     } catch (e) {
       Alert.alert("No pude crear el apunte", e instanceof globalThis.Error ? e.message : "");
+    }
+  }
+
+  /**
+   * Lo que pasa al tocar «Nuevo apunte».
+   *
+   * Con ramos, se pregunta en cuál. Sin ninguno —quien entró por su cuenta, o
+   * cualquiera el primer día— antes se abría una hoja con el título y ni una
+   * opción abajo: la aplicación pedía elegir entre nada, y no había forma de
+   * escribir un apunte. Ahora se crea el cuaderno y se entra derecho a
+   * escribir, que es lo que la persona iba a hacer de todas maneras.
+   */
+  async function empezar() {
+    if (datos && datos.asignaturas.length > 0) {
+      setEligiendoRamo(true);
+      return;
+    }
+    setCreandoCuaderno(true);
+    try {
+      const cuaderno = await crearRamoPropio(CUADERNO_SUELTO, COLORES_DE_RAMO[0]!);
+      await nuevo(cuaderno);
+    } catch (e) {
+      Alert.alert("No pude crear el apunte", e instanceof globalThis.Error ? e.message : "");
+    } finally {
+      setCreandoCuaderno(false);
     }
   }
 
@@ -152,25 +188,36 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
       </ScrollView>
 
       <Pressable accessibilityRole="button" accessibilityLabel="Nuevo apunte"
-        style={e.flotante} onPress={() => setEligiendoRamo(true)}>
+        disabled={creandoCuaderno}
+        style={[e.flotante, { bottom: espacio.l + margenes.bottom },
+          creandoCuaderno ? { opacity: 0.6 } : null]}
+        onPress={() => void empezar()}>
         <Icono nombre="nuevo" tamano={22} tono={color.sobreMarca} />
-        <Text style={e.flotanteTexto}>Nuevo apunte</Text>
+        <Text style={e.flotanteTexto}>
+          {creandoCuaderno ? "Abriendo…" : "Nuevo apunte"}
+        </Text>
       </Pressable>
 
       <Modal visible={eligiendoRamo} transparent animationType="slide"
         onRequestClose={() => setEligiendoRamo(false)}>
         <Pressable style={e.fondoModal} onPress={() => setEligiendoRamo(false)}
           accessibilityLabel="Cerrar" />
-        <View style={e.hoja}>
+        <View style={[e.hoja, { paddingBottom: espacio.l + margenes.bottom }]}>
           <View style={e.asa} />
           <Text style={tipo.etiqueta}>Apuntar en</Text>
-          {datos.asignaturas.map((a) => (
-            <Pressable key={a.id} accessibilityRole="button" onPress={() => void nuevo(a)}
-              style={({ pressed }) => [e.opcion, pressed && { backgroundColor: color.elemento }]}>
-              <View style={[e.puntoRamo, { backgroundColor: colorDeRamo(a.id, a.color) }]} />
-              <Text style={e.opcionTexto}>{a.nombre}</Text>
-            </Pressable>
-          ))}
+          {/* Se desliza: con muchos ramos, en un teléfono chico el último
+              quedaba fuera de la pantalla y no había cómo alcanzarlo. */}
+          <ScrollView style={e.opciones} bounces={false}>
+            {datos.asignaturas.map((a) => (
+              <Pressable key={a.id} accessibilityRole="button"
+                accessibilityLabel={`Apuntar en ${a.nombre}`}
+                onPress={() => void nuevo(a)}
+                style={({ pressed }) => [e.opcion, pressed && { backgroundColor: color.elemento }]}>
+                <View style={[e.puntoRamo, { backgroundColor: colorDeRamo(a.id, a.color) }]} />
+                <Text style={e.opcionTexto}>{a.nombre}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -209,7 +256,7 @@ const e = StyleSheet.create({
   },
   etiquetaTexto: { fontSize: 11.5, fontWeight: "700" },
   flotante: {
-    position: "absolute", right: espacio.l, bottom: espacio.l,
+    position: "absolute", right: espacio.l,
     flexDirection: "row", alignItems: "center", gap: espacio.s,
     backgroundColor: color.marca, paddingHorizontal: espacio.l, paddingVertical: 15,
     borderRadius: radio.pastilla,
@@ -225,6 +272,9 @@ const e = StyleSheet.create({
     width: 40, height: 4, borderRadius: 2, backgroundColor: color.bordeFuerte,
     alignSelf: "center", marginVertical: espacio.m,
   },
+  // Tope de alto: la hoja no puede comerse la pantalla entera, y con más de
+  // media docena de ramos lo haría.
+  opciones: { maxHeight: 340 },
   opcion: { flexDirection: "row", alignItems: "center", gap: espacio.m, paddingVertical: espacio.m },
   puntoRamo: { width: 10, height: 10, borderRadius: 5 },
   opcionTexto: { ...tipo.fila },
