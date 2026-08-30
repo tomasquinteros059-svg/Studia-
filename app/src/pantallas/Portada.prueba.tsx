@@ -110,4 +110,47 @@ describe("la portada", () => {
     fireEvent.press(t.getByRole("button", { name: "Entrar con mi correo" }));
     expect(entrar).toHaveBeenCalled();
   });
+
+  // ── Los precios ────────────────────────────────────────────────────────
+
+  test("muestra los tres planes y solo uno destacado", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    for (const plan of ["Gratis", "Personal", "Institución"]) {
+      expect(t.getByText(plan)).toBeTruthy();
+    }
+    expect(t.getByText("el que eligen casi todos")).toBeTruthy();
+    expect(t.getByText("Conversemos")).toBeTruthy();
+  });
+
+  test("cambiar de moneda cambia el precio y la línea de referencia", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    await act(async () => {
+      fireEvent.press(t.getByLabelText("Ver los precios en Peso chileno"));
+    });
+    expect(t.getByText("$14.990")).toBeTruthy();
+    expect(t.getByText("equivale a US$16 al mes")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(t.getByLabelText("Ver los precios en Dólar"));
+    });
+    expect(t.getByText("US$16")).toBeTruthy();
+    // En dólares la referencia sobra.
+    expect(t.queryByText(/equivale a/)).toBeNull();
+  });
+
+  test("los dos planes de persona llevan a la misma puerta", async () => {
+    const entrar = jest.fn();
+    const t = await render(<Portada entrar={entrar} />);
+
+    await act(async () => { fireEvent.press(t.getByRole("button", { name: "Crear cuenta gratis" })); });
+    await act(async () => { fireEvent.press(t.getByRole("button", { name: "Empezar con Personal" })); });
+    expect(entrar).toHaveBeenCalledTimes(2);
+  });
+
+  test("mientras no haya cobro, se dice; no se calla", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+    expect(t.getByText(/Todavía no hay cobro conectado/)).toBeTruthy();
+  });
 });

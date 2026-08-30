@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  AccessibilityInfo, Animated, Easing, Pressable, ScrollView, StyleSheet, Text,
-  View, type LayoutChangeEvent,
+  AccessibilityInfo, Animated, Easing, Linking, NativeModules, Platform,
+  Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icono } from "../ui/Icono.tsx";
-import { letra } from "../ui/tema.ts";
+import { espacio, letra } from "../ui/tema.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { VERSION_VISIBLE } from "../lib/version.ts";
 import { PROVEEDORES, type Proveedor } from "../dominio/acceso-proveedores.ts";
 import { entrarCon } from "../lib/proveedores.ts";
+import {
+  MONEDAS, PLANES, monedaDeIdioma, monedaPorCodigo, precioDe, referencia,
+  type Moneda, type Plan,
+} from "../dominio/precios.ts";
 
 // ── La paleta de la portada ───────────────────────────────────────────────
 
@@ -184,6 +188,21 @@ export default function Portada({
           </View>
         </View>
 
+        {/* ── Lo que cuesta ───────────────────────────────────────── */}
+        <View onLayout={anotar("precios")} style={[e.seccion, { paddingHorizontal: margen }]}>
+          <View style={e.centro}>
+            <Text style={[e.titulo2, media ? e.titulo2Grande : null]}>
+              Lo que cuesta, <Text style={e.resaltado}>sin letra chica</Text>
+            </Text>
+            <Text style={e.entrada}>
+              Parte gratis y sube de plan si te topas con un tope. Si eres una
+              institución, el precio depende del tamaño y lo conversamos.
+            </Text>
+
+            <Precios ancha={ancha} media={media} entrar={entrar} />
+          </View>
+        </View>
+
         {/* ── Entrar ──────────────────────────────────────────────── */}
         <View onLayout={anotar("entrar")} style={[e.seccion, { paddingHorizontal: margen }]}>
           <View style={[e.centro, { alignItems: "center" }]}>
@@ -275,6 +294,7 @@ function Barra({
             <>
               <Enlace texto="Qué hace" onPress={() => irA("funciones")} />
               <Enlace texto="Los agentes" onPress={() => irA("agentes")} />
+              <Enlace texto="Precios" onPress={() => irA("precios")} />
             </>
           ) : null}
           <BotonDuro texto="Iniciar sesión" onPress={entrar} chico />
@@ -533,6 +553,146 @@ const AGENTES = [
   },
 ];
 
+
+// ── Lo que cuesta ─────────────────────────────────────────────────────────
+
+/**
+ * Los tres planes, en la moneda de quien mira.
+ *
+ * El precio se muestra en la moneda del país que declara el aparato, y se
+ * puede cambiar. No es un detalle de comodidad: un chileno que ve «US$16» hace
+ * la cuenta mal —o no la hace— y decide que es caro sin haberlo pensado. Los
+ * montos de cada moneda están pensados uno por uno y no convertidos, porque
+ * convertir da cifras que nadie pondría en una lista de precios.
+ */
+function Precios({
+  ancha, media, entrar,
+}: {
+  ancha: boolean;
+  media: boolean;
+  entrar: () => void;
+}) {
+  const [moneda, setMoneda] = useState<Moneda>(() => monedaDeIdioma(idiomaDelAparato()));
+
+  const escribir = () => {
+    void Linking.openURL(
+      "mailto:hola@studia.cl?subject=" + encodeURIComponent("StudIA para mi institución"),
+    ).catch(() => { /* sin cliente de correo */ });
+  };
+
+  return (
+    <>
+      <View style={e.monedas}>
+        <Text style={e.monedasEtiqueta}>Ver en</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={e.monedasFila}>
+          {MONEDAS.map((m) => {
+            const puesta = m.codigo === moneda.codigo;
+            return (
+              <Pressable key={m.codigo} accessibilityRole="button"
+                accessibilityState={{ selected: puesta }}
+                accessibilityLabel={`Ver los precios en ${m.nombre}`}
+                onPress={() => setMoneda(monedaPorCodigo(m.codigo))}
+                style={[e.monedaChip, puesta ? e.monedaPuesta : null]}>
+                <Text style={[e.monedaTexto, puesta ? e.monedaTextoPuesta : null]}>
+                  {m.codigo}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View style={[e.planes, media ? e.planesAnchos : null]}>
+        {PLANES.map((plan) => (
+          <Tarjeta key={plan.id} plan={plan} moneda={moneda}
+            anchura={ancha ? "tercio" : media ? "mitad" : "entera"}
+            elegir={plan.id === "institucion" ? escribir : entrar} />
+        ))}
+      </View>
+
+      {/* Mientras no haya cobro conectado, decirlo. Una tabla de precios con
+          un botón que en realidad no cobra nada es la clase de cosa que se
+          descubre después y hace desconfiar de todo lo demás. Es una línea, y
+          se saca el día que exista la pasarela. */}
+      <Text style={e.aunNoSeCobra}>
+        Todavía no hay cobro conectado: por ahora las cuentas entran con todo
+        abierto. Cuando lo haya, esto lo va a decir antes de pedirte nada.
+      </Text>
+    </>
+  );
+}
+
+function Tarjeta({
+  plan, moneda, anchura, elegir,
+}: {
+  plan: Plan;
+  moneda: Moneda;
+  anchura: Anchura;
+  elegir: () => void;
+}) {
+  const nota = plan.precio === "personal" ? referencia(moneda) : null;
+
+  return (
+    <View style={[
+      e.plan,
+      { width: REPARTO[anchura] },
+      plan.destacado ? e.planDestacado : null,
+    ]}>
+      {plan.destacado ? (
+        <View style={e.cinta}>
+          <Text style={e.cintaTexto}>el que eligen casi todos</Text>
+        </View>
+      ) : null}
+
+      <Text style={e.planNombre}>{plan.nombre}</Text>
+      <Text style={e.planPara}>{plan.para}</Text>
+
+      <View style={e.precioCaja}>
+        <Text style={[e.precio, plan.precio === null ? e.precioConversado : null]}>
+          {precioDe(plan, moneda)}
+        </Text>
+        <Text style={e.periodo}>{plan.periodo}</Text>
+        {nota ? <Text style={e.equivale}>{nota}</Text> : null}
+      </View>
+
+      <View style={e.incluye}>
+        {plan.incluye.map((x) => (
+          <View key={x.texto} style={e.item}>
+            <View style={[e.tic, x.hay ? e.ticSi : e.ticNo]}>
+              {x.hay ? <Icono nombre="listo" tamano={11} tono="#fff" /> : null}
+            </View>
+            <Text style={[e.itemTexto, x.hay ? null : e.itemSinEllo]}>{x.texto}</Text>
+          </View>
+        ))}
+      </View>
+
+      <BotonDuro texto={plan.accion} onPress={elegir}
+        tono={plan.destacado ? "azul" : "papel"} ancho />
+    </View>
+  );
+}
+
+/**
+ * El idioma que declara el aparato, que es de donde sale el país.
+ *
+ * No hay una forma sola de preguntarlo: en el navegador está en `navigator`,
+ * y en el teléfono lo entregan los módulos nativos, con una llave distinta en
+ * cada plataforma. Si nada responde, no se adivina: `monedaDeIdioma` deja el
+ * dólar, que se entiende como referencia en cualquier parte.
+ */
+function idiomaDelAparato(): string | undefined {
+  if (Platform.OS === "web") {
+    return globalThis.navigator?.language;
+  }
+  const ajustes = NativeModules.SettingsManager?.settings;
+  return (
+    ajustes?.AppleLocale
+    ?? ajustes?.AppleLanguages?.[0]
+    ?? NativeModules.I18nManager?.localeIdentifier
+  ) as string | undefined;
+}
+
 // ── El papel cuadriculado ─────────────────────────────────────────────────
 
 /**
@@ -761,6 +921,72 @@ const e = StyleSheet.create({
   },
   globoTexto: { fontFamily: letra.cuerpo, fontSize: 13.5, lineHeight: 20, color: p.tinta },
   globoQuien: { fontWeight: "700", color: p.azul },
+
+
+  // ── Precios ──
+  monedas: { gap: espacio.s, marginBottom: espacio.l },
+  monedasEtiqueta: {
+    fontFamily: letra.cuerpo, fontSize: 12, fontWeight: "700",
+    letterSpacing: 1, textTransform: "uppercase", color: p.gris,
+  },
+  monedasFila: { flexDirection: "row", gap: espacio.s, paddingRight: espacio.l },
+  monedaChip: {
+    borderWidth: 1.5, borderColor: p.tinta, borderRadius: 999,
+    paddingHorizontal: 13, paddingVertical: 5, backgroundColor: "#fff",
+  },
+  monedaPuesta: { backgroundColor: p.destacador, boxShadow: `2px 2px 0 ${p.tinta}` },
+  monedaTexto: { fontFamily: letra.cuerpo, fontSize: 12.5, fontWeight: "700", color: p.gris },
+  monedaTextoPuesta: { color: p.tinta },
+
+  planes: { gap: 20 },
+  planesAnchos: { flexDirection: "row", flexWrap: "wrap", alignItems: "stretch" },
+  plan: {
+    backgroundColor: "#fff", borderWidth: BORDE, borderColor: p.tinta,
+    borderRadius: 18, padding: 26, gap: 6,
+    boxShadow: `4px 4px 0 ${p.tinta}`,
+  },
+  // El destacado lleva la sombra azul: es el único azul de relleno de toda la
+  // portada, y por eso señala sin que haga falta ninguna palabra.
+  planDestacado: { borderColor: p.azul, boxShadow: `6px 6px 0 ${p.azul}` },
+  cinta: {
+    position: "absolute", top: -14, alignSelf: "center",
+    backgroundColor: p.destacador, borderWidth: BORDE, borderColor: p.tinta,
+    borderRadius: 8, paddingHorizontal: 14, paddingVertical: 0,
+    transform: [{ rotate: "-2deg" }],
+  },
+  cintaTexto: { fontFamily: letra.mano, fontSize: 19, color: p.tinta },
+
+  planNombre: {
+    fontFamily: letra.titulo, fontSize: 21, fontWeight: "800",
+    color: p.tinta, letterSpacing: -0.4, marginTop: 4,
+  },
+  planPara: { fontFamily: letra.cuerpo, fontSize: 13.5, lineHeight: 20, color: p.gris },
+
+  precioCaja: { marginTop: espacio.m, marginBottom: espacio.s },
+  precio: {
+    fontFamily: letra.titulo, fontSize: 40, fontWeight: "800",
+    color: p.tinta, letterSpacing: -1.4,
+  },
+  precioConversado: { fontSize: 27, letterSpacing: -0.8 },
+  periodo: { fontFamily: letra.cuerpo, fontSize: 13.5, color: p.gris },
+  equivale: { fontFamily: letra.cuerpo, fontSize: 11.5, color: p.gris, marginTop: 3 },
+
+  incluye: { gap: 9, marginBottom: espacio.l, flex: 1 },
+  item: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  tic: {
+    width: 19, height: 19, borderRadius: 6, marginTop: 1,
+    borderWidth: 1.5, borderColor: p.tinta,
+    alignItems: "center", justifyContent: "center",
+  },
+  ticSi: { backgroundColor: p.verde, borderColor: p.verde },
+  ticNo: { backgroundColor: p.papelHondo },
+  itemTexto: { flex: 1, fontFamily: letra.cuerpo, fontSize: 13.5, lineHeight: 20, color: p.tinta },
+  itemSinEllo: { color: p.gris },
+
+  aunNoSeCobra: {
+    fontFamily: letra.cuerpo, fontSize: 13, lineHeight: 20, color: p.gris,
+    marginTop: espacio.l, maxWidth: 560,
+  },
 
   // ── La puerta ──
   puerta: {
