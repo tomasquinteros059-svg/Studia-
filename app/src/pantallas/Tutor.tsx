@@ -165,12 +165,12 @@ const e = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: color.fondo },
   chips: {
     flexGrow: 0, backgroundColor: color.papel,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
   },
   chip: {
     flexDirection: "row", alignItems: "center", gap: espacio.s, maxWidth: 230,
     borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 9,
-    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.borde,
+    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.bordeFuerte,
   },
   puntoRamo: { width: 8, height: 8, borderRadius: 4 },
   chipTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave, flexShrink: 1 },
@@ -197,7 +197,7 @@ const e = StyleSheet.create({
   mia: { alignSelf: "flex-end", backgroundColor: color.marca, borderBottomRightRadius: 6 },
   suya: {
     alignSelf: "flex-start", backgroundColor: color.papel, borderBottomLeftRadius: 6,
-    borderWidth: FILETE, borderColor: color.borde,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
   },
   burbujaTexto: { fontSize: 15.5, lineHeight: 23, color: color.texto },
   fallo: { ...tipo.detalle, color: color.vivo, textAlign: "center" },
@@ -209,7 +209,7 @@ const e = StyleSheet.create({
     flexDirection: "row", alignItems: "flex-end", gap: espacio.s,
     paddingHorizontal: espacio.m, paddingTop: espacio.s,
     backgroundColor: color.papel,
-    borderTopWidth: FILETE, borderTopColor: color.borde,
+    borderTopWidth: FILETE, borderTopColor: color.bordeFuerte,
   },
   enviar: {
     borderRadius: radio.campo, paddingHorizontal: 18, height: 48, justifyContent: "center",

@@ -457,7 +457,7 @@ const e = StyleSheet.create({
   vivoRamo: { ...tipo.fila },
   vivoTema: { ...tipo.detalle },
 
-  conFilete: { borderTopWidth: FILETE, borderTopColor: color.borde },
+  conFilete: { borderTopWidth: FILETE, borderTopColor: color.bordeFuerte },
   hilo: { width: 3, alignSelf: "stretch", borderRadius: 2 },
 
   filaHoy: {
@@ -502,14 +502,14 @@ const e = StyleSheet.create({
   atajo: {
     flex: 1, alignItems: "center", gap: 6, paddingVertical: espacio.m,
     backgroundColor: color.papel, borderRadius: radio.tarjeta,
-    borderWidth: FILETE, borderColor: color.borde,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
   },
   atajoTexto: { fontSize: 13, fontWeight: "700", color: color.texto, letterSpacing: -0.1 },
 
   rejilla: { flexDirection: "row", flexWrap: "wrap", gap: `${SEPARACION_TARJETAS}%`, rowGap: espacio.m },
   tarjeta: {
     backgroundColor: color.papel,
-    borderWidth: FILETE, borderColor: color.borde,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
     borderRadius: radio.tarjeta,
     padding: espacio.m,
   },
@@ -517,7 +517,7 @@ const e = StyleSheet.create({
   tarjetaPie: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "baseline",
     marginTop: espacio.m,
-    borderTopWidth: FILETE, borderTopColor: color.borde, paddingTop: espacio.s,
+    borderTopWidth: FILETE, borderTopColor: color.bordeFuerte, paddingTop: espacio.s,
   },
   tarjetaNota: { ...cifras, fontSize: 17, fontWeight: "800", color: color.texto },
 });

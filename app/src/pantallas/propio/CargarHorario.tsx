@@ -142,14 +142,14 @@ const e = StyleSheet.create({
 
   vista: {
     backgroundColor: color.papel,
-    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.tarjeta,
     overflow: "hidden",
   },
   ramo: {
     flexDirection: "row", alignItems: "flex-start", gap: espacio.m,
     padding: espacio.m,
   },
-  conFilete: { borderTopWidth: FILETE, borderTopColor: color.borde },
+  conFilete: { borderTopWidth: FILETE, borderTopColor: color.bordeFuerte },
 
   reparos: {
     backgroundColor: tenue(color.ambar), borderRadius: radio.tarjeta,

@@ -626,14 +626,14 @@ const e = StyleSheet.create({
   fila: {
     flexGrow: 0, flexShrink: 0,
     backgroundColor: color.papel,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
   },
   cuerpo: { flex: 1 },
   conBarra: { flexDirection: "row" },
   barraLateral: {
     width: 240, paddingVertical: espacio.m, paddingHorizontal: espacio.s, gap: 2,
     backgroundColor: color.papel,
-    borderRightWidth: FILETE, borderRightColor: color.borde,
+    borderRightWidth: FILETE, borderRightColor: color.bordeFuerte,
   },
   itemBarra: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
@@ -642,7 +642,7 @@ const e = StyleSheet.create({
   itemBarraTexto: { ...tipo.fila, color: color.textoSuave },
   chip: {
     borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 9,
-    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.borde,
+    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.bordeFuerte,
   },
   chipTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave },
   // La unidad se anuncia, no se encajona: un rótulo sobre el papel pesa
@@ -669,13 +669,13 @@ const e = StyleSheet.create({
   heroNotas: {
     alignItems: "center", paddingVertical: espacio.xl, gap: espacio.xs,
     backgroundColor: color.papel,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
   },
   notaGrande: { ...cifras, fontSize: 64, fontWeight: "700", color: color.texto, letterSpacing: -2.5 },
   notaFila: { ...cifras, fontSize: 19, fontWeight: "700", color: color.texto },
   proyeccion: {
     margin: espacio.m, padding: espacio.m, borderRadius: radio.tarjeta,
-    borderWidth: FILETE, borderColor: color.borde, backgroundColor: color.papel, gap: espacio.xs,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, backgroundColor: color.papel, gap: espacio.xs,
   },
   proyeccionTitulo: { ...tipo.fila },
   fondoModal: { flex: 1, backgroundColor: "rgba(25,26,31,0.4)" },

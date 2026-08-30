@@ -52,16 +52,17 @@ describe("el quiz", () => {
   test("empieza en la primera pregunta y dice dónde vas", async () => {
     const t = await abrir();
 
-    expect(t.getByText("Pregunta 1 de 3")).toBeTruthy();
+    expect(t.getByText("pregunta 1 de 3")).toBeTruthy();
     expect(t.getByText("Primera")).toBeTruthy();
-    expect(t.getByText("Repaso · Integrales")).toBeTruthy();
+    expect(t.getByText("Integrales")).toBeTruthy();
+    expect(t.getByText("repaso")).toBeTruthy();
     // Todavía no se muestra ninguna explicación.
     expect(t.queryByText(/funciona así/)).toBeNull();
   });
 
   test("un quiz a medias se retoma donde quedó, no desde el principio", async () => {
     const t = await abrir({ ...QUIZ, respuestas: [1, 0] });
-    expect(t.getByText("Pregunta 3 de 3")).toBeTruthy();
+    expect(t.getByText("pregunta 3 de 3")).toBeTruthy();
     expect(t.getByText("Tercera")).toBeTruthy();
   });
 
@@ -146,7 +147,7 @@ describe("el quiz", () => {
     await waitFor(() => expect(t.getByText("3/3")).toBeTruthy());
     await act(async () => { fireEvent.press(t.getByText("Repetir el quiz")); });
 
-    expect(t.getByText("Pregunta 1 de 3")).toBeTruthy();
+    expect(t.getByText("pregunta 1 de 3")).toBeTruthy();
     await waitFor(() => expect(mock.responderQuiz).toHaveBeenCalledWith("q-1", [], false));
   });
 

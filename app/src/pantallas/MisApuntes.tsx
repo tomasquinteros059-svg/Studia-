@@ -192,7 +192,7 @@ const e = StyleSheet.create({
   // al que pertenece. Es lo único que lleva color en el muro.
   tarjeta: {
     backgroundColor: color.papel,
-    borderWidth: FILETE, borderColor: color.borde, borderTopWidth: 4,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderTopWidth: 4,
     borderRadius: radio.tarjeta, padding: espacio.m, gap: espacio.s,
   },
   tarjetaCabecera: { flexDirection: "row", alignItems: "flex-start", gap: espacio.s },

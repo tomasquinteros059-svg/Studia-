@@ -83,7 +83,7 @@ const e = StyleSheet.create({
   filtros: { flexDirection: "row", gap: espacio.s, padding: espacio.m },
   filtro: {
     borderRadius: radio.pastilla, paddingHorizontal: espacio.m, paddingVertical: 9,
-    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.borde,
+    backgroundColor: color.papel, borderWidth: FILETE, borderColor: color.bordeFuerte,
   },
   filtroTexto: { fontSize: 14, fontWeight: "600", color: color.textoSuave },
   pie: { ...tipo.detalle, textAlign: "center", padding: espacio.l, lineHeight: 19 },

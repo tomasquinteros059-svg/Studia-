@@ -496,12 +496,12 @@ const e = StyleSheet.create({
   sinVoz: { ...tipo.detalle, paddingHorizontal: espacio.m, paddingTop: 2, lineHeight: 16 },
 
   apuntes: { backgroundColor: color.papel },
-  apuntesLado: { flex: 2, borderLeftWidth: FILETE, borderLeftColor: color.borde },
-  apuntesAbajo: { height: 230, borderTopWidth: FILETE, borderTopColor: color.borde },
+  apuntesLado: { flex: 2, borderLeftWidth: FILETE, borderLeftColor: color.bordeFuerte },
+  apuntesAbajo: { height: 230, borderTopWidth: FILETE, borderTopColor: color.bordeFuerte },
   tituloApuntes: {
     flexDirection: "row", alignItems: "center", gap: espacio.s,
     paddingHorizontal: espacio.m, paddingVertical: espacio.m,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
   },
   tituloApuntesTexto: { ...tipo.fila, flex: 1 },
   papel: { flex: 1, padding: espacio.m, fontSize: 16, lineHeight: 26, color: color.texto },
@@ -542,7 +542,7 @@ const a = StyleSheet.create({
   interruptor: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
     paddingVertical: espacio.m,
-    borderTopWidth: FILETE, borderTopColor: color.borde,
+    borderTopWidth: FILETE, borderTopColor: color.bordeFuerte,
   },
   interruptorTitulo: { ...tipo.fila },
 

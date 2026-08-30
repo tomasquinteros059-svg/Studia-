@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable,
   RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icono } from "./Icono.tsx";
 import { usarDisposicion } from "../lib/pantalla.ts";
-import { FILETE, color, espacio, radio, tenue, tipo } from "./tema.ts";
+import { CUADRICULA, FILETE, color, espacio, radio, sombra, tenue, tipo } from "./tema.ts";
 
 export function Titulo({ children }: { children: ReactNode }) {
   return <Text style={e.titulo}>{children}</Text>;
@@ -97,7 +97,7 @@ export function Pastilla({ texto, tono }: { texto: string; tono: "pendiente" | "
   } as const;
   const t = tonos[tono];
   return (
-    <View style={[e.pastilla, { backgroundColor: tenue(t) }]}>
+    <View style={[e.pastilla, { backgroundColor: tenue(t), borderColor: t }]}>
       <Text style={[e.pastillaTexto, { color: t }]}>{texto}</Text>
     </View>
   );
@@ -161,6 +161,30 @@ export function Error({ mensaje, reintentar }: { mensaje: string; reintentar?: (
   );
 }
 
+
+/**
+ * La cuadrícula del papel, dibujada con rayas y no con una imagen.
+ *
+ * Se ve nítida en cualquier pantalla y no hay archivo que cargar. Va detrás
+ * de todo y no captura toques: es fondo, no interfaz. Y es apenas visible a
+ * propósito —si se nota, compite con lo que está escrito encima, que es lo
+ * que la persona vino a leer.
+ */
+export function Cuadricula({ ancho, alto }: { ancho: number; alto: number }) {
+  const columnas = Math.ceil(ancho / CUADRICULA);
+  const filas = Math.ceil(alto / CUADRICULA);
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden" }]}>
+      {Array.from({ length: columnas }, (_, i) => (
+        <View key={`v${i}`} style={[e.raya, { left: i * CUADRICULA, top: 0, bottom: 0, width: 1 }]} />
+      ))}
+      {Array.from({ length: filas }, (_, i) => (
+        <View key={`h${i}`} style={[e.raya, { top: i * CUADRICULA, left: 0, right: 0, height: 1 }]} />
+      ))}
+    </View>
+  );
+}
+
 export function Pantalla({
   children, alRefrescar, refrescando, sinLimite,
 }: {
@@ -170,12 +194,15 @@ export function Pantalla({
   /** Para pantallas que administran su propio ancho, como el tablero. */
   sinLimite?: boolean;
 }) {
-  const { anchoContenido } = usarDisposicion();
+  const { anchoContenido, ancho } = usarDisposicion();
   // Android dibuja de borde a borde: sin esto, lo último de la pantalla queda
   // debajo de la barra de gestos del sistema y no se puede tocar.
   const margenes = useSafeAreaInsets();
+  const [alto, setAlto] = useState(0);
 
   return (
+    <View style={e.papelDeFondo} onLayout={(ev) => setAlto(ev.nativeEvent.layout.height)}>
+    <Cuadricula ancho={ancho} alto={alto} />
     <ScrollView
       testID="pantalla"
       style={e.pantalla}
@@ -193,6 +220,7 @@ export function Pantalla({
     >
       {children}
     </ScrollView>
+    </View>
   );
 }
 
@@ -242,7 +270,11 @@ export function HojaModal({
 }
 
 const e = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: color.fondo },
+  // Transparente: el fondo lo pinta el envoltorio, que es el que lleva la
+  // cuadrícula. Si lo pintara la lista, la taparía entera.
+  papelDeFondo: { flex: 1, backgroundColor: color.fondo },
+  pantalla: { flex: 1, backgroundColor: "transparent" },
+  raya: { position: "absolute", backgroundColor: color.borde, opacity: 0.55 },
   titulo: { ...tipo.titulo },
   etiqueta: { ...tipo.etiqueta },
   encabezado: {
@@ -254,9 +286,10 @@ const e = StyleSheet.create({
     backgroundColor: color.papel,
     borderRadius: radio.tarjeta,
     borderWidth: FILETE,
-    borderColor: color.borde,
+    borderColor: color.bordeFuerte,
     marginHorizontal: espacio.m,
     overflow: "hidden",
+    boxShadow: sombra(3),
   },
   hojaConAire: { padding: espacio.m, gap: espacio.s },
 
@@ -268,23 +301,36 @@ const e = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.18)", textShadowRadius: 2,
   },
 
+  // La sombra corrida y el hundido al apretar: el botón se comporta como una
+  // tecla, que es lo que hace que se vea tocable sin decirlo con palabras.
   boton: {
-    borderRadius: radio.boton, paddingVertical: 15, paddingHorizontal: espacio.m,
+    borderRadius: radio.boton, paddingVertical: 14, paddingHorizontal: espacio.m,
     alignItems: "center", justifyContent: "center",
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
+    boxShadow: sombra(3),
   },
   botonPrimario: { backgroundColor: color.marca },
-  botonPresionado: { backgroundColor: color.marcaOscura },
-  botonSuave: { borderWidth: FILETE, borderColor: color.bordeFuerte, backgroundColor: color.papel },
-  botonSuavePresionado: { backgroundColor: color.elemento },
+  botonPresionado: {
+    backgroundColor: color.marcaOscura,
+    transform: [{ translateX: 2 }, { translateY: 2 }], boxShadow: sombra(0),
+  },
+  botonSuave: { backgroundColor: color.papel },
+  botonSuavePresionado: {
+    backgroundColor: color.elemento,
+    transform: [{ translateX: 2 }, { translateY: 2 }], boxShadow: sombra(0),
+  },
   botonTexto: { fontSize: 15.5, fontWeight: "700", letterSpacing: -0.2, color: color.sobreMarca },
 
   campo: {
     borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.campo,
-    paddingHorizontal: 14, paddingVertical: 13,
+    paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 16, backgroundColor: color.papel, color: color.texto,
   },
 
-  pastilla: { borderRadius: radio.pastilla, paddingHorizontal: 9, paddingVertical: 4 },
+  pastilla: {
+    borderRadius: radio.pastilla, paddingHorizontal: 10, paddingVertical: 3,
+    borderWidth: 1.5,
+  },
   pastillaTexto: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.4 },
 
   // Las filas son papel sobre el fondo, y el filete va arriba: así la
@@ -294,7 +340,7 @@ const e = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: espacio.m,
     paddingHorizontal: espacio.m, paddingVertical: 15,
     backgroundColor: color.papel,
-    borderTopWidth: FILETE, borderTopColor: color.borde,
+    borderTopWidth: 1, borderTopColor: color.borde,
   },
   filaTitulo: { ...tipo.fila, lineHeight: 21 },
   filaDetalle: { ...tipo.detalle, marginTop: 2 },
@@ -309,7 +355,7 @@ const e = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: espacio.m, paddingVertical: 14,
     backgroundColor: color.papel,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
   },
   modalTitulo: { ...tipo.subtitulo },
   // En una tablet, un campo de texto de treinta centímetros de ancho es

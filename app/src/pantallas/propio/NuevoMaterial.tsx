@@ -232,7 +232,7 @@ const e = StyleSheet.create({
   ramos: { gap: espacio.s },
   ramo: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
-    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.tarjeta,
     backgroundColor: color.papel, padding: espacio.s + 2,
   },
   ramoNombre: { ...tipo.fila, flex: 1 },

@@ -275,7 +275,7 @@ const e = StyleSheet.create({
   roles: { flexDirection: "row", gap: 4 },
   rol: {
     borderRadius: radio.pastilla, paddingHorizontal: 9, paddingVertical: 5,
-    borderWidth: FILETE, borderColor: color.borde, backgroundColor: color.papel,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, backgroundColor: color.papel,
   },
   rolSuyo: { backgroundColor: color.marca, borderColor: color.marca },
   rolTexto: { fontSize: 11.5, fontWeight: "700", color: color.textoSuave },

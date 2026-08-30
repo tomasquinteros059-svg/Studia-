@@ -165,7 +165,7 @@ const e = StyleSheet.create({
   hoja: { padding: espacio.l, paddingTop: espacio.xl, gap: espacio.s, width: "100%", alignSelf: "center" },
   titulo: { ...tipo.portada, marginTop: 2 },
   puerta: { gap: espacio.s, marginBottom: espacio.m },
-  aparte: { marginTop: espacio.l, paddingTop: espacio.l, borderTopWidth: FILETE, borderTopColor: color.borde },
+  aparte: { marginTop: espacio.l, paddingTop: espacio.l, borderTopWidth: FILETE, borderTopColor: color.bordeFuerte },
   aviso: { backgroundColor: color.elemento, borderRadius: radio.tarjeta, padding: espacio.m },
   avisoMalo: { backgroundColor: tenue(color.vivo) },
   avisoTexto: { ...tipo.cuerpo, color: color.texto, lineHeight: 20 },
@@ -179,7 +179,7 @@ const e = StyleSheet.create({
   tarjeta: {
     flexDirection: "row", gap: espacio.m, alignItems: "flex-start",
     padding: espacio.m,
-    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.tarjeta,
     backgroundColor: color.papel,
   },
   tarjetaAncha: { flexBasis: "48%", flexGrow: 1 },

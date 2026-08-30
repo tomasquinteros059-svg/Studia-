@@ -2,7 +2,7 @@ import { StyleSheet } from "react-native";
 import type { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import type { Theme } from "@react-navigation/native";
-import { FILETE, color } from "./tema.ts";
+import { FILETE, color, letra } from "./tema.ts";
 
 /**
  * El marco de la aplicación: la barra de arriba y la de abajo.
@@ -12,7 +12,10 @@ import { FILETE, color } from "./tema.ts";
  * tres veces siempre terminaba habiendo una barra distinta de las otras.
  *
  * Lo que ordena el aspecto es lo mismo que ordena el resto: el color es de
- * los ramos, así que el marco no lleva ninguno. Papel, un filete y tinta.
+ * los ramos, así que el marco no lleva ninguno. Papel, trazo de tinta y nada
+ * más. Las dos barras cierran la hoja por arriba y por abajo, y por eso su
+ * raya es de tinta y de dos píxeles, no un gris de uno: es el borde del
+ * cuaderno, no una separación tímida.
  */
 export const TEMA_NAVEGACION: Theme = {
   dark: false,
@@ -21,7 +24,7 @@ export const TEMA_NAVEGACION: Theme = {
     background: color.fondo,
     card: color.papel,
     text: color.texto,
-    border: color.borde,
+    border: color.bordeFuerte,
     notification: color.vivo,
   },
   fonts: {
@@ -40,7 +43,7 @@ export const OPCIONES_PESTANAS: BottomTabNavigationOptions = {
   tabBarStyle: {
     backgroundColor: color.papel,
     borderTopWidth: FILETE,
-    borderTopColor: color.borde,
+    borderTopColor: color.bordeFuerte,
     // Sin esto Android le pinta una sombra que compite con el filete.
     elevation: 0,
     shadowOpacity: 0,
@@ -53,16 +56,19 @@ export const OPCIONES_PESTANAS: BottomTabNavigationOptions = {
 /** La barra de arriba de las pantallas que se abren encima. */
 export const OPCIONES_PILA: NativeStackNavigationOptions = {
   headerTintColor: color.marca,
+  // La separación con el contenido queda a cargo de la navegación, que la
+  // dibuja con `colors.border` del tema —ahora tinta—. No se puede poner un
+  // borde en `headerStyle`: la pila nativa solo acepta el color de fondo.
+  headerShadowVisible: true,
   headerStyle: { backgroundColor: color.papel },
-  // La línea de abajo la pone el propio contenido; la sombra encima la
-  // duplicaba y ensuciaba el borde.
-  headerShadowVisible: false,
-  headerTitleStyle: { color: color.texto, fontSize: 17, fontWeight: "700" },
+  headerTitleStyle: {
+    color: color.texto, fontSize: 17.5, fontWeight: "700", fontFamily: letra.titulo,
+  },
   headerBackButtonDisplayMode: "minimal",
   contentStyle: { backgroundColor: color.fondo },
 };
 
 /** El filete que separa la cabecera del contenido en las pantallas propias. */
 export const filete = StyleSheet.create({
-  abajo: { borderBottomWidth: FILETE, borderBottomColor: color.borde },
+  abajo: { borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte },
 });

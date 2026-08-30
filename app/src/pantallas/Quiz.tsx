@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Boton, Cargando, Error as ErrorUI, Pantalla } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
-  FILETE, cifras, color, colorDeRamo, espacio, radio, tenue, tipo,
+  FILETE, cifras, color, colorDeRamo, espacio, letra, radio, sombra, tenue, tipo,
 } from "../ui/tema.ts";
 import { quizPorId, responderQuiz } from "../lib/consultas.ts";
 import {
@@ -80,13 +80,11 @@ export default function Quiz({ route, navigation }: Props) {
   return (
     <Pantalla>
       <View style={e.cabeza}>
-        <View style={{ flex: 1 }}>
-          <Text style={tipo.etiqueta}>Repaso · {quiz.tema}</Text>
-          <Text style={e.cuantas}>
-            {terminado
-              ? `${total} preguntas`
-              : `Pregunta ${enPantalla + 1} de ${total}`}
-          </Text>
+        <View style={e.cabezaTitulo}>
+          <Text style={e.tema} numberOfLines={2}>{quiz.tema}</Text>
+          <View style={e.sello}>
+            <Text style={e.selloTexto}>repaso</Text>
+          </View>
         </View>
         {!terminado ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Guardar y salir"
@@ -103,6 +101,10 @@ export default function Quiz({ route, navigation }: Props) {
           style={[e.barraLlena, { width: `${avance(respuestas) * 100}%`, backgroundColor: marca }]}
         />
       </View>
+
+      <Text style={e.aMano}>
+        {terminado ? `${total} preguntas` : `pregunta ${enPantalla + 1} de ${total}`}
+      </Text>
 
       {terminado
         ? <Resultado quiz={quiz} respuestas={respuestas} marca={marca}
@@ -241,28 +243,48 @@ function Resultado({
 const e = StyleSheet.create({
   cabeza: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
-    paddingHorizontal: espacio.m, paddingTop: espacio.l, paddingBottom: espacio.s,
+    paddingHorizontal: espacio.m, paddingTop: espacio.l, paddingBottom: espacio.m,
   },
-  cuantas: { ...tipo.subtitulo, marginTop: 2 },
+  cabezaTitulo: { flex: 1, flexDirection: "row", alignItems: "center", gap: espacio.s, flexWrap: "wrap" },
+  tema: { ...tipo.titulo, fontFamily: letra.titulo },
+  // La etiqueta amarilla del destacador: dice qué es esto sin ocupar una
+  // línea entera, y es lo único de la pantalla que no es tinta ni ramo.
+  sello: {
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.pastilla,
+    backgroundColor: color.destacador, paddingHorizontal: 10, paddingVertical: 2,
+  },
+  selloTexto: { fontSize: 11.5, fontWeight: "700", color: color.texto, letterSpacing: 0.3 },
   salir: { fontSize: 13.5, fontWeight: "600", color: color.textoSuave },
 
   barra: {
-    height: 10, borderRadius: 999, backgroundColor: color.elemento,
-    marginHorizontal: espacio.m, marginBottom: espacio.l, overflow: "hidden",
+    height: 12, borderRadius: 999, backgroundColor: color.papel,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
+    marginHorizontal: espacio.m, overflow: "hidden",
   },
   barraLlena: { height: "100%", borderRadius: 999 },
+  // La cuenta a mano, como quien anota al margen en qué va.
+  aMano: {
+    fontFamily: letra.mano, fontSize: 21, color: color.anotacion,
+    marginHorizontal: espacio.m, marginTop: 6, marginBottom: espacio.m,
+    transform: [{ rotate: "-1.5deg" }], alignSelf: "flex-start",
+  },
 
   tarjeta: {
-    marginHorizontal: espacio.m,
-    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.tarjeta,
+    marginHorizontal: espacio.m, marginBottom: espacio.s,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: 18,
     backgroundColor: color.papel, padding: espacio.l, gap: espacio.s,
+    boxShadow: sombra(6),
   },
-  enunciado: { ...tipo.titulo, fontSize: 20, lineHeight: 27, marginBottom: espacio.m },
+  enunciado: {
+    ...tipo.titulo, fontFamily: letra.titulo,
+    fontSize: 20, lineHeight: 27, marginBottom: espacio.m,
+  },
 
   opcion: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,
     borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.campo,
     backgroundColor: color.fondo, paddingHorizontal: espacio.m, paddingVertical: 13,
+    marginBottom: 2,
   },
   opcionBuena: { borderColor: color.ok, backgroundColor: tenue(color.ok) },
   opcionMala: { borderColor: color.vivo, backgroundColor: tenue(color.vivo) },
@@ -282,8 +304,11 @@ const e = StyleSheet.create({
   explicacionTexto: { ...tipo.cuerpo, fontSize: 14.5, lineHeight: 21 },
   explicacionQuien: { fontWeight: "700" },
 
-  puntaje: { fontSize: 54, fontWeight: "800", letterSpacing: -2, textAlign: "center" },
-  veredicto: { ...tipo.titulo, textAlign: "center" },
+  puntaje: {
+    fontFamily: letra.titulo, fontSize: 56, fontWeight: "800",
+    letterSpacing: -2, textAlign: "center",
+  },
+  veredicto: { ...tipo.titulo, fontFamily: letra.titulo, textAlign: "center" },
   veredictoTexto: {
     ...tipo.cuerpo, color: color.textoSuave, textAlign: "center", lineHeight: 22,
     marginBottom: espacio.m,
@@ -291,8 +316,8 @@ const e = StyleSheet.create({
 
   detalle: {
     gap: espacio.s, paddingVertical: espacio.m,
-    borderTopWidth: FILETE, borderTopColor: color.borde,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderTopWidth: FILETE, borderTopColor: color.bordeFuerte,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
     marginBottom: espacio.m,
   },
   linea: { flexDirection: "row", alignItems: "center", gap: espacio.m },

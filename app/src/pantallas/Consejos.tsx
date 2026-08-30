@@ -90,7 +90,7 @@ const e = StyleSheet.create({
   tarjeta: {
     marginHorizontal: espacio.m, marginBottom: espacio.s, padding: espacio.m,
     backgroundColor: color.papel,
-    borderRadius: radio.tarjeta, borderWidth: FILETE, borderColor: color.borde,
+    borderRadius: radio.tarjeta, borderWidth: FILETE, borderColor: color.bordeFuerte,
     borderLeftWidth: 4,
   },
   tarjetaTitulo: { ...tipo.subtitulo, fontSize: 16 },

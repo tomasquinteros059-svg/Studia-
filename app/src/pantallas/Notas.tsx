@@ -69,7 +69,7 @@ const e = StyleSheet.create({
   hero: {
     alignItems: "center", paddingVertical: espacio.xl, gap: espacio.xs,
     backgroundColor: color.papel,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
   },
   heroNota: { ...cifras, fontSize: 64, fontWeight: "700", color: color.texto, letterSpacing: -2.5 },
   nota: { ...cifras, fontSize: 19, fontWeight: "700", color: color.texto },

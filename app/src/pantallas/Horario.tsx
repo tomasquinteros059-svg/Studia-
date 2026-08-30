@@ -456,14 +456,14 @@ const e = StyleSheet.create({
   grillaAncha: { flexDirection: "row", flexWrap: "wrap" },
 
   dia: {
-    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.tarjeta,
     backgroundColor: color.papel, overflow: "hidden",
   },
   diaHoy: { borderColor: color.bordeFuerte },
   diaCabeza: {
     flexDirection: "row", alignItems: "baseline", justifyContent: "space-between",
     paddingHorizontal: espacio.m, paddingVertical: espacio.s,
-    borderBottomWidth: FILETE, borderBottomColor: color.borde,
+    borderBottomWidth: FILETE, borderBottomColor: color.bordeFuerte,
     backgroundColor: color.fondo,
   },
   diaCabezaHoy: { backgroundColor: color.destacador },
@@ -475,7 +475,7 @@ const e = StyleSheet.create({
   diaCuerpo: { flex: 1, padding: espacio.s, gap: espacio.s },
 
   bloque: {
-    borderWidth: FILETE, borderColor: color.borde, borderLeftWidth: 4,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderLeftWidth: 4,
     borderRadius: radio.campo, backgroundColor: color.papel,
     paddingHorizontal: espacio.m, paddingVertical: espacio.s, gap: 3,
   },
@@ -495,7 +495,7 @@ const e = StyleSheet.create({
 
   agregar: {
     marginTop: "auto",
-    borderWidth: FILETE, borderColor: color.borde, borderStyle: "dashed",
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderStyle: "dashed",
     borderRadius: radio.campo, paddingVertical: 7, alignItems: "center",
   },
   agregarApretado: { backgroundColor: color.elemento },
@@ -507,7 +507,7 @@ const e = StyleSheet.create({
   },
   chip: {
     flexDirection: "row", alignItems: "center", gap: espacio.s,
-    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.pastilla,
+    borderWidth: FILETE, borderColor: color.bordeFuerte, borderRadius: radio.pastilla,
     backgroundColor: color.papel, paddingHorizontal: espacio.m, paddingVertical: 6,
   },
   chipTotal: { borderStyle: "dashed", backgroundColor: "transparent" },
