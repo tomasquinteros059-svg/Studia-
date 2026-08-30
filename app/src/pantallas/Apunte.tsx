@@ -9,6 +9,7 @@ import { PanelTutor } from "../ui/PanelTutor.tsx";
 import { color, espacio, radio, tipo } from "../ui/tema.ts";
 import { apuntePorId, guardarApunte, misAsignaturas, resumenDe } from "../lib/consultas.ts";
 import { pedirResumen, type ResultadoResumen } from "../lib/resumen.ts";
+import { guardarTutorALaVista, leerTutorALaVista } from "../lib/preferencias.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import type { PropsPila } from "../lib/rutas.ts";
@@ -34,6 +35,22 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   const [resumiendo, setResumiendo] = useState(false);
   const [resumen, setResumen] = useState<ResultadoResumen | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // El tutor empieza guardado y se recuerda como se dejó. Nulo mientras se
+  // lee la preferencia: sin eso, la columna aparecería y desaparecería de un
+  // salto en cada apertura.
+  const [tutorALaVista, setTutorALaVista] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let vigente = true;
+    void leerTutorALaVista().then((v) => { if (vigente) setTutorALaVista(v); });
+    return () => { vigente = false; };
+  }, []);
+
+  const mostrarTutor = (aLaVista: boolean) => {
+    setTutorALaVista(aLaVista);
+    void guardarTutorALaVista(aLaVista);
+  };
 
   useEffect(() => {
     if (datos?.resumen) {
@@ -127,12 +144,36 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
         <View style={e.tituloPanel}>
           <Icono nombre="tutor" tamano={16} tono={color.marca} />
           <Text style={e.tituloPanelTexto}>Tutor</Text>
-          <Text style={tipo.detalle}>· pregúntale sin salir de la clase</Text>
+          <Text style={[tipo.detalle, { flex: 1 }]} numberOfLines={1}>
+            · pregúntale sin salir de la clase
+          </Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Guardar el tutor"
+            onPress={() => mostrarTutor(false)} hitSlop={10}
+            style={({ pressed }) => [e.guardarTutor, pressed ? { opacity: 0.6 } : null]}>
+            <Icono nombre="siguiente" tamano={17} tono={color.textoSuave} />
+          </Pressable>
         </View>
       ) : null}
       <PanelTutor asignatura={ramo} compacto={dosColumnas}
         contexto={`Estoy en clase de ${ramo?.nombre ?? "este ramo"}, tomando apuntes.`} />
     </View>
+  );
+
+  /**
+   * La pestaña que queda cuando el tutor está guardado.
+   *
+   * Un riel angosto pegado al borde y no un botón flotante: el flotante se
+   * pondría encima de lo que se está escribiendo, que es justo el espacio que
+   * esto viene a devolver. Y estando siempre en el mismo sitio, se aprende
+   * dónde está y se abre sin buscarlo.
+   */
+  const pestanaTutor = (
+    <Pressable accessibilityRole="button" accessibilityLabel="Abrir el tutor"
+      onPress={() => mostrarTutor(true)}
+      style={({ pressed }) => [e.riel, pressed ? { backgroundColor: color.elemento } : null]}>
+      <Icono nombre="tutor" tamano={20} tono={color.marca} />
+      <Text style={e.rielTexto}>Tutor</Text>
+    </Pressable>
   );
 
   const bloqueResumen = resumen ? (
@@ -179,11 +220,14 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   ) : null;
 
   if (dosColumnas) {
+    // Mientras no se sabe cómo quedó la última vez, se dibuja sin tutor: es
+    // lo que va a ser en la mayoría de los casos, y así no parpadea.
+    const abierto = tutorALaVista === true;
     return (
       <View style={e.dosColumnas}>
         <View style={e.columnaApuntes}>{bloqueResumen ?? editor}</View>
         <View style={e.separador} />
-        {panelTutor}
+        {abierto ? panelTutor : pestanaTutor}
       </View>
     );
   }
@@ -220,6 +264,18 @@ const e = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: color.borde,
   },
   tituloPanelTexto: { fontSize: 13, fontWeight: "600", color: color.texto },
+  guardarTutor: { padding: 2 },
+
+  riel: {
+    width: 52, alignItems: "center", justifyContent: "center", gap: espacio.s,
+    backgroundColor: color.papel,
+  },
+  // El nombre va de lado, como la etiqueta del lomo de una carpeta: es lo que
+  // permite que quepa en cincuenta píxeles sin cortarse ni achicarse.
+  rielTexto: {
+    fontSize: 12.5, fontWeight: "700", color: color.texto,
+    transform: [{ rotate: "90deg" }], width: 60, textAlign: "center",
+  },
 
   editor: { flex: 1 },
   barra: {

@@ -137,6 +137,10 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
                     <Pressable
                       key={a.id}
                       accessibilityRole="button"
+                      // Sin nombre, un lector de pantalla anuncia «botón» y
+                      // recién después lee la tarjeta entera. Con nombre se
+                      // sabe cuál es antes de entrar.
+                      accessibilityLabel={`Abrir ${a.titulo}`}
                       onPress={() => navigation.navigate("Apunte", { apunteId: a.id })}
                       style={({ pressed }) => [
                         e.tarjeta,

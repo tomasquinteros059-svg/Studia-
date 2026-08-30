@@ -6,6 +6,9 @@ jest.mock("../lib/consultas.ts", () => ({
   resumenDe: jest.fn(), guardarApunte: jest.fn(),
 }));
 jest.mock("../lib/resumen.ts", () => ({ pedirResumen: jest.fn() }));
+jest.mock("../lib/preferencias.ts", () => ({
+  leerTutorALaVista: jest.fn(), guardarTutorALaVista: jest.fn(),
+}));
 
 const anchoFalso = { valor: { width: 420, height: 900, scale: 2, fontScale: 1 } };
 jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
@@ -15,10 +18,23 @@ jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
 
 import * as consultas from "../lib/consultas.ts";
 import * as resumenLib from "../lib/resumen.ts";
+import * as prefs from "../lib/preferencias.ts";
 import Apunte from "./Apunte.tsx";
 
 const mock = consultas as jest.Mocked<typeof consultas>;
 const mockResumen = resumenLib as jest.Mocked<typeof resumenLib>;
+const mockPrefs = prefs as jest.Mocked<typeof prefs>;
+
+/** Abre en tablet, diciendo cómo quedó el tutor la última vez. */
+const enTablet = async (tutorALaVista: boolean) => {
+  anchoFalso.valor = { width: 1180, height: 820, scale: 2, fontScale: 1 };
+  conDatos();
+  mockPrefs.leerTutorALaVista.mockResolvedValue(tutorALaVista as never);
+  mockPrefs.guardarTutorALaVista.mockResolvedValue(undefined as never);
+  const t = await renderPantalla(Apunte, { apunteId: APUNTE.id });
+  await waitFor(() => expect(t.getByLabelText("Apuntes de la clase")).toBeTruthy());
+  return t;
+};
 
 function conDatos() {
   mock.apuntePorId.mockResolvedValue(APUNTE as never);
@@ -36,6 +52,10 @@ function conDatos() {
 beforeEach(() => {
   jest.clearAllMocks();
   anchoFalso.valor = { width: 420, height: 900, scale: 2, fontScale: 1 };
+  // Por omisión, el tutor guardado. `clearAllMocks` deja las funciones
+  // devolviendo undefined, y la pantalla les hace `.then`.
+  mockPrefs.leerTutorALaVista.mockResolvedValue(false as never);
+  mockPrefs.guardarTutorALaVista.mockResolvedValue(undefined as never);
 });
 
 const abrir = async () => {
@@ -94,14 +114,43 @@ describe("editor de apuntes", () => {
     expect(t.queryByLabelText("Tu mensaje")).toBeNull();
   });
 
-  test("en tablet horizontal aparecen las dos columnas", async () => {
-    anchoFalso.valor = { width: 1180, height: 820, scale: 2, fontScale: 1 };
-    conDatos();
-    const t = await renderPantalla(Apunte, { apunteId: APUNTE.id });
-    await waitFor(() => expect(t.getByLabelText("Apuntes de la clase")).toBeTruthy());
-    // Los apuntes y el tutor conviven: el compositor del tutor está presente.
+  test("en tablet el tutor parte guardado: la pantalla entera es para escribir", async () => {
+    const t = await enTablet(false);
+
+    expect(t.getByLabelText("Abrir el tutor")).toBeTruthy();
+    // Guardado quiere decir guardado: no hay compositor ocupando sitio.
+    expect(t.queryByLabelText("Tu mensaje")).toBeNull();
+    // Y los apuntes siguen ahí, que es de lo que se trata.
+    expect(t.getByLabelText("Apuntes de la clase")).toBeTruthy();
+  });
+
+  test("un botón lo despliega al lado, sin salir del apunte", async () => {
+    const t = await enTablet(false);
+
+    fireEvent.press(t.getByLabelText("Abrir el tutor"));
+
+    await waitFor(() => expect(t.getByLabelText("Tu mensaje")).toBeTruthy());
+    // Conviven: el apunte no se fue a ninguna parte.
+    expect(t.getByLabelText("Apuntes de la clase")).toBeTruthy();
+    expect(mockPrefs.guardarTutorALaVista).toHaveBeenCalledWith(true);
+  });
+
+  test("y se puede volver a guardar para recuperar el espacio", async () => {
+    const t = await enTablet(true);
     expect(t.getByLabelText("Tu mensaje")).toBeTruthy();
-    expect(t.getByText("Tutor")).toBeTruthy();
+
+    fireEvent.press(t.getByLabelText("Guardar el tutor"));
+
+    await waitFor(() => expect(t.queryByLabelText("Tu mensaje")).toBeNull());
+    expect(t.getByLabelText("Abrir el tutor")).toBeTruthy();
+    expect(mockPrefs.guardarTutorALaVista).toHaveBeenCalledWith(false);
+  });
+
+  test("se abre como se dejó la última vez, no siempre igual", async () => {
+    const t = await enTablet(true);
+    // Sin tocar nada: quedó abierto de la clase anterior.
+    expect(t.getByLabelText("Tu mensaje")).toBeTruthy();
+    expect(t.queryByLabelText("Abrir el tutor")).toBeNull();
   });
 
   test("un resumen ya guardado se muestra al abrir", async () => {
