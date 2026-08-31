@@ -42,6 +42,7 @@ export const ICONOS = {
   letra: "text-outline",
   cerrar: "close",
   microfono: "mic-outline",
+  quiz: "help-circle-outline",
   lapiz: "create-outline",
   teclado: "keypad-outline",
   goma: "backspace-outline",

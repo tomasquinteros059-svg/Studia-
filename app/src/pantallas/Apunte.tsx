@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable,
   ScrollView, StyleSheet, Text, TextInput, View,
@@ -22,6 +23,17 @@ const ESPERA_GUARDADO = 1500;
 export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   const { apunteId } = route.params;
   const { dosPaneles: dosColumnas } = usarDisposicion();
+
+  // La aplicación dibuja de borde a borde, así que la barra de gestos del
+  // sistema queda encima de lo de abajo. Esta pantalla no usa `Pantalla` —se
+  // arma su propio andamio para poder poner la hoja de tinta sobre el texto—
+  // y por eso nunca recibió la compensación que ya tienen las demás: en una
+  // tablet, el botón de terminar la clase y la barra de útiles quedaban
+  // debajo de la barra del sistema.
+  //
+  // En el navegador estos márgenes son cero, o sea que el error no aparece
+  // probando a mano. Aparece en la tablet, y en las pruebas de más abajo.
+  const margenes = useSafeAreaInsets();
 
   const traer = useCallback(async () => {
     const [apunte, asignaturas, resumen] = await Promise.all([
@@ -201,7 +213,8 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
         />
       ) : null}
 
-      <View style={e.pie}>
+      <View style={[e.pie, { paddingBottom: espacio.m + margenes.bottom }]}
+        testID="pie-apunte">
         <Boton
           texto={resumiendo ? "Resumiendo…" : "Terminar clase y resumir"}
           onPress={() => void cerrarClase()}
@@ -243,14 +256,20 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   const pestanaTutor = (
     <Pressable accessibilityRole="button" accessibilityLabel="Abrir el tutor"
       onPress={() => mostrarTutor(true)}
-      style={({ pressed }) => [e.riel, pressed ? { backgroundColor: color.elemento } : null]}>
+      style={({ pressed }) => [
+        e.riel, { paddingBottom: margenes.bottom },
+        pressed ? { backgroundColor: color.elemento } : null,
+      ]}>
       <Icono nombre="tutor" tamano={20} tono={color.marca} />
       <Text style={e.rielTexto}>Tutor</Text>
     </Pressable>
   );
 
   const bloqueResumen = resumen ? (
-    <ScrollView style={e.resumen} contentContainerStyle={{ padding: espacio.m, gap: espacio.m }}>
+    <ScrollView style={e.resumen} testID="resumen-apunte"
+      contentContainerStyle={{
+        padding: espacio.m, gap: espacio.m, paddingBottom: espacio.m + margenes.bottom,
+      }}>
       <View>
         <Text style={tipo.etiqueta}>Resumen de la clase</Text>
         <Text style={e.resumenCuerpo}>{resumen.cuerpo}</Text>
@@ -310,7 +329,8 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
       behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
       {bloqueResumen ?? editor}
       {!bloqueResumen ? (
-        <Pressable accessibilityRole="button" style={e.flotante}
+        <Pressable accessibilityRole="button"
+          style={[e.flotante, { bottom: espacio.xl + margenes.bottom }]}
           onPress={() => navigation.navigate("Principal", {
             screen: "Tutor",
             params: { asignaturaId: ramo?.id, contexto: `Estoy tomando apuntes de ${ramo?.nombre ?? "clase"}.` },

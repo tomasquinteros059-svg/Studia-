@@ -1,5 +1,5 @@
 import { act, fireEvent, waitFor } from "@testing-library/react-native";
-import { APUNTE, RAMO, renderPantalla } from "../../pruebas/dobles.tsx";
+import { APUNTE, MARGENES, RAMO, renderPantalla } from "../../pruebas/dobles.tsx";
 
 // Va en su propio archivo y no dentro de Apunte.prueba.tsx a propósito. Estas
 // pruebas dibujan de verdad —bajan, mueven y levantan el puntero— y esperan el
@@ -184,5 +184,39 @@ describe("escribir a mano", () => {
     // El texto sigue estando, que es lo que de verdad importa.
     await waitFor(() => expect(t.getByLabelText("Apuntes de la clase")).toBeTruthy());
     expect(t.getByDisplayValue(/teorema dice/)).toBeTruthy();
+  });
+});
+
+describe("la barra del sistema", () => {
+  // La aplicación dibuja de borde a borde: en una tablet la barra de gestos
+  // queda encima de lo de abajo. Esta pantalla se arma su propio andamio para
+  // poder poner la hoja de tinta sobre el texto, así que no heredó la
+  // compensación que ya tienen las demás, y el botón de terminar la clase
+  // quedaba debajo de la barra —o sea, intocable—.
+  //
+  // En el navegador los márgenes son cero y el error no aparece probando a
+  // mano. Solo aparece acá.
+  const aplanar = (estilo: unknown): Record<string, unknown> =>
+    Object.assign({}, ...([estilo].flat(4).filter(Boolean) as object[]));
+
+  test("el botón de terminar la clase no queda bajo la barra de gestos", async () => {
+    conDatos();
+    const t = await renderPantalla(Apunte, { apunteId: APUNTE.id });
+    await waitFor(() => expect(t.getByLabelText("Apuntes de la clase")).toBeTruthy());
+
+    expect(aplanar(t.getByTestId("pie-apunte").props.style).paddingBottom as number)
+      .toBeGreaterThanOrEqual(MARGENES.insets.bottom);
+  });
+
+  test("el resumen tampoco termina contra la barra", async () => {
+    conDatos();
+    mock.resumenDe.mockResolvedValue({
+      cuerpo: "Anotaste el teorema.", vacios: [], consejos: [],
+    } as never);
+    const t = await renderPantalla(Apunte, { apunteId: APUNTE.id });
+
+    await waitFor(() => expect(t.getByTestId("resumen-apunte")).toBeTruthy());
+    expect(aplanar(t.getByTestId("resumen-apunte").props.contentContainerStyle)
+      .paddingBottom as number).toBeGreaterThanOrEqual(MARGENES.insets.bottom);
   });
 });
