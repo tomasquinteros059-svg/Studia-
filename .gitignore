@@ -25,3 +25,6 @@ datos/importado.sql
 # las flechas de la navegación—, y la regla de arriba se los llevaba por
 # delante: el sitio se publicaba sin un solo ícono y nada avisaba.
 !docs/assets/node_modules/
+
+# Lo deja Python al cargar `herramientas/auditar-paquete.py` como módulo.
+__pycache__/
