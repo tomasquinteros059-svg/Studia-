@@ -1,6 +1,8 @@
 // Arma la versión web para GitHub Pages, en docs/.
 //
-// Uso: node herramientas/web.mjs
+// Uso: npm run web
+//      (node --experimental-strip-types, porque los textos legales viven en
+//       app/src/dominio/legales.ts y desde ahí se arman las páginas de acá)
 //
 // Tres cosas que no son obvias y que si faltan dejan la página en blanco:
 //
@@ -25,6 +27,9 @@ const app = join(raiz, "app");
 const config = join(app, "app.json");
 const docs = join(raiz, "docs");
 
+import { DESDE, DOCUMENTOS, TITULAR } from "../app/src/dominio/legales.ts";
+import { paginaLegal } from "./paginas-legales.mjs";
+
 const BASE = "/Sitio.ste";
 
 const original = readFileSync(config, "utf8");
@@ -41,13 +46,28 @@ try {
   writeFileSync(config, original);
 }
 
-// docs/ ya tenía la documentación del proyecto y sigue viviendo ahí: se borra
-// solo lo que genera este script, no la carpeta entera.
-const GENERADO = ["_expo", "assets", "index.html", "404.html", "metadata.json", ".nojekyll"];
+// docs/ es solo el sitio publicado. La documentación del proyecto se movió a
+// documentacion/ porque Pages sirve todo lo que hay acá: la especificación
+// completa del producto quedaba descargable por cualquiera que adivinara el
+// nombre del archivo, sin que nada lo dijera.
+//
+// Se borra solo lo que genera este script, no la carpeta entera.
+const GENERADO = [
+  "_expo", "assets", "index.html", "404.html", "metadata.json", ".nojekyll",
+  "robots.txt", "terminos.html", "privacidad.html",
+];
 for (const n of GENERADO) rmSync(join(docs, n), { recursive: true, force: true });
 mkdirSync(docs, { recursive: true });
 cpSync(join(app, "dist"), docs, { recursive: true });
 writeFileSync(join(docs, ".nojekyll"), "");
+
+// El aviso de propiedad, para quien mire el código de la página, y la señal
+// que leen los rastreadores que respetan algo. No impide nada por sí sola
+// —robots.txt tampoco—, pero deja constancia de que el permiso no se dio.
+const PROPIEDAD = `
+    <meta name="copyright" content="© ${DESDE} ${TITULAR}. Todos los derechos reservados." />
+    <meta name="robots" content="index, follow, noai, noimageai" />
+    <link rel="license" href="${BASE}/terminos.html" />`;
 
 const FUENTES = `
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -67,7 +87,7 @@ const FUENTES = `
 const indice = join(docs, "index.html");
 let html = readFileSync(indice, "utf8");
 if (!html.includes("</head>")) throw new Error("La exportación no trae <head>: revisa qué cambió Expo.");
-html = html.replace("</head>", `${FUENTES}\n  </head>`);
+html = html.replace("</head>", `${PROPIEDAD}${FUENTES}\n  </head>`);
 html = html.replace('<div id="root"></div>', '<div id="cargando">Abriendo StudIA…</div>\n    <div id="root"></div>');
 html = html.replace("<html lang=\"en\">", '<html lang="es">');
 writeFileSync(indice, html);
@@ -76,5 +96,35 @@ writeFileSync(indice, html);
 // página adentro, entrar directo a una dirección de la aplicación abre la
 // aplicación en vez de la pantalla de error de GitHub.
 writeFileSync(join(docs, "404.html"), html);
+
+// Los rastreadores que se llevan el sitio para entrenar modelos respetan esto
+// solo si quieren, y varios no quieren. Igual va: sin el archivo, el permiso
+// se presume dado; con él, la negativa está escrita y fechada.
+const RASTREADORES = [
+  "GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-Web", "anthropic-ai",
+  "CCBot", "Google-Extended", "PerplexityBot", "Applebot-Extended", "Bytespider",
+  "Amazonbot", "meta-externalagent", "FacebookBot", "Diffbot", "cohere-ai",
+  "ImagesiftBot", "Omgilibot", "YouBot", "Timpibot", "Scrapy",
+];
+writeFileSync(
+  join(docs, "robots.txt"),
+  [
+    "# StudIA — © " + DESDE + " " + TITULAR + ". Todos los derechos reservados.",
+    "# El sitio se puede indexar para buscarlo; no se puede usar para entrenar",
+    "# modelos ni para armar conjuntos de datos.",
+    "",
+    "User-agent: *",
+    "Allow: /",
+    "",
+    ...RASTREADORES.flatMap((r) => [`User-agent: ${r}`, "Disallow: /", ""]),
+  ].join("\n"),
+);
+
+// Los términos y la privacidad, además, como páginas sueltas. Play Store exige
+// una dirección web pública para la política de privacidad, y una que solo se
+// pueda leer habiendo instalado la aplicación no sirve para eso.
+for (const d of DOCUMENTOS) {
+  writeFileSync(join(docs, `${d.id === "terminos" ? "terminos" : "privacidad"}.html`), paginaLegal(d, BASE));
+}
 
 console.log("docs/ listo · base", BASE);

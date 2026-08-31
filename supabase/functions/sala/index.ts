@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
     .from("perfiles").select("nombre").eq("id", sesion.user.id).maybeSingle();
 
   // Hoy solo hay estudiantes con cuenta; el papel queda listo para cuando el
-  // panel docente exista (ver docs/arquitectura.md, simplificaciones).
+  // panel docente exista (ver documentacion/arquitectura.md, simplificaciones).
   const papel: Papel = "estudiante";
 
   const token = await firmarToken(

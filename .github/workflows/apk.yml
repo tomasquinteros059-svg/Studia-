@@ -53,6 +53,11 @@ jobs:
           npm run prueba
           npm run prueba:ui
           npm run tipos
+          # Que los textos legales del repositorio y el listado de licencias no
+          # queden atrás del código: una dependencia agregada sin regenerar el
+          # listado deja el APK incumpliendo una licencia sin que nada avise.
+          npm run prueba:legales
+          npm run prueba:licencias
 
       # Que el APK traiga de verdad lo que dice traer.
       #

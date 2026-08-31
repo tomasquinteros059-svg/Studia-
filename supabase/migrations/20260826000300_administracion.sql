@@ -72,4 +72,4 @@ grant insert, update, delete on public.inscripciones   to authenticated;
 
 -- Nota deliberada: la administración NO recibe acceso a apuntes,
 -- transcripciones, resúmenes ni a la conversación con el tutor. La razón es
--- la misma que para el docente y está en docs/arquitectura.md.
+-- la misma que para el docente y está en documentacion/arquitectura.md.

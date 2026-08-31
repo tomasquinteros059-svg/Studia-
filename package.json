@@ -1,7 +1,7 @@
 {
   "name": "studia",
   "private": true,
-  "description": "StudIA \u2014 plataforma de estudio con un tutor que gu\u00eda en vez de resolver",
+  "description": "StudIA — plataforma de estudio con un tutor que guía en vez de resolver",
   "scripts": {
     "prueba": "node --experimental-strip-types --test 'app/src/dominio/*.prueba.ts' 'app/src/lib/*.prueba.ts' 'supabase/functions/_compartido/*.prueba.ts' 'herramientas/*.prueba.ts'",
     "importar": "node --experimental-strip-types herramientas/importar.ts",
@@ -10,10 +10,15 @@
     "tipos": "npm --prefix app run tipos",
     "test": "npm run prueba",
     "prueba:ui": "npm --prefix app run prueba:ui",
-    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run tipos && npm run prueba:paquete && npm run prueba:bd && npm run prueba:importar",
+    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run prueba:legales && npm run prueba:licencias && npm run tipos && npm run prueba:paquete && npm run prueba:bd && npm run prueba:importar",
     "prueba:paquete": "npm --prefix app run paquete",
     "prueba:importar": "./supabase/pruebas/importar.sh",
-    "prueba:paquete-android": "npm --prefix app run paquete:android && python3 herramientas/auditar-paquete.py"
+    "prueba:paquete-android": "npm --prefix app run paquete:android && python3 herramientas/auditar-paquete.py",
+    "web": "node --experimental-strip-types herramientas/web.mjs",
+    "legales": "node --experimental-strip-types herramientas/legales.mjs",
+    "licencias": "node herramientas/licencias.mjs",
+    "prueba:legales": "node --experimental-strip-types herramientas/legales.mjs --revisar",
+    "prueba:licencias": "node herramientas/licencias.mjs --revisar"
   },
   "engines": {
     "node": ">=22.6"

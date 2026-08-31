@@ -6,12 +6,14 @@ import { salir } from "../../lib/perfiles-demo.ts";
 import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import { MODO_DEMO } from "../../lib/config.ts";
 import { puedePublicarNotas } from "../../dominio/curso.ts";
+import { aviso } from "../../dominio/legales.ts";
+import type { PropsPestanaDocente } from "../../lib/rutas.ts";
 
 /**
  * Quién soy y qué puedo hacer. Lo segundo importa más de lo que parece: un
  * ayudante que no sabe que no puede publicar notas va a buscar el botón.
  */
-export default function PerfilDocente() {
+export default function PerfilDocente({ navigation }: PropsPestanaDocente<"Perfil">) {
   const { yo } = usarQuienSoy();
   if (!yo) return null;
   const papel = yo.papel ?? "ayudante";
@@ -82,11 +84,26 @@ export default function PerfilDocente() {
         impide la base de datos, con tres pruebas que lo verifican.
       </Text>
 
+      {/* Los mismos textos que ve el curso: el acuerdo es uno solo, y quien
+          dicta también lo aceptó. */}
+      <Encabezado texto="Legal" />
+      <Fila titulo="Términos de uso" detalle="Las reglas de StudIA"
+        derecha={<Icono nombre="siguiente" tamano={18} tono={color.textoTenue} />}
+        onPress={() => navigation.navigate("Legal", { que: "terminos" })} />
+      <Fila titulo="Política de privacidad" detalle="Qué se guarda y qué no"
+        derecha={<Icono nombre="siguiente" tamano={18} tono={color.textoTenue} />}
+        onPress={() => navigation.navigate("Legal", { que: "privacidad" })} />
+      <Fila titulo="Licencias de terceros" detalle="Las bibliotecas sobre las que está hecha"
+        derecha={<Icono nombre="siguiente" tamano={18} tono={color.textoTenue} />}
+        onPress={() => navigation.navigate("Legal", { que: "terceros" })} />
+
       {MODO_DEMO ? (
         <View style={{ padding: espacio.l }}>
           <Boton texto="Cambiar de perfil" onPress={salir} />
         </View>
       ) : null}
+
+      <Text style={e.copyright}>{aviso(new Date().getFullYear())}</Text>
     </ScrollView>
   );
 }
@@ -101,5 +118,9 @@ const e = StyleSheet.create({
   nota: {
     ...tipo.detalle, lineHeight: 18, margin: espacio.l,
     padding: espacio.m, backgroundColor: color.elemento, borderRadius: radio.tarjeta,
+  },
+  copyright: {
+    ...tipo.detalle, color: color.textoTenue,
+    textAlign: "center", paddingTop: espacio.l,
   },
 });

@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
-import { Boton, Campo, Cargando, Encabezado, Error, Pantalla } from "../ui/componentes.tsx";
+import { Boton, Campo, Cargando, Encabezado, Error, Fila, Pantalla } from "../ui/componentes.tsx";
+import { Icono } from "../ui/Icono.tsx";
 import { cifras, color, espacio, tipo } from "../ui/tema.ts";
 import { cambiarNombre, miPerfil } from "../lib/consultas.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
@@ -9,8 +10,10 @@ import { MODO_DEMO } from "../lib/config.ts";
 import { salir } from "../lib/perfiles-demo.ts";
 import { inicialesDePersona } from "../dominio/personas.ts";
 import { VERSION_VISIBLE } from "../lib/version.ts";
+import { aviso } from "../dominio/legales.ts";
+import type { PropsPila } from "../lib/rutas.ts";
 
-export default function Perfil() {
+export default function Perfil({ navigation }: PropsPila<"Perfil">) {
   const { datos, cargando, error, recargar } = usarCarga(miPerfil, []);
   const [nombre, setNombre] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -70,6 +73,22 @@ export default function Perfil() {
         Nadie más puede verlo.
       </Text>
 
+      {/* Los textos legales se leen desde acá y no desde un enlace a la web:
+          quien aceptó unos términos tiene derecho a leerlos, y en la sala
+          donde no hay señal un enlace no sirve de nada. */}
+      <Encabezado texto="Legal" />
+      <Fila titulo="Términos de uso" detalle="Las reglas de StudIA"
+        derecha={<Icono nombre="siguiente" tamano={18} tono={color.textoTenue} />}
+        onPress={() => navigation.navigate("Legal", { que: "terminos" })} />
+      <Fila titulo="Política de privacidad" detalle="Qué se guarda y qué no"
+        derecha={<Icono nombre="siguiente" tamano={18} tono={color.textoTenue} />}
+        onPress={() => navigation.navigate("Legal", { que: "privacidad" })} />
+      <Fila titulo="Licencias de terceros" detalle="Las bibliotecas sobre las que está hecha"
+        derecha={<Icono nombre="siguiente" tamano={18} tono={color.textoTenue} />}
+        onPress={() => navigation.navigate("Legal", { que: "terceros" })} />
+
+      <Text style={e.copyright}>{aviso(new Date().getFullYear())}</Text>
+
       {/* Para saber qué versión estás probando sin tener que adivinar. */}
       {VERSION_VISIBLE ? <Text style={e.version}>{VERSION_VISIBLE}</Text> : null}
 
@@ -94,5 +113,9 @@ const e = StyleSheet.create({
   version: {
     ...tipo.detalle, ...cifras, color: color.textoTenue,
     textAlign: "center", paddingBottom: espacio.l,
+  },
+  copyright: {
+    ...tipo.detalle, color: color.textoTenue,
+    textAlign: "center", paddingTop: espacio.l,
   },
 });

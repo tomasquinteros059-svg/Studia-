@@ -9,6 +9,9 @@ import { LETRAS, pintaDe } from "../dominio/quiz.ts";
 import { espacio, letra } from "../ui/tema.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { VERSION_VISIBLE } from "../lib/version.ts";
+import { HojaModal } from "../ui/componentes.tsx";
+import { VistaLegal, TITULO_LEGAL, type Cual } from "./Legal.tsx";
+import { aviso } from "../dominio/legales.ts";
 import { PROVEEDORES, type Proveedor } from "../dominio/acceso-proveedores.ts";
 import { entrarCon } from "../lib/proveedores.ts";
 import {
@@ -73,6 +76,8 @@ export default function Portada({
   const margenes = useSafeAreaInsets();
   const [entrando, setEntrando] = useState<Proveedor | null>(null);
   const [falla, setFalla] = useState<string | null>(null);
+  /** Cuál de los textos legales está abierto, o null si ninguno. */
+  const [legal, setLegal] = useState<Cual | null>(null);
 
   // Para que los enlaces de arriba lleven a alguna parte de verdad. Cada
   // sección anota dónde quedó al medirse, y el enlace desplaza hasta ahí.
@@ -281,6 +286,19 @@ export default function Portada({
                   aparato, pero el correo se pide igual: es la misma puerta.
                 </Text>
               ) : null}
+
+              {/* El consentimiento se pide donde se entra, no escondido en un
+                  ajuste: quien crea la cuenta tiene que poder leer qué acepta
+                  antes de aceptarlo, y de ahí que los enlaces abran el texto
+                  completo acá mismo. */}
+              <Text style={e.nota}>
+                Al entrar aceptas los{" "}
+                <Text style={e.enlaceLegal} accessibilityRole="link"
+                  onPress={() => setLegal("terminos")}>Términos de uso</Text>
+                {" "}y la{" "}
+                <Text style={e.enlaceLegal} accessibilityRole="link"
+                  onPress={() => setLegal("privacidad")}>Política de privacidad</Text>.
+              </Text>
             </View>
           </View>
         </View>
@@ -292,8 +310,28 @@ export default function Portada({
               Hecha para estudiantes{VERSION_VISIBLE ? ` · ${VERSION_VISIBLE}` : ""}
             </Text>
           </View>
+          <View style={[e.centro, e.pieLegal, media ? e.pieAncho : null]}>
+            <Text style={e.pieTexto}>{aviso(new Date().getFullYear())}</Text>
+            <Text style={e.pieTexto}>
+              <Text style={e.enlaceLegal} accessibilityRole="link"
+                onPress={() => setLegal("terminos")}>Términos</Text>
+              {"  ·  "}
+              <Text style={e.enlaceLegal} accessibilityRole="link"
+                onPress={() => setLegal("privacidad")}>Privacidad</Text>
+              {"  ·  "}
+              <Text style={e.enlaceLegal} accessibilityRole="link"
+                onPress={() => setLegal("terceros")}>Licencias</Text>
+            </Text>
+          </View>
         </View>
       </ScrollView>
+
+      {/* En un modal y no en la pila de navegación: acá todavía no hay
+          sesión, y por lo tanto tampoco hay navegador donde apilar nada. */}
+      <HojaModal abierto={legal !== null} cerrar={() => setLegal(null)}
+        titulo={legal ? TITULO_LEGAL[legal] : ""}>
+        {legal ? <VistaLegal que={legal} /> : null}
+      </HojaModal>
     </View>
   );
 }
@@ -1220,7 +1258,9 @@ const e = StyleSheet.create({
   nota: { fontFamily: letra.cuerpo, fontSize: 12.5, lineHeight: 19, color: p.gris },
 
   // ── Pie ──
-  pie: { borderTopWidth: BORDE, borderTopColor: p.tinta, paddingVertical: 26 },
+  pie: { borderTopWidth: BORDE, borderTopColor: p.tinta, paddingVertical: 26, gap: 10 },
+  pieLegal: { borderTopWidth: 1, borderTopColor: p.raya, paddingTop: 10 },
+  enlaceLegal: { textDecorationLine: "underline", color: p.azul, fontWeight: "600" },
   pieAncho: { flexDirection: "row", justifyContent: "space-between" },
   pieTexto: { fontFamily: letra.cuerpo, fontSize: 13.5, color: p.gris },
 });

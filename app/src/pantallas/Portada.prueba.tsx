@@ -193,4 +193,28 @@ describe("la portada", () => {
     const t = await render(<Portada entrar={jest.fn()} />);
     expect(t.getByText(/Todavía no hay cobro conectado/)).toBeTruthy();
   });
+
+  test("dice qué se acepta al entrar, y el texto se puede leer ahí mismo", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    // El aviso va junto a la puerta y no escondido en un ajuste: quien crea la
+    // cuenta tiene que poder leer qué acepta antes de aceptarlo.
+    expect(t.getByText(/Al entrar aceptas/)).toBeTruthy();
+
+    const enlace = t.getByRole("link", { name: "Términos de uso" });
+    await act(async () => { fireEvent.press(enlace); });
+
+    // Se abre el documento completo, no un enlace a una web que en la sala sin
+    // señal no carga.
+    await waitFor(() => expect(t.getByText("1. Qué es esto")).toBeTruthy());
+  });
+
+  test("el pie reclama la propiedad y lleva a los tres documentos", async () => {
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    expect(t.getByText(/Todos los derechos reservados/)).toBeTruthy();
+    for (const nombre of ["Términos", "Privacidad", "Licencias"]) {
+      expect(t.getByRole("link", { name: nombre })).toBeTruthy();
+    }
+  });
 });

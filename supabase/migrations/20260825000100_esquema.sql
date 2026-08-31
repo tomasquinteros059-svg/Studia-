@@ -12,7 +12,7 @@ create table public.perfiles (
 );
 comment on table public.perfiles is
   'Un perfil por usuario autenticado. Hoy solo estudiantes; los docentes viven '
-  'como texto en asignaturas (ver docs/arquitectura.md, simplificaciones).';
+  'como texto en asignaturas (ver documentacion/arquitectura.md, simplificaciones).';
 
 -- ----------------------------------------------------------- asignaturas
 create table public.asignaturas (

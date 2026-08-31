@@ -51,6 +51,8 @@ export const ICONOS = {
   aviso: "alert-circle-outline",
   anterior: "chevron-back",
   siguiente: "chevron-forward",
+  abajo: "chevron-down",
+  arriba: "chevron-up",
 } as const;
 
 export function Icono({

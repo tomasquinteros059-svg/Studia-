@@ -53,6 +53,17 @@ PIEZAS = {
         ("Plan · al asistente", "Conversarlo con el asistente"),
         ("Publicar notas al curso", "Publicar al curso"),
     ],
+    "Legal": [
+        ("Términos de uso", "Al entrar aceptas los"),
+        ("Términos · la propiedad reservada", "La aplicación es de"),
+        ("Términos · no entrenar modelos", "para entrenar, ajustar o evaluar modelos"),
+        ("Privacidad · el audio no se guarda", "El audio de las clases no se guarda."),
+        ("Privacidad · Ley 21.719", "21.719"),
+        ("Privacidad · menores de edad", "niñas, niños y adolescentes"),
+        ("Licencias de terceros", "Licencias de terceros"),
+        ("Licencias · el aviso de una biblioteca", "Copyright (c) Meta Platforms"),
+        ("Aviso de copyright", "Todos los derechos reservados."),
+    ],
 }
 
 

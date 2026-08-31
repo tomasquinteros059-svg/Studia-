@@ -35,6 +35,7 @@ import Escucha from "./src/pantallas/Escucha.tsx";
 import Apunte from "./src/pantallas/Apunte.tsx";
 import Lectura from "./src/pantallas/Lectura.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
+import Legal, { TITULO_LEGAL } from "./src/pantallas/Legal.tsx";
 import Quiz from "./src/pantallas/Quiz.tsx";
 import Fichas from "./src/pantallas/Fichas.tsx";
 import MisApuntes from "./src/pantallas/MisApuntes.tsx";
@@ -108,6 +109,8 @@ function AppDocente() {
         options={{ headerShown: false }} />
       <PilaDocente.Screen name="RamoDocente" component={RamoDocente} options={{ title: "Curso" }} />
       <PilaDocente.Screen name="Escucha" component={Escucha} options={{ title: "Modo escucha" }} />
+      <PilaDocente.Screen name="Legal" component={Legal}
+        options={({ route }) => ({ title: TITULO_LEGAL[route.params?.que ?? "terminos"] })} />
     </PilaDocente.Navigator>
   );
 }
@@ -154,8 +157,14 @@ export default function App() {
         ) : yo?.rol === "profesor" ? (
           <AppDocente />
         ) : yo?.rol === "administrador" ? (
-          <PilaDocente.Navigator screenOptions={{ headerShown: false }}>
-            <PilaDocente.Screen name="PrincipalDocente" component={PrincipalAdmin} />
+          <PilaDocente.Navigator screenOptions={OPCIONES_PILA}>
+            <PilaDocente.Screen name="PrincipalDocente" component={PrincipalAdmin}
+              options={{ headerShown: false }} />
+            {/* La administración usa el mismo perfil que quien dicta, y ese
+                perfil lleva a los textos legales: sin esta pantalla acá, el
+                enlace existe y no va a ninguna parte. */}
+            <PilaDocente.Screen name="Legal" component={Legal}
+              options={({ route }) => ({ title: TITULO_LEGAL[route.params?.que ?? "terminos"] })} />
           </PilaDocente.Navigator>
         ) : (
           <Pila.Navigator screenOptions={OPCIONES_PILA}>
@@ -171,6 +180,8 @@ export default function App() {
             <Pila.Screen name="Apunte" component={Apunte} options={{ title: "Apuntes de clase" }} />
             <Pila.Screen name="Lectura" component={Lectura} options={{ title: "Lectura" }} />
             <Pila.Screen name="Consejos" component={Consejos} options={{ title: "Cómo vas estudiando" }} />
+            <Pila.Screen name="Legal" component={Legal}
+              options={({ route }) => ({ title: TITULO_LEGAL[route.params?.que ?? "terminos"] })} />
             <Pila.Screen name="Quiz" component={Quiz} options={{ title: "Ponerme a prueba" }} />
             <Pila.Screen name="Fichas" component={Fichas} options={{ title: "Fichas de repaso" }} />
             <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />

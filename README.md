@@ -14,10 +14,13 @@ por diseño, **nunca resuelve el ejercicio**.
 |---|---|
 | [`app/`](app) | La aplicación en Expo (React Native) |
 | [`supabase/`](supabase) | Esquema, políticas de acceso, datos de ejemplo y la función del tutor |
-| [`docs/arquitectura.md`](docs/arquitectura.md) | Cómo levantarlo, cómo se verifica y qué está simplificado |
-| [`docs/instalar-en-tablet.md`](docs/instalar-en-tablet.md) | Compilar el APK y probarlo en una tablet Android |
-| [`docs/studia-spec.md`](docs/studia-spec.md) | Especificación de producto: navegación, pantallas, sistema visual y decisiones abiertas |
+| [`documentacion/arquitectura.md`](documentacion/arquitectura.md) | Cómo levantarlo, cómo se verifica y qué está simplificado |
+| [`documentacion/instalar-en-tablet.md`](documentacion/instalar-en-tablet.md) | Compilar el APK y probarlo en una tablet Android |
+| [`documentacion/studia-spec.md`](documentacion/studia-spec.md) | Especificación de producto: navegación, pantallas, sistema visual y decisiones abiertas |
 | [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo — sigue siendo la referencia de diseño |
+| [`LICENCIA.md`](LICENCIA.md) | Qué se puede hacer con este código y qué no |
+| [`PROPIEDAD.md`](PROPIEDAD.md) | Qué protege qué, y los trámites que faltan |
+| [`legal/`](legal) | Términos de uso y política de privacidad (se generan) |
 
 ## La otra aplicación de este repositorio
 
@@ -42,7 +45,7 @@ cd app && cp .env.example .env && npm install && npm start
 ```
 
 Cuenta de ejemplo: **eduardo@studia.cl / clave-demo**.
-Los detalles y lo que falta están en [`docs/arquitectura.md`](docs/arquitectura.md).
+Los detalles y lo que falta están en [`documentacion/arquitectura.md`](documentacion/arquitectura.md).
 
 ## Verificación
 
@@ -102,4 +105,26 @@ python3 -m http.server 8000
 La app tiene sus catorce pantallas y las nueve secciones por asignatura, sobre un
 backend verificado. Falta conectar el audio de las clases en vivo, subir los archivos
 de las grabaciones y las entregas, las notificaciones push y el panel docente — todo
-detallado en [`docs/arquitectura.md`](docs/arquitectura.md).
+detallado en [`documentacion/arquitectura.md`](documentacion/arquitectura.md).
+
+## Propiedad
+
+**Copyright © 2026 Tomás Quinteros. Todos los derechos reservados.**
+
+StudIA es software propietario, no de código abierto. Tener acceso a este
+repositorio no da ningún derecho sobre su contenido: no se puede copiar,
+modificar, distribuir, compilar y publicar, ni usar para entrenar modelos.
+Las condiciones completas están en [`LICENCIA.md`](LICENCIA.md), y qué
+protege qué —y qué falta registrar— en [`PROPIEDAD.md`](PROPIEDAD.md).
+
+Los textos que ve quien usa la aplicación son
+[`legal/terminos.md`](legal/terminos.md) y
+[`legal/privacidad.md`](legal/privacidad.md). No se editan a mano: salen de
+`app/src/dominio/legales.ts` con `npm run legales`, para que la pantalla y el
+repositorio no puedan decir cosas distintas.
+
+Las bibliotecas de terceros conservan sus propias licencias; el listado se
+regenera con `npm run licencias` y viaja dentro del APK, en
+**Perfil → Licencias de terceros**.
+
+Permisos y licencias comerciales: equinterosm33@gmail.com

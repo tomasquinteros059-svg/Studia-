@@ -24,6 +24,8 @@ export type RutasPila = {
   Apunte: { apunteId: string };
   Lectura: { materialId: string };
   Consejos: undefined;
+  /** Los términos, la privacidad o las licencias de terceros. */
+  Legal: { que: "terminos" | "privacidad" | "terceros" } | undefined;
   /** El tono es el del ramo: la pantalla lo recibe hecho para no volver a pedirlo. */
   Quiz: { quizId: string; tono?: string };
   Fichas: { asignaturaId: string; tema: string; tono?: string };
@@ -62,6 +64,8 @@ export type RutasPilaDocente = {
   RamoDocente: { asignaturaId: string };
   /** La misma pantalla de escucha que usa el curso: la clase es una sola. */
   Escucha: { claseId: string; titulo: string; asignaturaId: string };
+  /** Los mismos textos legales que ve el curso: el acuerdo es uno solo. */
+  Legal: { que: "terminos" | "privacidad" | "terceros" } | undefined;
 };
 
 export type PropsPestanaDocente<T extends keyof RutasPestanasDocente> = CompositeScreenProps<
