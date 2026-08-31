@@ -54,6 +54,15 @@ jobs:
           npm run prueba:ui
           npm run tipos
 
+      # Que el APK traiga de verdad lo que dice traer.
+      #
+      # Las pruebas de arriba comprueban que el código funcione; esto comprueba
+      # que el código haya entrado al paquete. No es lo mismo, y la diferencia
+      # se notó: hubo APK «arregladas» que llegaron sin el arreglo y no había
+      # cómo saberlo sin instalarlas.
+      - name: Comprobar que el paquete trae todas las funciones
+        run: npm run prueba:paquete-android
+
       - name: Generar el proyecto Android
         working-directory: app
         run: npx expo prebuild --platform android --no-install

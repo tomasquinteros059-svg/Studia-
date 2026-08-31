@@ -9,7 +9,8 @@
     "ios": "expo run:ios",
     "tipos": "tsc --noEmit",
     "prueba:ui": "jest",
-    "paquete": "expo export --platform android --output-dir .paquete-prueba"
+    "paquete": "expo export --platform android --output-dir .paquete-prueba",
+    "paquete:android": "EXPO_NO_TELEMETRY=1 expo export --platform android"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.13",
