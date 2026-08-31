@@ -75,6 +75,17 @@ export type Clase = {
   inicia_en: string;
   duracion_seg: number | null;
   audio_url: string | null;
+  /** En sala, y no por pantalla. Solo estas se pueden oír desde el aire. */
+  presencial: boolean;
+  /** Lo decide quien dicta el ramo. Por omisión, no. */
+  escucha_permitida: boolean;
+};
+
+/** Un tramo tal como lo oyó un aparato, camino a la base. */
+export type TramoOido = {
+  segundo: number;
+  texto: string;
+  confianza: number;
 };
 
 export type Capitulo = { id: string; titulo: string; segundo: number };

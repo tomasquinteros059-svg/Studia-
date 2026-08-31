@@ -15,8 +15,9 @@ import {
   borrarQuizDemo, quicesDemo, quizDemoPorId, responderQuizDemo,
 } from "./quiz-demo.ts";
 import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
+import type { Tramo } from "../dominio/escucha.ts";
 import type {
-  Apunte, ApunteEnLista, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
+  Apunte, ApunteEnLista, Asignatura, BloqueHorario, TramoOido, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
   Ficha, Quiz, Registro, Respuesta, ResumenGuardado, SesionEstudio,
   TareaConEstado,
@@ -104,17 +105,23 @@ const HORARIO: BloqueHorario[] = [
 /* ----------------------------------------------------------------- clases */
 const CLASES: Clase[] = [
   { id: "c-viva", asignatura_id: "cal", titulo: "Teorema del valor medio", estado: "en_vivo",
-    inicia_en: new Date(ahora - 720_000).toISOString(), duracion_seg: null, audio_url: null },
+    inicia_en: new Date(ahora - 720_000).toISOString(), duracion_seg: null, audio_url: null,
+    presencial: true, escucha_permitida: true },
   { id: "c1", asignatura_id: "cal", titulo: "Clase 12 · Regla de L'Hôpital", estado: "grabada",
-    inicia_en: enDias(-5), duracion_seg: 3840, audio_url: null },
+    inicia_en: enDias(-5), duracion_seg: 3840, audio_url: null ,
+    presencial: true, escucha_permitida: false },
   { id: "c2", asignatura_id: "cal", titulo: "Clase 11 · Derivadas implícitas", estado: "grabada",
-    inicia_en: enDias(-7), duracion_seg: 3300, audio_url: null },
+    inicia_en: enDias(-7), duracion_seg: 3300, audio_url: null ,
+    presencial: true, escucha_permitida: false },
   { id: "c3", asignatura_id: "alg", titulo: "Clase 9 · Base y dimensión", estado: "grabada",
-    inicia_en: enDias(-3), duracion_seg: 3480, audio_url: null },
+    inicia_en: enDias(-3), duracion_seg: 3480, audio_url: null ,
+    presencial: true, escucha_permitida: false },
   { id: "c4", asignatura_id: "fis", titulo: "Clase 10 · Roce y planos inclinados", estado: "grabada",
-    inicia_en: enDias(-5), duracion_seg: 3720, audio_url: null },
+    inicia_en: enDias(-5), duracion_seg: 3720, audio_url: null ,
+    presencial: true, escucha_permitida: false },
   { id: "c5", asignatura_id: "pro", titulo: "Clase 14 · Diccionarios", estado: "grabada",
-    inicia_en: enDias(-5), duracion_seg: 3120, audio_url: null },
+    inicia_en: enDias(-5), duracion_seg: 3120, audio_url: null ,
+    presencial: true, escucha_permitida: false },
 ];
 
 /* ---------------------------------------------------------------- materia */
@@ -807,7 +814,77 @@ const _cobertura: Omit<typeof Real, "default"> = {
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
   moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
   misSesiones, crearSesion, marcarSesion, borrarSesion,
+  empezarAEscuchar, subirTramos, cuantosEscuchan, tramosDeLaClase,
+  armarLaClase, claseEscrita, permitirEscucha,
   misQuices, quizPorId, responderQuiz, borrarQuiz,
   misFichas, repasarFicha,
 };
 void _cobertura;
+
+/* ------------------------------------------------------------ modo escucha */
+
+// En demostración no hay curso al otro lado, así que el cruce de versiones no
+// tendría con qué cruzar. Se guardan unos tramos de otros aparatos, escritos a
+// mano y con los errores que comete un reconocedor de verdad —«el problema del
+// valor medio»— para que se vea qué hace el cruce y no un cruce de una sola
+// versión, que no cruza nada.
+const OTROS_APARATOS: Tramo[] = [
+  { aparato: "compañera de adelante", segundo: 0, texto: "Buenos días, hoy vamos a ver el teorema del valor medio", confianza: 0.82 },
+  { aparato: "compañero del fondo", segundo: 1, texto: "buenos días hoy vamos a ver el problema del valor medio", confianza: 0.41 },
+  { aparato: "la profesora", segundo: 0, texto: "Buenos días, hoy vamos a ver el teorema del valor medio", confianza: 0.91 },
+  { aparato: "compañera de adelante", segundo: 22, texto: "si la función es continua en el cerrado y derivable en el abierto", confianza: 0.77 },
+  { aparato: "la profesora", segundo: 23, texto: "si la función es continua en el cerrado y derivable en el abierto", confianza: 0.88 },
+  { aparato: "compañero del fondo", segundo: 24, texto: "si la función es continua en el cerrado", confianza: 0.35 },
+  { aparato: "compañero del fondo", segundo: 48, texto: "profesora, ¿eso entra en el control del miércoles?", confianza: 0.66 },
+  { aparato: "la profesora", segundo: 52, texto: "sí, entra, revisen la guía cuatro", confianza: 0.9 },
+];
+
+const oidos = new Map<string, Tramo[]>();
+const escritas = new Map<string, { segundo: number; texto: string }[]>();
+
+export async function empezarAEscuchar(claseId: string, aparato: string): Promise<string> {
+  await respirar();
+  if (!oidos.has(claseId)) oidos.set(claseId, [...OTROS_APARATOS]);
+  return `${claseId}:${aparato}`;
+}
+
+export async function subirTramos(
+  claseId: string, escuchaId: string, tramos: readonly TramoOido[],
+): Promise<void> {
+  await respirar();
+  const previos = oidos.get(claseId) ?? [];
+  oidos.set(claseId, [
+    ...previos,
+    ...tramos.map((t) => ({ ...t, aparato: escuchaId })),
+  ]);
+}
+
+export async function cuantosEscuchan(): Promise<number> {
+  await respirar();
+  // Los tres de ejemplo más el propio.
+  return 4;
+}
+
+export async function tramosDeLaClase(claseId: string): Promise<Tramo[]> {
+  await respirar();
+  return [...(oidos.get(claseId) ?? OTROS_APARATOS)];
+}
+
+export async function armarLaClase(
+  claseId: string, clase: readonly { segundo: number; texto: string }[],
+): Promise<void> {
+  await respirar();
+  escritas.set(claseId, [...clase]);
+  oidos.delete(claseId);   // igual que en la base: armada la clase, sobran
+}
+
+export async function claseEscrita(claseId: string): Promise<{ segundo: number; texto: string }[]> {
+  await respirar();
+  return escritas.get(claseId) ?? [];
+}
+
+export async function permitirEscucha(claseId: string, permitida: boolean): Promise<void> {
+  await respirar();
+  const c = CLASES.find((x) => x.id === claseId);
+  if (c) c.escucha_permitida = permitida;
+}

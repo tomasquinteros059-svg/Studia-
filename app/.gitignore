@@ -1,3 +1,11 @@
-android/
-ios/
+# Los genera `expo prebuild` en la raíz de la aplicación, y no se versionan.
+#
+# Anclados con la barra del principio a propósito. Sin ella, `android/` casa
+# con cualquier carpeta de ese nombre a cualquier profundidad, y se lleva por
+# delante las fuentes de los módulos nativos propios —`modules/voz/android`—,
+# que sí hay que versionar: sin ellas la compilación no tiene qué compilar y
+# nada avisa.
+/android/
+/ios/
+
 .paquete-prueba/

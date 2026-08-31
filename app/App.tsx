@@ -31,6 +31,7 @@ import Tarea from "./src/pantallas/Tarea.tsx";
 import Perfil from "./src/pantallas/Perfil.tsx";
 import ClaseEnVivo from "./src/pantallas/ClaseEnVivo.tsx";
 import Grabacion from "./src/pantallas/Grabacion.tsx";
+import Escucha from "./src/pantallas/Escucha.tsx";
 import Apunte from "./src/pantallas/Apunte.tsx";
 import Lectura from "./src/pantallas/Lectura.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
@@ -169,6 +170,7 @@ export default function App() {
             <Pila.Screen name="Quiz" component={Quiz} options={{ title: "Ponerme a prueba" }} />
             <Pila.Screen name="Fichas" component={Fichas} options={{ title: "Fichas de repaso" }} />
             <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />
+            <Pila.Screen name="Escucha" component={Escucha} options={{ title: "Modo escucha" }} />
             <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}
               options={{ headerShown: false, presentation: "fullScreenModal" }} />
           </Pila.Navigator>

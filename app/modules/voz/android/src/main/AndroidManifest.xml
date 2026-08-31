@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+  <!--
+    Desde Android 11, consultar qué aplicación resuelve el reconocimiento de
+    voz requiere declararlo: sin esto, isRecognitionAvailable() responde que
+    no hay reconocedor aunque el teléfono lo tenga.
+  -->
+  <queries>
+    <intent>
+      <action android:name="android.speech.RecognitionService" />
+    </intent>
+  </queries>
+</manifest>

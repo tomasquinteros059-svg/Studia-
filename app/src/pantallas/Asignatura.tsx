@@ -304,6 +304,34 @@ export default function Asignatura({ route, navigation }: Props) {
                 <Pastilla texto="ENTRAR" tono="vivo" />
               </Pressable>
             ))}
+
+            {/*
+              El modo escucha aparece solo donde tiene sentido: una clase que
+              está pasando, en sala, y con el permiso de quien la dicta. En una
+              clase por pantalla no aparece —su audio ya pasa por la
+              aplicación— y sin permiso tampoco, porque la voz que más se oye
+              en una clase es la de quien la hace.
+            */}
+            {datos.clases
+              .filter((c) => c.estado === "en_vivo" && c.presencial && c.escucha_permitida)
+              .map((c) => (
+                <Pressable key={`escucha-${c.id}`} accessibilityRole="button"
+                  accessibilityLabel={`Escuchar la clase: ${c.titulo}`}
+                  style={e.escuchar}
+                  onPress={() => navigation.navigate("Escucha", {
+                    claseId: c.id, titulo: c.titulo, asignaturaId: ramo.id,
+                  })}>
+                  <Icono nombre="microfono" tamano={20} tono={color.texto} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={e.escucharTitulo}>Modo escucha</Text>
+                    <Text style={tipo.detalle}>
+                      Deja la clase escrita, para ti y para quien no vino
+                    </Text>
+                  </View>
+                  <Icono nombre="siguiente" tamano={18} tono={color.textoSuave} />
+                </Pressable>
+              ))}
+
             <Encabezado texto="Clases grabadas" />
             {datos.clases.filter((c) => c.estado === "grabada").length === 0
               ? <Vacio texto="Todavía no hay grabaciones de esta asignatura." />
@@ -726,6 +754,15 @@ const e = StyleSheet.create({
     borderRadius: radio.tarjeta, borderWidth: FILETE,
     borderColor: velado(color.vivo), backgroundColor: tenue(color.vivo),
   },
+  escuchar: {
+    flexDirection: "row", alignItems: "center", gap: espacio.m,
+    marginHorizontal: espacio.m, marginBottom: espacio.s,
+    padding: espacio.m, borderRadius: radio.tarjeta,
+    borderWidth: FILETE, borderColor: color.bordeFuerte,
+    backgroundColor: color.destacadoSuave,
+  },
+  escucharTitulo: { fontSize: 15, fontWeight: "700", color: color.texto },
+
   puntoVivo: { width: 10, height: 10, borderRadius: 5, backgroundColor: color.vivo },
   vivoEtiqueta: { ...tipo.etiqueta, color: color.vivo },
   vivoTitulo: { ...tipo.fila, marginTop: 2 },

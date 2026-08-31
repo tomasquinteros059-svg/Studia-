@@ -4,7 +4,7 @@
 
 import { supabase } from "./supabase.ts";
 import type {
-  Apunte, ApunteEnLista, Asignatura, BloqueHorario, Capitulo, Clase, EvaluacionConNota,
+  Apunte, ApunteEnLista, Asignatura, BloqueHorario, TramoOido, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, MensajeTutor, Modulo, Notificacion, Perfil,
   Ficha, Quiz, Registro, ResumenGuardado, Respuesta, SesionEstudio,
   TareaConEstado,
@@ -12,6 +12,7 @@ import type {
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
+import type { Tramo } from "../dominio/escucha.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
 import { comoHora, type Colegio } from "../dominio/planilla.ts";
@@ -108,7 +109,7 @@ export async function marcarMaterial(materialId: string, completado: boolean): P
 export async function clasesDe(asignaturaId: string): Promise<Clase[]> {
   const { data, error } = await supabase
     .from("clases")
-    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg, audio_url")
+    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg, audio_url, presencial, escucha_permitida")
     .eq("asignatura_id", asignaturaId)
     .order("inicia_en", { ascending: false });
   reventar("No pude cargar las clases", error);
@@ -118,7 +119,7 @@ export async function clasesDe(asignaturaId: string): Promise<Clase[]> {
 export async function claseEnVivo(): Promise<Clase | null> {
   const { data, error } = await supabase
     .from("clases")
-    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg, audio_url")
+    .select("id, asignatura_id, titulo, estado, inicia_en, duracion_seg, audio_url, presencial, escucha_permitida")
     .eq("estado", "en_vivo")
     .order("inicia_en", { ascending: false })
     .limit(1);
@@ -916,4 +917,92 @@ export async function repasarFicha(fichaId: string, acerto: boolean): Promise<vo
     p_ficha: fichaId, p_acerto: acerto,
   });
   reventar("No pude anotar el repaso", error);
+}
+
+// ------------------------------------------------------------ modo escucha
+//
+// El audio no pasa por acá. Cada teléfono transcribe en el propio aparato y
+// sube tramos de texto; lo que viaja es lo que ya está escrito.
+
+/** Anota que este aparato se puso a oír. Devuelve el identificador de esa escucha. */
+export async function empezarAEscuchar(claseId: string, aparato: string): Promise<string> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+
+  // Un aparato solo puede tener una escucha por clase: si vuelve a entrar
+  // —se cortó la app, se apagó la pantalla— sigue la misma.
+  const { data, error } = await supabase
+    .from("escuchas")
+    .upsert(
+      { clase_id: claseId, persona_id: sesion.user.id, aparato, termino_en: null },
+      { onConflict: "clase_id,aparato" },
+    )
+    .select("id")
+    .single();
+  reventar("No pude ponerte a oír la clase", error);
+  if (!data) throw new Error("No pude ponerte a oír la clase.");
+  return data.id;
+}
+
+export async function subirTramos(
+  claseId: string, escuchaId: string, tramos: readonly TramoOido[],
+): Promise<void> {
+  if (tramos.length === 0) return;
+  const { error } = await supabase.from("tramos_oidos").insert(
+    tramos.map((t) => ({
+      clase_id: claseId, escucha_id: escuchaId,
+      segundo: t.segundo, texto: t.texto, confianza: t.confianza,
+    })),
+  );
+  reventar("No pude guardar lo que oíste", error);
+}
+
+/** Cuántos aparatos están oyendo esta clase ahora. */
+export async function cuantosEscuchan(claseId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("escuchas")
+    .select("id", { count: "exact", head: true })
+    .eq("clase_id", claseId)
+    .is("termino_en", null);
+  reventar("No pude ver quién está oyendo", error);
+  return count ?? 0;
+}
+
+/** Todo lo que oyeron todos los aparatos, para cruzarlo. */
+export async function tramosDeLaClase(claseId: string): Promise<Tramo[]> {
+  const { data, error } = await supabase
+    .from("tramos_oidos")
+    .select("escucha_id, segundo, texto, confianza")
+    .eq("clase_id", claseId)
+    .order("segundo");
+  reventar("No pude juntar lo que oyó el curso", error);
+  return (data ?? []).map((t) => ({
+    aparato: t.escucha_id, segundo: t.segundo, texto: t.texto, confianza: t.confianza,
+  }));
+}
+
+/** Deja la clase escrita y borra los tramos sueltos. */
+export async function armarLaClase(
+  claseId: string, clase: readonly { segundo: number; texto: string }[],
+): Promise<void> {
+  const { error } = await supabase.rpc("armar_la_clase", {
+    p_clase: claseId, p_tramos: clase,
+  });
+  reventar("No pude armar la clase", error);
+}
+
+export async function claseEscrita(claseId: string): Promise<{ segundo: number; texto: string }[]> {
+  const { data, error } = await supabase
+    .from("transcripciones")
+    .select("segundo, texto")
+    .eq("clase_id", claseId)
+    .order("segundo");
+  reventar("No pude leer la clase", error);
+  return data ?? [];
+}
+
+export async function permitirEscucha(claseId: string, permitida: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("clases").update({ escucha_permitida: permitida }).eq("id", claseId);
+  reventar("No pude cambiar el permiso", error);
 }

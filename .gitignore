@@ -8,8 +8,14 @@ coverage/
 .capturas/
 
 # Los genera `expo prebuild`; no se versionan.
-android/
-ios/
+#
+# Con la ruta completa y no `android/` a secas: sin anclar, la regla casa con
+# cualquier carpeta de ese nombre a cualquier profundidad y se lleva por
+# delante las fuentes de los módulos nativos propios —`app/modules/voz/android`—,
+# que sí hay que versionar. Sin ellas la compilación no tiene qué compilar, y
+# nada avisa hasta que el APK sale sin la función.
+app/android/
+app/ios/
 
 # Lo genera `npm run importar`.
 datos/importado.sql

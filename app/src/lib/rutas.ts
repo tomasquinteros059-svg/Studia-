@@ -27,6 +27,8 @@ export type RutasPila = {
   /** El tono es el del ramo: la pantalla lo recibe hecho para no volver a pedirlo. */
   Quiz: { quizId: string; tono?: string };
   Fichas: { asignaturaId: string; tema: string; tono?: string };
+  /** El modo escucha de una clase presencial. */
+  Escucha: { claseId: string; titulo: string; asignaturaId: string };
   ClaseEnVivo: {
     titulo: string;
     asignatura: string;

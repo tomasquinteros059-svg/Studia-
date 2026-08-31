@@ -258,6 +258,95 @@ begin
 end $$;
 set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
 
+-- ── El modo escucha ──────────────────────────────────────────────────────
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+-- Por omisión ninguna clase se puede oír: el permiso lo da quien dicta.
+do $$
+declare c uuid;
+begin
+  select id into c from public.clases limit 1;
+  begin
+    insert into public.escuchas (clase_id, persona_id, aparato)
+    values (c, 'e0000000-0000-4000-8000-000000000001', 'tel-1');
+    raise exception 'FALLA · pude oír una clase sin permiso de quien la dicta';
+  exception when insufficient_privilege then
+    raise notice 'ok · sin permiso de quien dicta, nadie oye';
+  end;
+end $$;
+
+-- Con permiso, y siendo presencial, sí.
+set role postgres;
+update public.clases set presencial = true, escucha_permitida = true;
+set role authenticated;
+
+insert into public.escuchas (clase_id, persona_id, aparato)
+values ((select id from public.clases limit 1),
+        'e0000000-0000-4000-8000-000000000001', 'tel-1');
+select pg_temp.afirmar('con permiso puedo ponerme a oír',
+  (select count(*) from public.escuchas)::int, 1);
+
+-- Una clase por pantalla no se oye desde el aire: su audio ya pasa por la app.
+set role postgres;
+update public.clases set presencial = false;
+set role authenticated;
+do $$
+begin
+  insert into public.escuchas (clase_id, persona_id, aparato)
+  values ((select id from public.clases limit 1),
+          'e0000000-0000-4000-8000-000000000001', 'tel-2');
+  raise exception 'FALLA · pude oír una clase que no es presencial';
+exception when insufficient_privilege then
+  raise notice 'ok · una clase por pantalla no se oye desde la sala';
+end $$;
+set role postgres;
+update public.clases set presencial = true;
+set role authenticated;
+
+insert into public.tramos_oidos (clase_id, escucha_id, segundo, texto, confianza)
+values ((select id from public.clases limit 1),
+        (select id from public.escuchas limit 1), 12, 'el teorema del valor medio', 0.8);
+
+-- Los tramos crudos son treinta versiones a medio entender de lo mismo: cada
+-- quien ve los suyos, y lo que lee el curso es la clase ya armada.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('otro no lee lo que oyó mi aparato',
+  (select count(*) from public.tramos_oidos)::int, 0);
+
+do $$
+begin
+  insert into public.tramos_oidos (clase_id, escucha_id, segundo, texto)
+  values ((select id from public.clases limit 1),
+          (select id from public.escuchas limit 1), 30, 'texto ajeno');
+  raise exception 'FALLA · pude poner texto a nombre de otro aparato';
+exception when insufficient_privilege then
+  raise notice 'ok · no puedo escribir en la escucha de otro';
+end $$;
+
+-- La clase armada la escribe la función, no el cliente: si cualquiera pudiera
+-- escribir ahí, podría poner en boca de un profesor algo que no dijo y quedar
+-- como la versión oficial de la clase para todo el curso.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+do $$
+begin
+  insert into public.transcripciones (clase_id, segundo, texto)
+  values ((select id from public.clases limit 1), 0, 'la profesora dijo que no hay control');
+  raise exception 'FALLA · pude fabricar la clase oficial';
+exception when insufficient_privilege then
+  raise notice 'ok · el cliente no escribe la clase, la escribe la función';
+end $$;
+
+-- Y al armarla, los tramos crudos se van: son lo único que se parece a una
+-- grabación de la sala, y con la clase escrita ya no hacen falta.
+select public.armar_la_clase(
+  (select id from public.clases limit 1),
+  '[{"segundo":12,"texto":"el teorema del valor medio"}]'::jsonb);
+
+select pg_temp.afirmar('la clase queda escrita',
+  (select count(*) from public.transcripciones)::int, 1);
+select pg_temp.afirmar('y los tramos crudos se borran solos',
+  (select count(*) from public.tramos_oidos)::int, 0);
+
 -- La transcripción se lee, no se escribe desde el cliente.
 do $$
 begin

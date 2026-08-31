@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["cl.studia.voz.VozModule"]
+  }
+}

@@ -74,3 +74,13 @@ export const borrarQuiz = fuente.borrarQuiz;
 
 export const misFichas = fuente.misFichas;
 export const repasarFicha = fuente.repasarFicha;
+
+/* El modo escucha. El audio no pasa por acá: cada teléfono transcribe en el
+   propio aparato y lo que sube es el texto con su minuto y su confianza. */
+export const empezarAEscuchar = fuente.empezarAEscuchar;
+export const subirTramos = fuente.subirTramos;
+export const cuantosEscuchan = fuente.cuantosEscuchan;
+export const tramosDeLaClase = fuente.tramosDeLaClase;
+export const armarLaClase = fuente.armarLaClase;
+export const claseEscrita = fuente.claseEscrita;
+export const permitirEscucha = fuente.permitirEscucha;
