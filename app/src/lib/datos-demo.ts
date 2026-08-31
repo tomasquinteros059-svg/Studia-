@@ -17,7 +17,7 @@ import {
 import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
 import type { Tramo } from "../dominio/escucha.ts";
 import type {
-  Apunte, ApunteEnLista, Asignatura, BloqueHorario, TramoOido, Capitulo, Clase, EvaluacionConNota,
+  Apunte, ApunteEnLista, Asignatura, BloqueHorario, BloquePlan, TramoOido, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
   Ficha, Quiz, Registro, Respuesta, ResumenGuardado, SesionEstudio,
   TareaConEstado,
@@ -814,6 +814,8 @@ const _cobertura: Omit<typeof Real, "default"> = {
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
   moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
   misSesiones, crearSesion, marcarSesion, borrarSesion,
+  crearEvaluacion, cambiarPeso,
+  planDe, planificar, borrarDelPlan,
   empezarAEscuchar, subirTramos, cuantosEscuchan, tramosDeLaClase,
   armarLaClase, claseEscrita, permitirEscucha,
   misQuices, quizPorId, responderQuiz, borrarQuiz,
@@ -887,4 +889,55 @@ export async function permitirEscucha(claseId: string, permitida: boolean): Prom
   await respirar();
   const c = CLASES.find((x) => x.id === claseId);
   if (c) c.escucha_permitida = permitida;
+}
+
+/* ------------------------------------------------- registro de evaluaciones */
+
+export async function crearEvaluacion(
+  asignaturaId: string, titulo: string, peso: number,
+): Promise<void> {
+  await respirar();
+  const delRamo = EVALUACIONES[asignaturaId] ?? [];
+  EVALUACIONES[asignaturaId] = [
+    ...delRamo,
+    { id: nuevoId("ev"), titulo, peso, orden: delRamo.length + 1, nota: null },
+  ];
+}
+
+export async function cambiarPeso(evaluacionId: string, peso: number): Promise<void> {
+  await respirar();
+  for (const evs of Object.values(EVALUACIONES)) {
+    const ev = evs.find((e) => e.id === evaluacionId);
+    if (ev) { ev.peso = peso; return; }
+  }
+}
+
+/* ---------------------------------------------------- planificación mensual */
+
+const PLANES = new Map<string, BloquePlan[]>();
+
+export async function planDe(
+  asignaturaId: string, desde: string, hasta: string,
+): Promise<BloquePlan[]> {
+  await respirar();
+  return (PLANES.get(asignaturaId) ?? [])
+    .filter((b) => b.semana >= desde && b.semana <= hasta)
+    .map((b) => ({ ...b }));
+}
+
+export async function planificar(
+  asignaturaId: string, bloques: readonly Omit<BloquePlan, "id">[],
+): Promise<void> {
+  await respirar();
+  PLANES.set(asignaturaId, [
+    ...(PLANES.get(asignaturaId) ?? []),
+    ...bloques.map((b) => ({ ...b, id: nuevoId("pl") })),
+  ]);
+}
+
+export async function borrarDelPlan(bloqueId: string): Promise<void> {
+  await respirar();
+  for (const [ramo, bloques] of PLANES) {
+    PLANES.set(ramo, bloques.filter((b) => b.id !== bloqueId));
+  }
 }

@@ -50,7 +50,9 @@ export type RutasPila = {
 /** Lo que ve quien dicta un ramo. Es otra aplicación sobre los mismos datos. */
 export type RutasPestanasDocente = {
   Cursos: undefined;
-  Asistente: undefined;
+  Material: undefined;
+  /** Se puede llegar con una pregunta ya escrita, desde otra pantalla. */
+  Asistente: { pregunta?: string } | undefined;
   Horario: undefined;
   Perfil: undefined;
 };
@@ -58,6 +60,8 @@ export type RutasPestanasDocente = {
 export type RutasPilaDocente = {
   PrincipalDocente: NavigatorScreenParams<RutasPestanasDocente> | undefined;
   RamoDocente: { asignaturaId: string };
+  /** La misma pantalla de escucha que usa el curso: la clase es una sola. */
+  Escucha: { claseId: string; titulo: string; asignaturaId: string };
 };
 
 export type PropsPestanaDocente<T extends keyof RutasPestanasDocente> = CompositeScreenProps<

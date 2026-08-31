@@ -81,6 +81,17 @@ export type Clase = {
   escucha_permitida: boolean;
 };
 
+/** Un bloque de la planificación mensual de quien dicta. */
+export type BloquePlan = {
+  id: string;
+  /** El lunes de la semana, en ISO. */
+  semana: string;
+  titulo: string;
+  detalle: string;
+  modulo_id: string | null;
+  orden: number;
+};
+
 /** Un tramo tal como lo oyó un aparato, camino a la base. */
 export type TramoOido = {
   segundo: number;

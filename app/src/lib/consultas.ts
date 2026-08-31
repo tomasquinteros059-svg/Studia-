@@ -84,3 +84,12 @@ export const tramosDeLaClase = fuente.tramosDeLaClase;
 export const armarLaClase = fuente.armarLaClase;
 export const claseEscrita = fuente.claseEscrita;
 export const permitirEscucha = fuente.permitirEscucha;
+
+/* El registro del profesor: las evaluaciones y cuánto pesa cada una. */
+export const crearEvaluacion = fuente.crearEvaluacion;
+export const cambiarPeso = fuente.cambiarPeso;
+
+/* La planificación mensual de quien dicta. No la ve el curso. */
+export const planDe = fuente.planDe;
+export const planificar = fuente.planificar;
+export const borrarDelPlan = fuente.borrarDelPlan;

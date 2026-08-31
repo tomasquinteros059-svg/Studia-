@@ -4,7 +4,7 @@
 
 import { supabase } from "./supabase.ts";
 import type {
-  Apunte, ApunteEnLista, Asignatura, BloqueHorario, TramoOido, Capitulo, Clase, EvaluacionConNota,
+  Apunte, ApunteEnLista, Asignatura, BloqueHorario, BloquePlan, TramoOido, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, MensajeTutor, Modulo, Notificacion, Perfil,
   Ficha, Quiz, Registro, ResumenGuardado, Respuesta, SesionEstudio,
   TareaConEstado,
@@ -1005,4 +1005,74 @@ export async function permitirEscucha(claseId: string, permitida: boolean): Prom
   const { error } = await supabase
     .from("clases").update({ escucha_permitida: permitida }).eq("id", claseId);
   reventar("No pude cambiar el permiso", error);
+}
+
+// ------------------------------------------------------- registro de notas
+
+/**
+ * Crea una evaluación con su ponderación.
+ *
+ * El orden sale de cuántas hay: es el número que la evaluación ocupa en el
+ * semestre y la base lo exige único por ramo. Si dos personas crean una a la
+ * vez, la segunda choca contra esa restricción y se lo decimos, en vez de
+ * dejar dos «Control 3».
+ */
+export async function crearEvaluacion(
+  asignaturaId: string, titulo: string, peso: number,
+): Promise<void> {
+  const { count, error: contando } = await supabase
+    .from("evaluaciones")
+    .select("id", { count: "exact", head: true })
+    .eq("asignatura_id", asignaturaId);
+  reventar("No pude ver las evaluaciones que ya hay", contando);
+
+  const { error } = await supabase.from("evaluaciones").insert({
+    asignatura_id: asignaturaId, titulo, peso, orden: (count ?? 0) + 1,
+  });
+  reventar("No pude crear la evaluación", error);
+}
+
+export async function cambiarPeso(evaluacionId: string, peso: number): Promise<void> {
+  const { error } = await supabase.from("evaluaciones").update({ peso }).eq("id", evaluacionId);
+  reventar("No pude cambiar la ponderación", error);
+}
+
+// ------------------------------------------------------ planificación mensual
+
+/** Lo planificado en un rango de semanas. La aplicación manda siempre lunes. */
+export async function planDe(
+  asignaturaId: string, desde: string, hasta: string,
+): Promise<BloquePlan[]> {
+  const { data, error } = await supabase
+    .from("planificacion")
+    .select("id, semana, titulo, detalle, modulo_id, orden")
+    .eq("asignatura_id", asignaturaId)
+    .gte("semana", desde)
+    .lte("semana", hasta)
+    .order("semana")
+    .order("orden");
+  reventar("No pude cargar tu planificación", error);
+  return data ?? [];
+}
+
+export async function planificar(
+  asignaturaId: string, bloques: readonly Omit<BloquePlan, "id">[],
+): Promise<void> {
+  if (bloques.length === 0) return;
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) throw new Error("No hay sesión.");
+
+  const { error } = await supabase.from("planificacion").insert(
+    bloques.map((b) => ({
+      asignatura_id: asignaturaId, autor_id: sesion.user!.id,
+      semana: b.semana, titulo: b.titulo, detalle: b.detalle,
+      modulo_id: b.modulo_id, orden: b.orden,
+    })),
+  );
+  reventar("No pude guardar la planificación", error);
+}
+
+export async function borrarDelPlan(bloqueId: string): Promise<void> {
+  const { error } = await supabase.from("planificacion").delete().eq("id", bloqueId);
+  reventar("No pude sacarlo del plan", error);
 }

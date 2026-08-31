@@ -42,6 +42,7 @@ import InicioDocente from "./src/pantallas/docente/InicioDocente.tsx";
 import RamoDocente from "./src/pantallas/docente/RamoDocente.tsx";
 import PerfilDocente from "./src/pantallas/docente/PerfilDocente.tsx";
 import Asistente from "./src/pantallas/docente/Asistente.tsx";
+import MaterialDocente from "./src/pantallas/docente/MaterialDocente.tsx";
 import InicioAdmin from "./src/pantallas/admin/InicioAdmin.tsx";
 import { usarQuienSoy } from "./src/lib/quien-soy.ts";
 import { Icono } from "./src/ui/Icono.tsx";
@@ -76,7 +77,8 @@ function Principal() {
 }
 
 const ICONO_DOCENTE = {
-  Cursos: "documento", Asistente: "tutor", Horario: "horario", Perfil: "persona",
+  Cursos: "documento", Material: "ejercicios", Asistente: "tutor",
+  Horario: "horario", Perfil: "persona",
 } as const;
 
 /** Las pestañas de quien dicta. Otra aplicación sobre los mismos datos. */
@@ -91,6 +93,7 @@ function PrincipalDocente() {
       })}
     >
       <PestanasDocente.Screen name="Cursos" component={InicioDocente} />
+      <PestanasDocente.Screen name="Material" component={MaterialDocente} />
       <PestanasDocente.Screen name="Asistente" component={Asistente} />
       <PestanasDocente.Screen name="Horario" component={Horario} />
       <PestanasDocente.Screen name="Perfil" component={PerfilDocente} />
@@ -104,6 +107,7 @@ function AppDocente() {
       <PilaDocente.Screen name="PrincipalDocente" component={PrincipalDocente}
         options={{ headerShown: false }} />
       <PilaDocente.Screen name="RamoDocente" component={RamoDocente} options={{ title: "Curso" }} />
+      <PilaDocente.Screen name="Escucha" component={Escucha} options={{ title: "Modo escucha" }} />
     </PilaDocente.Navigator>
   );
 }
@@ -181,7 +185,9 @@ export default function App() {
 }
 
 const ICONO_ADMIN = {
-  Cursos: "horario", Asistente: "tutor", Horario: "documento", Perfil: "persona",
+  // La administración no tiene pestaña de material: no dicta ramos.
+  Cursos: "horario", Material: "ejercicios", Asistente: "tutor",
+  Horario: "documento", Perfil: "persona",
 } as const;
 
 /** Las pestañas del colegio. */

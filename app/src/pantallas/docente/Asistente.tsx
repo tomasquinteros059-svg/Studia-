@@ -9,6 +9,7 @@ import {
   avanceDe, cursoDe, entregasDe, evaluacionesDe, misAsignaturas, misTareas, notasDe,
 } from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
+import type { PropsPestanaDocente } from "../../lib/rutas.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
 import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import { MODO_DEMO } from "../../lib/config.ts";
@@ -24,7 +25,12 @@ type Burbuja = { mia: boolean; texto: string; filas?: string[] };
  * encuentre; a un docente se le da derecho, porque su problema no es aprender
  * sino no perder media hora cruzando planillas.
  */
-export default function Asistente() {
+export default function Asistente({ route }: PropsPestanaDocente<"Asistente">) {
+  // Se puede llegar acá con una pregunta ya escrita —desde el plan del mes,
+  // por ejemplo—. Va al borrador y no se manda sola: quien pregunta tiene que
+  // poder leerla y corregirla antes, sobre todo cuando trae un plan entero
+  // adentro.
+  const traida = route.params?.pregunta;
   const { yo } = usarQuienSoy();
   const { anchoContenido } = usarDisposicion();
   const dicta = yo?.dicta ?? [];
@@ -58,7 +64,7 @@ export default function Asistente() {
   const { datos, cargando } = usarCarga(traer, [dicta.join(",")]);
 
   const [burbujas, setBurbujas] = useState<Burbuja[]>([]);
-  const [borrador, setBorrador] = useState("");
+  const [borrador, setBorrador] = useState(traida ?? "");
   const [pensando, setPensando] = useState(false);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
