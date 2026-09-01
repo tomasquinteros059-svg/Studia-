@@ -37,6 +37,7 @@ export const ENTREGAS: Record<string, EntregaDeCurso[]> = {
     estudiante: a.nombre,
     entregado_en: enDias(-1 - (i % 3)),
     puntos_obtenidos: PUNTAJES[i] ?? null,
+    archivo: null,
   })),
   t2: (CURSO.cal ?? []).map((a, i) => ({
     id: `en2-${a.id}`,
@@ -45,6 +46,7 @@ export const ENTREGAS: Record<string, EntregaDeCurso[]> = {
     estudiante: a.nombre,
     entregado_en: enDias(-7),
     puntos_obtenidos: 30 - ((i * 7) % 14),
+    archivo: null,
   })),
 };
 

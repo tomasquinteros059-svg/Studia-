@@ -11,6 +11,8 @@ export type EntregaDeCurso = {
   estudiante: string;
   entregado_en: string | null;
   puntos_obtenidos: number | null;
+  /** La ruta de lo que entregó, si adjuntó algo. Se firma para abrirla. */
+  archivo: string | null;
 };
 
 export type NotaDeCurso = {

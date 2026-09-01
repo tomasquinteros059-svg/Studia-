@@ -81,6 +81,8 @@ PIEZAS = {
         ("Ver lo entregado", "Ver lo que entregué"),
         ("Profesor · cargar material", "Lo que subas acá lo ve tu curso"),
         ("Material · elegir la unidad", "¿En qué unidad va?"),
+        ("Profesor · abrir la entrega", "Ver lo que entregó"),
+        ("Profesor · entrega sin archivo", "Entregó sin adjuntar ningún archivo."),
     ],
 }
 

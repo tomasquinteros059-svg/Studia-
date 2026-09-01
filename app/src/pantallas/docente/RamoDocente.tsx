@@ -27,6 +27,8 @@ import {
 } from "../../dominio/registro.ts";
 import type { PropsPilaDocente } from "../../lib/rutas.ts";
 import { crearMaterial, moduloParaMaterial } from "../../lib/consultas.ts";
+import * as WebBrowser from "expo-web-browser";
+import { direccionFirmada } from "../../lib/archivos.ts";
 
 const SECCIONES = ["Tareas", "Notas", "Registro", "Plan", "Material", "Curso"] as const;
 type Seccion = (typeof SECCIONES)[number];
@@ -389,6 +391,20 @@ function Histograma({ filas, tono }: { filas: NotaDeCurso[]; tono: string }) {
   );
 }
 
+/** Abre lo que entregó un alumno, con una dirección firmada que vence. */
+async function abrirEntrega(ruta: string | null) {
+  const donde = await direccionFirmada(ruta);
+  if (!donde) {
+    Alert.alert("No pude abrirlo", "El archivo ya no está disponible.");
+    return;
+  }
+  try {
+    await WebBrowser.openBrowserAsync(donde);
+  } catch {
+    Alert.alert("No pude abrirlo", "Tu teléfono no encontró con qué abrirlo.");
+  }
+}
+
 function Corregir({
   abierto, cerrar, guardar,
 }: {
@@ -412,6 +428,20 @@ function Corregir({
         <Text style={tipo.detalle}>
           {abierto.entrega.entregado_en ? `Entregó el ${fechaCorta(abierto.entrega.entregado_en)}` : ""}
         </Text>
+
+        {/* Corregir sin poder leer lo que se entregó es poner un número a
+            ciegas. Lo que se abre es una dirección firmada que vence: el
+            archivo no queda accesible a quien tenga el enlace. */}
+        {abierto.entrega.archivo ? (
+          <Pressable accessibilityRole="button" style={e.verEntrega}
+            accessibilityLabel={`Ver lo que entregó ${abierto.entrega.estudiante}`}
+            onPress={() => void abrirEntrega(abierto.entrega.archivo)}>
+            <Icono nombre="documento" tamano={18} tono={color.marca} />
+            <Text style={e.verEntregaTexto}>Ver lo que entregó</Text>
+          </Pressable>
+        ) : (
+          <Text style={tipo.detalle}>Entregó sin adjuntar ningún archivo.</Text>
+        )}
 
         <View style={e.campoFila}>
           <TextInput
@@ -717,6 +747,12 @@ const e = StyleSheet.create({
   tareaTitulo: { flex: 1, fontSize: 16, fontWeight: "600", color: color.texto },
   aviso: { fontSize: 13, fontWeight: "600", paddingVertical: 6 },
   corregir: { fontSize: 13, fontWeight: "700", color: color.marca },
+  verEntrega: {
+    flexDirection: "row", alignItems: "center", gap: espacio.s,
+    borderWidth: 1, borderColor: color.borde, borderRadius: radio.boton,
+    paddingVertical: 12, paddingHorizontal: espacio.m, marginTop: espacio.s,
+  },
+  verEntregaTexto: { fontSize: 15, fontWeight: "600", color: color.marca },
 
   riel: { height: 5, borderRadius: 3, backgroundColor: color.elemento, marginVertical: 5, overflow: "hidden" },
   avance: { height: 5, borderRadius: 3 },

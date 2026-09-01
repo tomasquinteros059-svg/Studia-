@@ -490,7 +490,7 @@ export async function entregasDe(
 ): Promise<EntregaDeCurso[]> {
   const { data, error } = await supabase
     .from("entregas")
-    .select("id, tarea_id, estudiante_id, entregado_en, puntos_obtenidos")
+    .select("id, tarea_id, estudiante_id, entregado_en, puntos_obtenidos, archivo_url")
     .eq("tarea_id", tareaId);
   reventar("No pude cargar las entregas", error);
 
@@ -502,6 +502,7 @@ export async function entregasDe(
     estudiante: nombres.get(e.estudiante_id) ?? "Sin nombre",
     entregado_en: e.entregado_en,
     puntos_obtenidos: e.puntos_obtenidos,
+    archivo: e.archivo_url ?? null,
   }));
 }
 

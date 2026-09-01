@@ -31,6 +31,15 @@ test("un nombre larguísimo se corta y no queda empezando en guion", () => {
 test("la carpeta es lo que mira el permiso", () => {
   assert.equal(carpetaDe({ tipo: "yo", personaId: "p-1" }), "yo/p-1");
   assert.equal(carpetaDe({ tipo: "ramo", asignaturaId: "r-9" }), "ramo/r-9");
+  assert.equal(carpetaDe({ tipo: "entrega", tareaId: "t-3" }), "entrega/t-3");
+});
+
+// Una entrega no va al espacio propio aunque la suba un alumno: ahí quedaría
+// fuera del alcance de quien tiene que corregirla, que es para lo que existe.
+test("una entrega tiene su propia carpeta, distinta de la del alumno", () => {
+  const entrega = rutaPara({ tipo: "entrega", tareaId: "t-3" }, "guia.pdf", "u");
+  assert.match(entrega, /^entrega\/t-3\//);
+  assert.ok(!entrega.startsWith("yo/"));
 });
 
 // Subir dos veces el mismo archivo tiene que dar dos archivos, no uno pisando

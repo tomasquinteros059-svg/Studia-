@@ -14,6 +14,10 @@ jest.mock("../../lib/consultas.ts", () => ({
 
 // El modal de material es el mismo del espacio propio, y trae el
 // almacenamiento consigo.
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(() => Promise.resolve({ type: "opened" })),
+}));
+
 jest.mock("../../lib/archivos.ts", () => ({
   sePuedeElegirArchivo: true,
   HAY_ALMACENAMIENTO: true,
@@ -31,9 +35,10 @@ const curso = [
 
 const entregas = [
   { id: "en1", tarea_id: "t-1", estudiante_id: "a1", estudiante: "Eduardo Q.",
-    entregado_en: "2026-08-20T10:00:00Z", puntos_obtenidos: null },
+    entregado_en: "2026-08-20T10:00:00Z", puntos_obtenidos: null,
+    archivo: "entrega/t-1/uuu-guia-4.pdf" },
   { id: "en2", tarea_id: "t-1", estudiante_id: "a2", estudiante: "Josefa Pérez",
-    entregado_en: "2026-08-19T10:00:00Z", puntos_obtenidos: 18 },
+    entregado_en: "2026-08-19T10:00:00Z", puntos_obtenidos: 18, archivo: null },
 ];
 
 const notas = [
@@ -57,11 +62,13 @@ jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
 
 import * as consultas from "../../lib/consultas.ts";
 import * as archivos from "../../lib/archivos.ts";
+import * as WebBrowser from "expo-web-browser";
 import RamoDocente from "./RamoDocente.tsx";
 import { semanasDelMes } from "../../dominio/planificacion.ts";
 
 const mock = consultas as jest.Mocked<typeof consultas>;
 const mockA = archivos as jest.Mocked<typeof archivos>;
+const mockNav = WebBrowser as jest.Mocked<typeof WebBrowser>;
 const ARCHIVO = {
   nombre: "guia-4.pdf", mime: "application/pdf", tamano: 120_000, uri: "file:///guia-4.pdf",
 };
@@ -486,5 +493,57 @@ describe("cargar material del ramo", () => {
       expect.objectContaining({ moduloId: "u-2", url: "ramo/r-cal/uuu-guia-4.pdf" })));
     // La unidad la eligió la pantalla: no hizo falta preguntarle a los datos.
     expect(mockD.moduloParaMaterial).not.toHaveBeenCalled();
+  });
+});
+
+describe("corregir una entrega", () => {
+  beforeEach(() => { jest.spyOn(Alert, "alert").mockImplementation(() => undefined); });
+
+  /**
+   * Quien entregó en papel o en clase: sin corregir y sin archivo.
+   *
+   * Va acá y no en el doble compartido porque sumar una entrega le cambia las
+   * cuentas —«17 de 20 entregaron»— a las pruebas que las revisan.
+   */
+  const sinArchivo = () => {
+    mockD.entregasDe.mockResolvedValue([...entregas, {
+      id: "en3", tarea_id: "t-1", estudiante_id: "a3", estudiante: "Diego Aravena",
+      entregado_en: "2026-08-21T10:00:00Z", puntos_obtenidos: null, archivo: null,
+    }] as never);
+  };
+
+  const abrirCorreccion = async (quien: string) => {
+    const t = await abrir();
+    await act(async () => { fireEvent.press(t.getByText(quien)); });
+    return t;
+  };
+
+  // Corregir sin poder leer lo que se entregó es poner un número a ciegas.
+  test("deja abrir lo que entregó el alumno", async () => {
+    mockA.direccionFirmada.mockResolvedValue("https://firmada.example/guia-4.pdf" as never);
+    const t = await abrirCorreccion("Eduardo Q.");
+
+    await act(async () => { fireEvent.press(t.getByText("Ver lo que entregó")); });
+
+    await waitFor(() => expect(mockA.direccionFirmada)
+      .toHaveBeenCalledWith("entrega/t-1/uuu-guia-4.pdf"));
+    await waitFor(() => expect(mockNav.openBrowserAsync)
+      .toHaveBeenCalledWith("https://firmada.example/guia-4.pdf"));
+  });
+
+  test("si entregó sin adjuntar nada, lo dice en vez de ofrecer un botón muerto", async () => {
+    sinArchivo();
+    const t = await abrirCorreccion("Diego Aravena");
+    expect(t.getByText("Entregó sin adjuntar ningún archivo.")).toBeTruthy();
+    expect(t.queryByText("Ver lo que entregó")).toBeNull();
+  });
+
+  test("si el archivo ya no está, se dice", async () => {
+    mockA.direccionFirmada.mockResolvedValue(null as never);
+    const t = await abrirCorreccion("Eduardo Q.");
+    await act(async () => { fireEvent.press(t.getByText("Ver lo que entregó")); });
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
+      "No pude abrirlo", "El archivo ya no está disponible."));
   });
 });

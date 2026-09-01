@@ -76,8 +76,10 @@ describe("entregar una tarea", () => {
     await act(async () => { fireEvent.press(t.getByText("Entregar tarea")); });
     await confirmar();
 
+    // A la carpeta de la tarea y no al espacio propio: en «yo/» solo la vería
+    // quien la subió, y una entrega existe para que la lea quien corrige.
     await waitFor(() => expect(mockA.subir).toHaveBeenCalledWith(
-      ARCHIVO, { tipo: "yo", personaId: "p-1" }));
+      ARCHIVO, { tipo: "entrega", tareaId: "t1" }));
     expect(mock.entregarTarea).toHaveBeenCalledWith("t1", "yo/p-1/uuu-guia-4.pdf");
   });
 

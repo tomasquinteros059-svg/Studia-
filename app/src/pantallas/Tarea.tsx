@@ -7,7 +7,7 @@ import { color, espacio, fechaYHora, radio, tipo } from "../ui/tema.ts";
 import { entregarTarea, tareaPorId } from "../lib/consultas.ts";
 import {
   AVISO_SIN_ALMACENAMIENTO, HAY_ALMACENAMIENTO, direccionFirmada, elegirArchivo,
-  miEspacio, sePuedeElegirArchivo, subir, type AdjuntoElegido,
+  sePuedeElegirArchivo, subir, type AdjuntoElegido,
 } from "../lib/archivos.ts";
 import { detalleDe, revisar } from "../dominio/adjuntos.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
@@ -64,11 +64,11 @@ export default function Tarea({ route, navigation }: PropsPila<"Tarea">) {
             try {
               let ruta: string | undefined;
               if (conArchivo) {
-                // Al espacio propio: una entrega es de quien la hace, y el
-                // curso no tiene por qué poder abrirla.
-                const donde = await miEspacio();
-                if (!donde) { setAviso("Tu sesión venció. Vuelve a entrar."); return; }
-                const r = await subir(adjunto!, donde);
+                // A la carpeta de la tarea, no al espacio propio. Una entrega
+                // existe para que la lea quien corrige, y en «yo/» solo la
+                // vería quien la subió. Tampoco va a la del ramo: lo que uno
+                // entrega no es material de clase y el curso no lo ve.
+                const r = await subir(adjunto!, { tipo: "entrega", tareaId: tarea.id });
                 // Si el archivo no subió, la entrega no se registra: dejarla
                 // como entregada sin lo que se entregaba es peor que no
                 // entregarla, porque nadie se entera hasta la corrección.

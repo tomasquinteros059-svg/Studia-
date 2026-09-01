@@ -14,7 +14,16 @@ export type Destino =
   /** El espacio propio de una persona: lo suyo, que no ve nadie más. */
   | { tipo: "yo"; personaId: string }
   /** El material de un ramo: lo ve el curso, lo sube quien lo dicta. */
-  | { tipo: "ramo"; asignaturaId: string };
+  | { tipo: "ramo"; asignaturaId: string }
+  /**
+   * Lo que se entrega en una tarea.
+   *
+   * Es su propia forma y no el espacio propio, aunque lo suba un alumno: una
+   * entrega existe para que la lea quien corrige. Guardarla en «yo/» la
+   * dejaría fuera del alcance del profesor, que es justamente la única
+   * persona que además del alumno tiene que poder abrirla.
+   */
+  | { tipo: "entrega"; tareaId: string };
 
 /**
  * El nombre del archivo, dejado en algo que un almacenamiento acepte.
@@ -40,7 +49,11 @@ export function nombreSeguro(nombre: string): string {
 
 /** La carpeta que mira la política de acceso. */
 export function carpetaDe(destino: Destino): string {
-  return destino.tipo === "yo" ? `yo/${destino.personaId}` : `ramo/${destino.asignaturaId}`;
+  switch (destino.tipo) {
+    case "yo": return `yo/${destino.personaId}`;
+    case "ramo": return `ramo/${destino.asignaturaId}`;
+    case "entrega": return `entrega/${destino.tareaId}`;
+  }
 }
 
 /**

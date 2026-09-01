@@ -94,5 +94,58 @@ select pg_temp.afirmar('el otro ve lo suyo y nada más',
 select pg_temp.afirmar('y no ve el material de un ramo en que no está',
   (select count(*) from storage.objects where name like 'ramo/%')::int, 0);
 
+-- ─────────────────────── lo que se entrega en una tarea ───────────────────
+--
+-- Es el caso con dos lectores y no uno: quien la hizo y quien la corrige. Que
+-- ninguno de los dos sobre, y que no haya un tercero.
+reset role;
+
+create or replace function pg_temp.una_tarea() returns uuid
+  language sql stable security definer set search_path = public
+  as $$ select id from public.tareas order by vence_en limit 1 $$;
+
+-- Un docente que dicta el ramo de esa tarea. Se crea acá y no se busca en el
+-- seed: una prueba que se salta cuando no encuentra a nadie no prueba nada, y
+-- justo el caso que se saltaba era el que importa.
+\set PROFE 'e0000000-0000-4000-8000-00000000000a'
+insert into auth.users (id, email, raw_user_meta_data)
+values (:'PROFE', 'profe@studia.cl', '{"nombre":"Quien Corrige"}'::jsonb);
+update public.perfiles set rol = 'profesor' where id = :'PROFE';
+insert into public.dictados (docente_id, asignatura_id, papel)
+  select :'PROFE', t.asignatura_id, 'profesor'
+  from public.tareas t where t.id = pg_temp.una_tarea();
+
+insert into storage.objects (bucket_id, name, owner)
+  select 'material', 'entrega/' || pg_temp.una_tarea() || '/ggg-mi-entrega.pdf', :'EDUARDO';
+
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+select pg_temp.afirmar('quien la entregó la ve',
+  (select count(*) from storage.objects where name like 'entrega/%')::int, 1);
+
+-- El otro estudiante está en el mismo curso y no tiene por qué ver la entrega
+-- de un compañero: lo que uno entrega no es material de clase.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('un compañero no la ve',
+  (select count(*) from storage.objects where name like 'entrega/%')::int, 0);
+
+set pruebas.uid = 'e0000000-0000-4000-8000-00000000000a';
+select pg_temp.afirmar('quien corrige sí la ve',
+  (select count(*) from storage.objects where name like 'entrega/%')::int, 1);
+
+-- Leer sí; reescribir lo que entregó otro, no.
+do $$
+declare paso boolean := false;
+begin
+  begin
+    delete from storage.objects where name like 'entrega/%';
+    -- Sin política de borrado que lo permita, el delete no borra nada en vez
+    -- de fallar: se comprueba que la fila siga ahí.
+    paso := exists (select 1 from storage.objects where name like 'entrega/%');
+  exception when insufficient_privilege then paso := true;
+  end;
+  perform pg_temp.afirmar('quien corrige no puede borrar la entrega', paso, true);
+end $$;
+
 reset role;
 select '— también pasaron las pruebas del almacenamiento —' as resultado;
