@@ -14,11 +14,10 @@ import type { PropsPestanaDocente } from "../../lib/rutas.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
 import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import { MODO_DEMO } from "../../lib/config.ts";
-import {
-  SUGERENCIAS, responder, type CursoParaElAsistente, type Respuesta,
-} from "../../dominio/asistente-demo.ts";
+import { SUGERENCIAS, type CursoParaElAsistente } from "../../dominio/asistente-demo.ts";
+import { preguntarAlAsistente, type Turno } from "../../lib/asistente.ts";
 
-type Burbuja = { mia: boolean; texto: string; filas?: string[] };
+type Burbuja = { mia: boolean; texto: string; filas?: string[]; falla?: boolean };
 
 /**
  * El asistente del docente. Es el reverso del tutor del alumno: a un
@@ -36,7 +35,12 @@ export default function Asistente({ route }: PropsPestanaDocente<"Asistente">) {
   const { anchoContenido } = usarDisposicion();
   const dicta = yo?.dicta ?? [];
 
+  // Conectado, los datos los busca la función con el token de quien pregunta.
+  // Traerlos igual acá serían decenas de consultas —el curso, las tareas, las
+  // entregas de cada tarea, las notas de cada evaluación, de cada ramo— para
+  // dejarlas sin usar. Se piden solo cuando contesta el aparato.
   const traer = useCallback(async (): Promise<CursoParaElAsistente[]> => {
+    if (!MODO_DEMO) return [];
     const asignaturas = await misAsignaturas();
     const mios = asignaturas.filter((a) => dicta.includes(a.id));
 
@@ -82,22 +86,38 @@ export default function Asistente({ route }: PropsPestanaDocente<"Asistente">) {
 
   const preguntar = useCallback((texto: string) => {
     const pregunta = texto.trim();
-    if (!pregunta || pensando || !datos) return;
+    if (!pregunta || pensando) return;
+
+    // La conversación que ya está en pantalla es la que viaja como contexto,
+    // y se arma antes de agregar la pregunta nueva: el servidor la agrega él.
+    const turnos: Turno[] = burbujas.map((b) => ({
+      role: b.mia ? "user" : "assistant", content: b.texto,
+    }));
 
     setBorrador("");
     setBurbujas((b) => [...b, { mia: true, texto: pregunta }]);
     setPensando(true);
 
-    // En demostración la respuesta se calcula acá mismo. Con el servidor
-    // conectado esta llamada va a la función `asistente`, que le pregunta a
-    // Claude y además puede buscar en internet.
-    setTimeout(() => {
-      const r: Respuesta = responder(pregunta, datos);
-      setBurbujas((b) => [...b, { mia: false, texto: r.texto, filas: r.filas }]);
-      setPensando(false);
-      setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60);
-    }, 350);
-  }, [datos, pensando]);
+    const alFinal = () => setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60);
+
+    preguntarAlAsistente({ pregunta, turnos, cursos: datos ?? [] })
+      .then((r) => {
+        setBurbujas((b) => [...b, { mia: false, texto: r.texto, filas: r.filas }]);
+      })
+      .catch((e: unknown) => {
+        // El error se dice en la conversación y no en una alerta: la pregunta
+        // sigue ahí arriba, y así se ve a cuál de ellas no se pudo contestar.
+        setBurbujas((b) => [...b, {
+          mia: false,
+          texto: e instanceof Error ? e.message : "El asistente no está disponible en este momento.",
+          falla: true,
+        }]);
+      })
+      .finally(() => {
+        setPensando(false);
+        alFinal();
+      });
+  }, [burbujas, datos, pensando]);
 
   if (cargando) {
     return (
@@ -141,8 +161,8 @@ export default function Asistente({ route }: PropsPestanaDocente<"Asistente">) {
         ) : null}
 
         {burbujas.map((b, i) => (
-          <View key={i} style={[e.burbuja, b.mia ? e.mia : e.suya]}>
-            <Text style={[e.texto, b.mia ? e.textoMio : null]}>{b.texto}</Text>
+          <View key={i} style={[e.burbuja, b.mia ? e.mia : e.suya, b.falla ? e.rota : null]}>
+            <Text style={[e.texto, b.mia ? e.textoMio : null, b.falla ? e.textoRoto : null]}>{b.texto}</Text>
             {b.filas && b.filas.length > 0 ? (
               <View style={e.filas}>
                 {b.filas.map((f, j) => (
@@ -186,6 +206,8 @@ export default function Asistente({ route }: PropsPestanaDocente<"Asistente">) {
 
 const e = StyleSheet.create({
   centrado: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.fondo },
+  rota: { backgroundColor: tenue(color.vivo), borderColor: color.vivo },
+  textoRoto: { color: color.vivo },
   hilo: { padding: espacio.m, gap: espacio.s, width: "100%", alignSelf: "center" },
 
   bienvenida: { alignItems: "flex-start", gap: espacio.s, paddingVertical: espacio.l },
