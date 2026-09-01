@@ -68,6 +68,24 @@ Para comprobar que quedó: en el panel de Supabase, **Table Editor** tiene que
 mostrar `perfiles`, `asignaturas`, `tareas`, `aparatos`, `errores` y unas
 veinte más.
 
+### Sin consola, desde una tablet
+
+`db push` necesita un computador con la consola de Supabase instalada. Si no lo
+tienes a mano, el panel sirve igual: **SQL Editor → New query**, pegar todo el
+contenido de `supabase/todo-de-una-vez.sql` y **Run**.
+
+Ese archivo son las mismas migraciones concatenadas en orden, y lo genera:
+
+```bash
+npm run juntar-migraciones
+```
+
+Supabase corre el texto entero como una sola operación, así que si una línea
+falla deshace las anteriores y la base queda como estaba: no hay manera de
+dejarla a medio armar. Al final el archivo anota las migraciones como aplicadas
+en `supabase_migrations.schema_migrations`, para que un `db push` posterior
+desde un computador no intente repetirlas.
+
 ---
 
 ## 3 · Desplegar las funciones del servidor

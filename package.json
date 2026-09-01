@@ -10,7 +10,7 @@
     "tipos": "npm --prefix app run tipos",
     "test": "npm run prueba",
     "prueba:ui": "npm --prefix app run prueba:ui",
-    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run prueba:legales && npm run prueba:licencias && npm run tipos && npm run prueba:paquete && npm run prueba:bd && npm run prueba:importar",
+    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run prueba:legales && npm run prueba:licencias && npm run tipos && npm run prueba:paquete && npm run prueba:bd && npm run prueba:importar && npm run prueba:migraciones-juntas",
     "prueba:paquete": "npm --prefix app run paquete",
     "prueba:importar": "./supabase/pruebas/importar.sh",
     "prueba:paquete-android": "npm --prefix app run paquete:android && python3 herramientas/auditar-paquete.py",
@@ -20,7 +20,9 @@
     "prueba:legales": "node --experimental-strip-types herramientas/legales.mjs --revisar",
     "prueba:licencias": "node herramientas/licencias.mjs --revisar",
     "icono": "python3 herramientas/icono.py",
-    "comprobar-servidor": "node herramientas/comprobar-servidor.mjs"
+    "comprobar-servidor": "node herramientas/comprobar-servidor.mjs",
+    "juntar-migraciones": "node herramientas/juntar-migraciones.mjs",
+    "prueba:migraciones-juntas": "node herramientas/juntar-migraciones.mjs --revisar"
   },
   "engines": {
     "node": ">=22.6"
