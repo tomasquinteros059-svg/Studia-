@@ -218,6 +218,42 @@ select cron.schedule('limpiar-errores', '0 4 * * *',
 
 ---
 
+## Sobre iOS
+
+Nunca se ha compilado, y **hace falta un Mac**: no es una limitación de Expo
+sino de Apple, que solo firma desde macOS. Lo que sí está listo es todo lo que
+se puede dejar hecho de antemano.
+
+```bash
+npx expo prebuild --platform ios
+cd ios && pod install
+open StudIA.xcworkspace
+```
+
+Lo que ya está resuelto para que el primer intento no se caiga por algo tonto:
+
+- El ícono, la pantalla de arranque y el esquema `studia://`, que es el que usa
+  el enlace de recuperar la clave.
+- El permiso de micrófono, con su texto en castellano. Apple rechaza una app
+  que pida un permiso sin explicar para qué.
+- **`ITSAppUsesNonExemptEncryption` en falso.** Sin esto, Apple pregunta en cada
+  subida si la app usa cifrado no exento y la compilación no le llega a nadie
+  hasta que alguien conteste. StudIA solo usa HTTPS, que es de lo exento.
+- **El número de compilación**, que ahora se numera junto con el de Android. La
+  App Store rechaza una subida cuyo número no sea mayor que el anterior, y
+  descubrirlo en el momento del rechazo es tarde.
+
+Dos cosas que hay que saber antes de mandarla a revisión:
+
+- **El modo escucha no funciona en iOS.** El módulo que transcribe está escrito
+  para Android. La aplicación no se cae: la pantalla dice que este aparato no
+  puede dictar. Escribir la versión de iOS es un trabajo aparte.
+- **Apple va a preguntar por el audio en segundo plano.** La app lo declara
+  para poder seguir reproduciendo una clase grabada con la pantalla apagada,
+  que es un uso legítimo y hay que saber explicarlo en la revisión.
+
+---
+
 ## Comprobar que quedó todo bien
 
 ```bash

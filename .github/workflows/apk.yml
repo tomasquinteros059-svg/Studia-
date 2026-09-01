@@ -150,16 +150,23 @@ jobs:
             exit 1
           fi
 
-          # Va en dos lugares y no es duplicación: `android.versionCode` es lo
-          # que Android mira para dejar instalar encima, y `extra.compilacion`
-          # es lo que la app puede leer para mostrarlo —el bloque `android` no
-          # llega a la configuración en todas las plataformas—.
+          # Va en tres lugares y no es duplicación: `android.versionCode` es lo
+          # que Android mira para dejar instalar encima, `ios.buildNumber` es
+          # lo mismo para la App Store —que rechaza una subida cuyo número no
+          # sea mayor que el anterior— y `extra.compilacion` es lo que la app
+          # puede leer para mostrarlo, porque los bloques `android` e `ios` no
+          # llegan a la configuración en todas las plataformas.
+          #
+          # iOS se numera acá aunque este flujo no lo compile: el día que
+          # alguien lo compile desde un Mac, lo va a hacer con este app.json, y
+          # descubrir el número en el momento del rechazo es tarde.
           node -e '
             const fs = require("fs");
             const ruta = "app/app.json";
             const c = JSON.parse(fs.readFileSync(ruta, "utf8"));
             const codigo = Number(process.argv[1]);
             c.expo.android.versionCode = codigo;
+            c.expo.ios = { ...c.expo.ios, buildNumber: String(codigo) };
             c.expo.extra = { ...c.expo.extra, compilacion: codigo };
             fs.writeFileSync(ruta, JSON.stringify(c, null, 2) + "\n");
           ' "$codigo"
