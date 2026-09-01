@@ -64,8 +64,8 @@ export const CLASE_GRABADA = {
 export const MODULO = {
   id: "m-1", titulo: "1 · Límites", orden: 1,
   materiales: [
-    { id: "mat-1", tipo: "video" as const, titulo: "Idea de límite", detalle: "Video · 14 min", orden: 1, completado: true, leible: false },
-    { id: "mat-2", tipo: "documento" as const, titulo: "Apunte de límites", detalle: "Lectura · 4 min", orden: 2, completado: false, leible: true },
+    { id: "mat-1", tipo: "video" as const, titulo: "Idea de límite", detalle: "Video · 14 min", orden: 1, completado: true, leible: false, archivo: null },
+    { id: "mat-2", tipo: "documento" as const, titulo: "Apunte de límites", detalle: "Lectura · 4 min", orden: 2, completado: false, leible: true, archivo: null },
   ],
 };
 

@@ -1,4 +1,5 @@
 import { act, fireEvent, waitFor } from "@testing-library/react-native";
+import { Alert } from "react-native";
 import {
   CLASE_GRABADA, CLASE_VIVA, EVALUACIONES, HILO, MODULO, RAMO, RAMO_PROPIO,
   TAREA_PENDIENTE, APUNTE, BLOQUE, renderConNavegador, renderPantalla,
@@ -18,6 +19,12 @@ jest.mock("../lib/archivos.ts", () => ({
   AVISO_SIN_ALMACENAMIENTO: "Todavía no hay almacenamiento conectado.",
   elegirArchivo: jest.fn(),
   subir: jest.fn(),
+  miEspacio: jest.fn(),
+  direccionFirmada: jest.fn(),
+}));
+
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(() => Promise.resolve({ type: "opened" })),
 }));
 
 const anchoFalso = { valor: { width: 750, height: 1334, scale: 2, fontScale: 1 } };
@@ -27,7 +34,12 @@ jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
 }));
 
 import * as consultas from "../lib/consultas.ts";
+import * as archivos from "../lib/archivos.ts";
+import * as WebBrowser from "expo-web-browser";
 import Asignatura from "./Asignatura.tsx";
+
+const mockArchivos = archivos as jest.Mocked<typeof archivos>;
+const mockNavegador = WebBrowser as jest.Mocked<typeof WebBrowser>;
 
 const mock = consultas as jest.Mocked<typeof consultas>;
 
@@ -321,5 +333,54 @@ describe("Asignatura · un ramo propio", () => {
   test("un ramo del colegio no ofrece agregar material desde acá", async () => {
     const t = await abrir();
     expect(t.queryByText("Agregar material")).toBeNull();
+  });
+});
+
+describe("un material que es un archivo guardado", () => {
+  // El material con archivo se agrega acá y no al doble compartido: sumarlo
+  // allá le cambia el avance —«1/2»— a las pruebas que cuentan materiales.
+  const conArchivo = () => {
+    conDatos();
+    mock.materiaDe.mockResolvedValue([{
+      ...MODULO,
+      materiales: [...MODULO.materiales, {
+        id: "mat-3", tipo: "documento" as const, titulo: "Guía 4 en PDF",
+        detalle: "PDF · 1,2 MB", orden: 3, completado: false, leible: false,
+        archivo: "ramo/r-cal/uuu-guia-4.pdf",
+      }],
+    }] as never);
+  };
+
+  beforeEach(() => { jest.spyOn(Alert, "alert").mockImplementation(() => undefined); });
+
+  test("tocarlo lo abre, en vez de darlo por visto", async () => {
+    conArchivo();
+    mockArchivos.direccionFirmada.mockResolvedValue("https://firmada.example/guia-4.pdf" as never);
+    const t = await renderPantalla(Asignatura as never, { asignaturaId: "r-cal" });
+    await waitFor(() => expect(t.getByText("Guía 4 en PDF")).toBeTruthy());
+
+    await act(async () => { fireEvent.press(t.getByText("Guía 4 en PDF")); });
+
+    // La dirección se pide en el momento: lo guardado es una ruta, no algo
+    // que se pueda abrir.
+    await waitFor(() => expect(mockArchivos.direccionFirmada)
+      .toHaveBeenCalledWith("ramo/r-cal/uuu-guia-4.pdf"));
+    await waitFor(() => expect(mockNavegador.openBrowserAsync)
+      .toHaveBeenCalledWith("https://firmada.example/guia-4.pdf"));
+    // Y no se marcó como visto de paso.
+    expect(mock.marcarMaterial).not.toHaveBeenCalled();
+  });
+
+  test("si ya no está o no hay permiso, se dice; no se abre nada", async () => {
+    conArchivo();
+    mockArchivos.direccionFirmada.mockResolvedValue(null as never);
+    const t = await renderPantalla(Asignatura as never, { asignaturaId: "r-cal" });
+    await waitFor(() => expect(t.getByText("Guía 4 en PDF")).toBeTruthy());
+
+    await act(async () => { fireEvent.press(t.getByText("Guía 4 en PDF")); });
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
+      "No pude abrirlo", expect.stringMatching(/ya no está disponible|permiso/)));
+    expect(mockNavegador.openBrowserAsync).not.toHaveBeenCalled();
   });
 });

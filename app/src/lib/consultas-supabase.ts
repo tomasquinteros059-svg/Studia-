@@ -47,7 +47,7 @@ export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
     .from("modulos")
     // El texto no se trae acá: son varios miles de palabras por documento y
     // la lista solo necesita saber si hay algo que leer.
-    .select("id, titulo, orden, materiales(id, tipo, titulo, detalle, orden, texto)")
+    .select("id, titulo, orden, materiales(id, tipo, titulo, detalle, orden, texto, url)")
     .eq("asignatura_id", asignaturaId)
     .order("orden");
   reventar("No pude cargar la materia", error);
@@ -61,10 +61,11 @@ export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
     orden: m.orden,
     materiales: [...(m.materiales ?? [])]
       .sort((a, b) => a.orden - b.orden)
-      .map(({ texto, ...mat }) => ({
+      .map(({ texto, url, ...mat }) => ({
         ...mat,
         completado: completados.has(mat.id),
         leible: typeof texto === "string" && texto.trim().length > 0,
+        archivo: url ?? null,
       })),
   }));
 }

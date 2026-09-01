@@ -127,7 +127,7 @@ const CLASES: Clase[] = [
 /* ---------------------------------------------------------------- materia */
 // Sin `leible`: eso se deduce de TEXTOS_DEMO, así no puede quedar un material
 // marcado como legible sin texto detrás.
-type MaterialSemilla = Omit<Material, "leible">;
+type MaterialSemilla = Omit<Material, "leible" | "archivo">;
 type ModuloSemilla = Omit<Modulo, "materiales"> & { materiales: MaterialSemilla[] };
 
 const MODULOS: Record<string, ModuloSemilla[]> = {
@@ -444,6 +444,8 @@ export async function materiaDe(asignaturaId: string): Promise<Modulo[]> {
       ...x,
       completado: completados.has(x.id),
       leible: TEXTOS_DEMO[x.id] !== undefined,
+      // En la demostración no hay archivos: no hay dónde guardarlos.
+      archivo: null,
     })),
   }));
 }

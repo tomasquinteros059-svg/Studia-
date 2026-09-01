@@ -14,6 +14,8 @@ import {
   moduloParaMaterial,
 } from "../lib/consultas.ts";
 import NuevoMaterial, { type MaterialArmado } from "./propio/NuevoMaterial.tsx";
+import * as WebBrowser from "expo-web-browser";
+import { direccionFirmada } from "../lib/archivos.ts";
 import { generarFichas, generarQuiz } from "../lib/quiz.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
@@ -243,6 +245,28 @@ export default function Asignatura({ route, navigation }: Props) {
                   await marcarMaterial(mat.id, !mat.completado).catch(() => {});
                   recargar();
                 };
+
+                /**
+                 * Abre el archivo guardado.
+                 *
+                 * La dirección se pide en el momento y vence: lo guardado en
+                 * la base es una ruta, no algo que se pueda abrir. Así un
+                 * archivo de un ramo no queda accesible a quien tenga el
+                 * enlace.
+                 */
+                const abrirArchivo = async () => {
+                  const donde = await direccionFirmada(mat.archivo);
+                  if (!donde) {
+                    Alert.alert("No pude abrirlo",
+                      "El archivo ya no está disponible o no tienes permiso para verlo.");
+                    return;
+                  }
+                  try {
+                    await WebBrowser.openBrowserAsync(donde);
+                  } catch {
+                    Alert.alert("No pude abrirlo", "Tu teléfono no encontró con qué abrirlo.");
+                  }
+                };
                 return (
                   <Fila key={mat.id}
                     izquierda={<Icono
@@ -267,7 +291,9 @@ export default function Asignatura({ route, navigation }: Props) {
                     }
                     onPress={mat.leible
                       ? () => navigation.navigate("Lectura", { materialId: mat.id })
-                      : () => void marcar()}
+                      : mat.archivo
+                        ? () => void abrirArchivo()
+                        : () => void marcar()}
                   />
                 );
               })}

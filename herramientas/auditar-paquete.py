@@ -73,6 +73,11 @@ PIEZAS = {
         ("Borrar la cuenta", "Borrar mi cuenta para siempre"),
         ("Borrar · avisa que no se deshace", "Esto no se puede deshacer"),
     ],
+    "Archivos": [
+        ("Adjuntar un archivo", "Guardar archivos necesita el servidor conectado"),
+        ("Abrir el archivo guardado", "El archivo ya no está disponible"),
+        ("Subida · sin permiso", "No tienes permiso para guardar archivos acá."),
+    ],
 }
 
 

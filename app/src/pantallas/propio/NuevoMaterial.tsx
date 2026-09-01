@@ -11,7 +11,7 @@ import {
 } from "../../dominio/adjuntos.ts";
 import {
   AVISO_SIN_ALMACENAMIENTO, HAY_ALMACENAMIENTO, elegirArchivo,
-  sePuedeElegirArchivo, subir, type AdjuntoElegido,
+  miEspacio, sePuedeElegirArchivo, subir, type AdjuntoElegido,
 } from "../../lib/archivos.ts";
 
 export type MaterialArmado = {
@@ -111,7 +111,12 @@ export default function NuevoMaterial({
     try {
       let url: string | null = null;
       if (adjunto && HAY_ALMACENAMIENTO) {
-        const r = await subir(adjunto, "yo");
+        // Va al espacio propio de quien lo sube y no al del ramo: el destino
+        // puede ser un ramo que todavía no existe —se crea con el material—,
+        // y en ese momento no hay identificador con el que armar la ruta.
+        const donde = await miEspacio();
+        if (!donde) { setAviso("Tu sesión venció. Vuelve a entrar."); return; }
+        const r = await subir(adjunto, donde);
         if (!r.ok) { setAviso(r.motivo); return; }
         url = r.url;
       }

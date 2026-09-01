@@ -125,6 +125,13 @@ export const TERCEROS: Tercero[] = [
     "texto": 0
   },
   {
+    "nombre": "expo-splash-screen",
+    "version": "57.0.8",
+    "licencia": "MIT",
+    "copyright": "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
+    "texto": 0
+  },
+  {
     "nombre": "expo-status-bar",
     "version": "57.0.1",
     "licencia": "MIT",

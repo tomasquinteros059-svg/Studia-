@@ -145,6 +145,7 @@ export async function crearMaterial(nuevo: MaterialNuevo): Promise<void> {
     orden: modulo.materiales.length + 1,
     completado: false,
     leible: texto.length > 0,
+    archivo: null,
   });
 }
 

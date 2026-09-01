@@ -1,15 +1,18 @@
 // La costura hacia el almacenamiento en la nube.
 //
-// Todavía no hay dónde guardar archivos, y este archivo existe justamente
-// para que ese día sea corto. Elegir un archivo ya funciona; subirlo es lo
-// único que falta, y es UNA función. Cuando haya un bucket de Supabase
-// Storage —o el que sea—, se implementa `subir` acá adentro y ninguna
-// pantalla se entera.
+// Elegir el archivo lo hace el sistema; guardarlo, Supabase Storage. Dónde
+// queda y con qué nombre lo decide `dominio/almacen.ts`, y no es un detalle
+// interno: las políticas de acceso leen la ruta para saber quién puede abrir
+// el archivo. Si las dos puntas no arman la misma ruta, la subida se rechaza
+// sin decir por qué.
 //
-// Lo que NO se hace: esconder el botón. Un botón que no está no se puede
-// planificar; uno que está y dice por qué no funciona, sí.
+// El bucket es privado. Uno público entrega cualquier archivo a quien tenga la
+// dirección, y las direcciones se filtran solas: se pegan en un chat, quedan
+// en el historial. Acá se pide una dirección firmada cada vez, y vence.
 
-import { hayBackend } from "./config.ts";
+import { MODO_DEMO, hayBackend } from "./config.ts";
+import { supabase } from "./supabase.ts";
+import { BALDE, rutaPara, type Destino } from "../dominio/almacen.ts";
 import type { Adjunto } from "../dominio/adjuntos.ts";
 
 type ModuloElector = typeof import("expo-document-picker");
@@ -27,11 +30,13 @@ try {
 export const sePuedeElegirArchivo = elector !== null;
 
 /**
- * Si es falso, se puede elegir un archivo pero no guardarlo. Hoy siempre lo
- * es: no hay bucket configurado. El día que lo haya, esta constante pasa a
- * mirar la configuración de verdad.
+ * Si es falso, se puede elegir un archivo pero no guardarlo.
+ *
+ * Depende del servidor y de nada más: el bucket viaja en las migraciones, así
+ * que donde hay base de datos hay dónde guardar. En la demostración no, y ahí
+ * el botón lo dice en vez de fallar al apretarlo.
  */
-export const HAY_ALMACENAMIENTO = false;
+export const HAY_ALMACENAMIENTO = hayBackend;
 
 export type AdjuntoElegido = Adjunto & { uri: string };
 
@@ -53,30 +58,85 @@ export async function elegirArchivo(): Promise<AdjuntoElegido | null> {
   };
 }
 
+/**
+ * El espacio propio de quien tiene la sesión abierta.
+ *
+ * Sale del token y no de un parámetro: si el identificador lo pusiera la
+ * pantalla, un error ahí guardaría el archivo en la carpeta de otra persona
+ * —o lo intentaría, y la política lo rechazaría sin explicación—.
+ */
+export async function miEspacio(): Promise<Destino | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user ? { tipo: "yo", personaId: data.user.id } : null;
+}
+
 export type Subida =
   | { ok: true; url: string }
   | { ok: false; motivo: string };
 
 /**
- * Guarda el archivo y devuelve la dirección con que se recupera. Es lo único
- * que falta implementar.
+ * Guarda el archivo y devuelve la ruta con que se recupera.
  *
- * Cuando haya almacenamiento, acá va algo así:
- *
- *     const cuerpo = await fetch(adjunto.uri).then((r) => r.blob());
- *     const ruta = `${duenoId}/${crypto.randomUUID()}-${adjunto.nombre}`;
- *     const { error } = await supabase.storage.from("material").upload(ruta, cuerpo);
- *     if (error) return { ok: false, motivo: error.message };
- *     return { ok: true, url: ruta };
- *
- * Y en `materiales.url` se guarda esa ruta, no una dirección pública: la
- * dirección se firma al abrirla para que un archivo de un ramo no quede
- * accesible a quien tenga el enlace.
+ * Lo que se guarda en `materiales.url` es la ruta, no una dirección pública:
+ * la dirección se firma al abrirla, con `direccionFirmada`, para que un
+ * archivo de un ramo no quede accesible a quien tenga el enlace.
  */
-export async function subir(_adjunto: AdjuntoElegido, _duenoId: string): Promise<Subida> {
-  return { ok: false, motivo: AVISO_SIN_ALMACENAMIENTO };
+export async function subir(adjunto: AdjuntoElegido, destino: Destino): Promise<Subida> {
+  if (!HAY_ALMACENAMIENTO) return { ok: false, motivo: AVISO_SIN_ALMACENAMIENTO };
+
+  const ruta = rutaPara(destino, adjunto.nombre, crypto.randomUUID());
+
+  let cuerpo: ArrayBuffer;
+  try {
+    // ArrayBuffer y no Blob: en React Native el Blob no trae los bytes
+    // consigo, y lo que se sube termina siendo un archivo de cero bytes que
+    // no falla en ninguna parte hasta que alguien intenta abrirlo.
+    cuerpo = await fetch(adjunto.uri).then((r) => r.arrayBuffer());
+  } catch {
+    return { ok: false, motivo: "No pude leer el archivo desde el teléfono. Elígelo de nuevo." };
+  }
+
+  const { error } = await supabase.storage.from(BALDE).upload(ruta, cuerpo, {
+    contentType: adjunto.mime || "application/octet-stream",
+    upsert: false,
+  });
+
+  if (error) {
+    const m = error.message.toLowerCase();
+    // El caso más común y el más confuso: la política dice que no. Devolver
+    // «new row violates row-level security policy» no le sirve a nadie.
+    if (m.includes("row-level security") || m.includes("unauthorized") || m.includes("403")) {
+      return { ok: false, motivo: "No tienes permiso para guardar archivos acá." };
+    }
+    if (m.includes("payload") || m.includes("too large") || m.includes("413")) {
+      return { ok: false, motivo: "El archivo pesa más de lo que se puede guardar." };
+    }
+    return { ok: false, motivo: "No pude guardar el archivo. Revisa tu internet e inténtalo de nuevo." };
+  }
+
+  return { ok: true, url: ruta };
+}
+
+/** Cuánto dura una dirección firmada: lo justo para abrir el archivo. */
+const DURA_SEGUNDOS = 60 * 60;
+
+/**
+ * La dirección con la que se abre un archivo guardado.
+ *
+ * Null cuando no se puede: sin servidor, con una ruta que ya no existe, o
+ * cuando quien mira no tiene permiso. Las tres se ven igual desde acá a
+ * propósito —decir «existe pero no puedes» ya es contar algo—.
+ */
+export async function direccionFirmada(ruta: string | null): Promise<string | null> {
+  if (!ruta || MODO_DEMO) return null;
+  // Lo que se guardó antes de que existiera el almacenamiento puede ser una
+  // dirección de internet y no una ruta; esa se abre tal cual.
+  if (/^https?:\/\//i.test(ruta)) return ruta;
+
+  const { data, error } = await supabase.storage.from(BALDE).createSignedUrl(ruta, DURA_SEGUNDOS);
+  return error ? null : data?.signedUrl ?? null;
 }
 
 export const AVISO_SIN_ALMACENAMIENTO = hayBackend
-  ? "Todavía no hay almacenamiento conectado, así que el archivo no se puede guardar. Mientras tanto puedes escribir o pegar el texto acá abajo: eso sí queda, y el lector lo lee en voz alta."
+  ? "No pude guardar el archivo. Revisa tu internet e inténtalo de nuevo."
   : "Guardar archivos necesita el servidor conectado. Mientras tanto puedes escribir o pegar el texto acá abajo: eso sí queda, y el lector lo lee en voz alta.";

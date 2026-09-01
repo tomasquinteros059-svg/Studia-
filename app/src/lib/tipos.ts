@@ -37,6 +37,11 @@ export type Material = {
   completado: boolean;
   /** Trae texto adentro: se puede abrir en el lector y escuchar. */
   leible: boolean;
+  /**
+   * La ruta del archivo guardado, si tiene uno. No es una dirección que se
+   * pueda abrir: se firma al abrirla, con `direccionFirmada`.
+   */
+  archivo: string | null;
 };
 
 /** Un material abierto en el lector. El texto solo se pide al abrirlo. */
