@@ -9,6 +9,19 @@ jest.mock("../../lib/consultas.ts", () => ({
   corregir: jest.fn(), ponerNota: jest.fn(), publicarNotas: jest.fn(),
   clasesDe: jest.fn(), permitirEscucha: jest.fn(), crearEvaluacion: jest.fn(),
   planDe: jest.fn(), planificar: jest.fn(), borrarDelPlan: jest.fn(),
+  crearMaterial: jest.fn(), moduloParaMaterial: jest.fn(),
+}));
+
+// El modal de material es el mismo del espacio propio, y trae el
+// almacenamiento consigo.
+jest.mock("../../lib/archivos.ts", () => ({
+  sePuedeElegirArchivo: true,
+  HAY_ALMACENAMIENTO: true,
+  AVISO_SIN_ALMACENAMIENTO: "Guardar archivos necesita el servidor conectado.",
+  elegirArchivo: jest.fn(),
+  subir: jest.fn(),
+  miEspacio: jest.fn(),
+  direccionFirmada: jest.fn(),
 }));
 
 const curso = [
@@ -43,16 +56,22 @@ jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
 }));
 
 import * as consultas from "../../lib/consultas.ts";
+import * as archivos from "../../lib/archivos.ts";
 import RamoDocente from "./RamoDocente.tsx";
 import { semanasDelMes } from "../../dominio/planificacion.ts";
 
 const mock = consultas as jest.Mocked<typeof consultas>;
+const mockA = archivos as jest.Mocked<typeof archivos>;
+const ARCHIVO = {
+  nombre: "guia-4.pdf", mime: "application/pdf", tamano: 120_000, uri: "file:///guia-4.pdf",
+};
 // Las consultas del docente salen de la misma fachada que las del alumno.
 const mockD = mock as unknown as {
   cursoDe: jest.Mock; entregasDe: jest.Mock; notasDe: jest.Mock;
   avanceDe: jest.Mock; corregir: jest.Mock; ponerNota: jest.Mock; publicarNotas: jest.Mock;
   clasesDe: jest.Mock; permitirEscucha: jest.Mock; crearEvaluacion: jest.Mock;
   planDe: jest.Mock; planificar: jest.Mock; borrarDelPlan: jest.Mock;
+  crearMaterial: jest.Mock; moduloParaMaterial: jest.Mock;
 };
 
 beforeEach(() => {
@@ -73,6 +92,10 @@ beforeEach(() => {
   mockD.planDe.mockResolvedValue([] as never);
   mockD.planificar.mockResolvedValue(undefined as never);
   mockD.borrarDelPlan.mockResolvedValue(undefined as never);
+  mockD.crearMaterial.mockResolvedValue(undefined as never);
+  mockD.moduloParaMaterial.mockResolvedValue("u-1" as never);
+  mockA.elegirArchivo.mockResolvedValue(ARCHIVO as never);
+  mockA.subir.mockResolvedValue({ ok: true, url: "ramo/r-cal/uuu-guia-4.pdf" } as never);
 });
 
 /** Una clase de este ramo ocurriendo ahora, en la sala. */
@@ -408,5 +431,60 @@ describe("el plan del mes", () => {
 
     expect(t.getByText(/todavía no tiene unidades/)).toBeTruthy();
     expect(t.queryByText("Guardar esta propuesta")).toBeNull();
+  });
+});
+
+describe("cargar material del ramo", () => {
+  /** Dos unidades, para que se pueda elegir en cuál va. */
+  const conUnidades = () => {
+    mock.materiaDe.mockResolvedValue([
+      { id: "u-1", titulo: "Límites", orden: 1, materiales: [] },
+      { id: "u-2", titulo: "La derivada", orden: 2, materiales: [] },
+    ] as never);
+  };
+
+  const abrirElModal = async () => {
+    conUnidades();
+    const t = await abrir();
+    await irA(t, "Material");
+    await act(async () => { fireEvent.press(t.getByText("Agregar material")); });
+    return t;
+  };
+
+  test("ya no dice que hay que usar la planilla: se carga desde acá", async () => {
+    conUnidades();
+    const t = await abrir();
+    await irA(t, "Material");
+    expect(t.getByText("Agregar material")).toBeTruthy();
+  });
+
+  // El archivo va a la carpeta del ramo y no a la de quien lo sube: lo tiene
+  // que poder abrir el curso entero.
+  test("el archivo se guarda en la carpeta del ramo", async () => {
+    const t = await abrirElModal();
+    await act(async () => { fireEvent.press(t.getByLabelText("Adjuntar un archivo")); });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Título del material"), "Guía 4");
+    });
+    await act(async () => { fireEvent.press(t.getByText("Guardar")); });
+
+    await waitFor(() => expect(mockA.subir).toHaveBeenCalledWith(
+      ARCHIVO, { tipo: "ramo", asignaturaId: RAMO.id }));
+    expect(mockA.miEspacio).not.toHaveBeenCalled();
+  });
+
+  test("se elige en qué unidad queda, y por omisión va en la primera", async () => {
+    const t = await abrirElModal();
+    await act(async () => { fireEvent.press(t.getByLabelText("Adjuntar un archivo")); });
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Título del material"), "Guía 4");
+    });
+    await act(async () => { fireEvent.press(t.getByLabelText("La derivada")); });
+    await act(async () => { fireEvent.press(t.getByText("Guardar")); });
+
+    await waitFor(() => expect(mockD.crearMaterial).toHaveBeenCalledWith(
+      expect.objectContaining({ moduloId: "u-2", url: "ramo/r-cal/uuu-guia-4.pdf" })));
+    // La unidad la eligió la pantalla: no hizo falta preguntarle a los datos.
+    expect(mockD.moduloParaMaterial).not.toHaveBeenCalled();
   });
 });

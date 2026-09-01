@@ -116,6 +116,8 @@ export type TareaConEstado = {
   vence_en: string;
   entregada_en: string | null;
   puntos_obtenidos: number | null;
+  /** La ruta del archivo entregado, si adjuntó uno. Se firma para abrirla. */
+  entregado: string | null;
 };
 
 export type EvaluacionConNota = {

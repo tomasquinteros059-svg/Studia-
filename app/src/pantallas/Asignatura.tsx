@@ -125,8 +125,10 @@ export default function Asignatura({ route, navigation }: Props) {
    * datos: pedirle a alguien que invente una unidad antes de poder pegar un
    * texto es un paso de más.
    */
-  const guardarMaterial = async (nuevo: MaterialArmado) => {
-    await crearMaterial({ moduloId: await moduloParaMaterial(asignaturaId), ...nuevo });
+  const guardarMaterial = async ({ moduloId, ...resto }: MaterialArmado) => {
+    // La unidad la puede haber elegido el modal —cuando el ramo tiene
+    // programa—; si no, la decide la capa de datos.
+    await crearMaterial({ ...resto, moduloId: moduloId ?? await moduloParaMaterial(asignaturaId) });
     recargar();
   };
 

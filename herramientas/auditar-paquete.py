@@ -77,6 +77,10 @@ PIEZAS = {
         ("Adjuntar un archivo", "Guardar archivos necesita el servidor conectado"),
         ("Abrir el archivo guardado", "El archivo ya no está disponible"),
         ("Subida · sin permiso", "No tienes permiso para guardar archivos acá."),
+        ("Entregar con archivo", "Adjuntar un archivo a la entrega"),
+        ("Ver lo entregado", "Ver lo que entregué"),
+        ("Profesor · cargar material", "Lo que subas acá lo ve tu curso"),
+        ("Material · elegir la unidad", "¿En qué unidad va?"),
     ],
 }
 

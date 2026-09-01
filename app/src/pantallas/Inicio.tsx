@@ -310,7 +310,8 @@ export default function Inicio({ navigation }: Props) {
             ? (await crearRamoPropio(destino.nombre, colorSugerido(mios.length))).id
             : destino?.id;
           if (!ramoId) return;
-          await crearMaterial({ moduloId: await moduloParaMaterial(ramoId), ...material });
+          const { moduloId, ...resto } = material;
+          await crearMaterial({ ...resto, moduloId: moduloId ?? await moduloParaMaterial(ramoId) });
           await recargar();
         }}
       />

@@ -21,10 +21,12 @@ import {
 } from "../../dominio/curso.ts";
 import { formatearNota } from "../../dominio/notas.ts";
 import PlanMensual from "./PlanMensual.tsx";
+import NuevoMaterial, { type MaterialArmado } from "../propio/NuevoMaterial.tsx";
 import {
   armarRegistro, cabe, comoVaElRegistro, pesoLibre,
 } from "../../dominio/registro.ts";
 import type { PropsPilaDocente } from "../../lib/rutas.ts";
+import { crearMaterial, moduloParaMaterial } from "../../lib/consultas.ts";
 
 const SECCIONES = ["Tareas", "Notas", "Registro", "Plan", "Material", "Curso"] as const;
 type Seccion = (typeof SECCIONES)[number];
@@ -56,6 +58,7 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
   }, [asignaturaId]);
 
   const { datos, cargando, error, recargar } = usarCarga(traer, [asignaturaId]);
+  const [agregando, setAgregando] = useState(false);
 
   const [corrigiendo, setCorrigiendo] = useState<{ tareaId: string; entrega: EntregaDeCurso; max: number } | null>(null);
   const [editandoNota, setEditandoNota] = useState<{ evaluacionId: string; fila: NotaDeCurso } | null>(null);
@@ -288,10 +291,13 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
                 ))}
               </View>
             ))}
+            <View style={{ padding: espacio.m }}>
+              <Boton texto="Agregar material" onPress={() => setAgregando(true)} />
+            </View>
             <Text style={e.pieMaterial}>
-              El material se carga desde la planilla del ramo, en la carpeta
-              <Text style={e.mono}> datos/</Text>. Cargarlo desde acá es lo
-              próximo que falta.
+              Lo que subas acá lo ve tu curso. Para cargar un ramo entero de una
+              vez sigue estando la planilla, en la carpeta
+              <Text style={e.mono}> datos/</Text>.
             </Text>
           </>
         ) : null}
@@ -308,6 +314,24 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
           </>
         ) : null}
       </ScrollView>
+
+      {/* El mismo modal que usa el espacio propio. Lo que cambia son dos
+          cosas: acá el archivo va a la carpeta del ramo —lo tiene que poder
+          abrir el curso entero, no solo quien lo subió— y se puede elegir en
+          qué unidad del programa queda. */}
+      <NuevoMaterial
+        abierto={agregando}
+        cerrar={() => setAgregando(false)}
+        unidades={datos.modulos.map((m) => ({ id: m.id, titulo: m.titulo }))}
+        dondeGuardar={{ tipo: "ramo", asignaturaId }}
+        guardar={async ({ moduloId, ...resto }: MaterialArmado) => {
+          await crearMaterial({
+            ...resto,
+            moduloId: moduloId ?? await moduloParaMaterial(asignaturaId),
+          });
+          recargar();
+        }}
+      />
 
       <Corregir
         abierto={corrigiendo}

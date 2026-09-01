@@ -13,6 +13,7 @@ import {
   AVISO_SIN_ALMACENAMIENTO, HAY_ALMACENAMIENTO, elegirArchivo,
   miEspacio, sePuedeElegirArchivo, subir, type AdjuntoElegido,
 } from "../../lib/archivos.ts";
+import type { Destino } from "../../dominio/almacen.ts";
 
 export type MaterialArmado = {
   tipo: TipoDeMaterial;
@@ -20,6 +21,12 @@ export type MaterialArmado = {
   detalle: string;
   texto: string | null;
   url: string | null;
+  /**
+   * En qué unidad va. Nulo significa «la que decida la capa de datos», que es
+   * lo que corresponde en un ramo propio: ahí las unidades no las armó nadie y
+   * hacer elegir una sería preguntar por algo que no existe.
+   */
+  moduloId: string | null;
 };
 
 /**
@@ -41,7 +48,7 @@ export type DestinoDelMaterial =
  * haría que nadie pueda planificar con él.
  */
 export default function NuevoMaterial({
-  abierto, cerrar, guardar, ramos,
+  abierto, cerrar, guardar, ramos, unidades, dondeGuardar,
 }: {
   abierto: boolean;
   cerrar: () => void;
@@ -51,6 +58,18 @@ export default function NuevoMaterial({
    * pregunta nada, porque ya se sabe dónde va.
    */
   ramos?: { id: string; nombre: string; color: string | null }[];
+  /**
+   * Las unidades del ramo, cuando las hay. Un ramo del colegio tiene un
+   * programa con unidades y el material va en una de ellas; un ramo propio no,
+   * y ahí esto no se muestra.
+   */
+  unidades?: { id: string; titulo: string }[];
+  /**
+   * Dónde queda el archivo. Por omisión, el espacio propio de quien lo sube.
+   * Un docente carga material del ramo, y ahí va a la carpeta del ramo: lo
+   * tiene que poder abrir el curso entero, no solo él.
+   */
+  dondeGuardar?: Destino;
 }) {
   const [titulo, setTitulo] = useState("");
   const [texto, setTexto] = useState("");
@@ -58,12 +77,14 @@ export default function NuevoMaterial({
   const [destino, setDestino] = useState<string | null>(null);
   const [ramoNuevo, setRamoNuevo] = useState("");
   const [adjunto, setAdjunto] = useState<AdjuntoElegido | null>(null);
+  // La unidad elegida. Por omisión la primera, que es la que casi siempre es.
+  const [unidad, setUnidad] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
   const limpiar = () => {
     setTitulo(""); setTexto(""); setAdjunto(null); setAviso(null); setOcupado(false);
-    setDestino(null); setRamoNuevo("");
+    setDestino(null); setRamoNuevo(""); setUnidad(null);
   };
 
   const hayQueElegir = ramos !== undefined;
@@ -111,10 +132,11 @@ export default function NuevoMaterial({
     try {
       let url: string | null = null;
       if (adjunto && HAY_ALMACENAMIENTO) {
-        // Va al espacio propio de quien lo sube y no al del ramo: el destino
-        // puede ser un ramo que todavía no existe —se crea con el material—,
-        // y en ese momento no hay identificador con el que armar la ruta.
-        const donde = await miEspacio();
+        // Sin un destino dicho, va al espacio propio de quien lo sube: el
+        // ramo puede ser uno que todavía no existe —se crea junto con el
+        // material— y en ese momento no hay identificador con el que armar
+        // la ruta.
+        const donde = dondeGuardar ?? await miEspacio();
         if (!donde) { setAviso("Tu sesión venció. Vuelve a entrar."); return; }
         const r = await subir(adjunto, donde);
         if (!r.ok) { setAviso(r.motivo); return; }
@@ -128,6 +150,7 @@ export default function NuevoMaterial({
           : adjunto ? detalleDe(adjunto) : "",
         texto: hayTexto ? texto.trim() : null,
         url,
+        moduloId: unidad ?? unidades?.[0]?.id ?? null,
       }, destinoElegido);
       limpiar();
       cerrar();
@@ -170,6 +193,38 @@ export default function NuevoMaterial({
               onChangeText={(t) => { setRamoNuevo(t); if (t.trim()) setDestino(null); }}
               autoCapitalize="sentences" accessibilityLabel="Ramo nuevo"
             />
+          </>
+        ) : null}
+
+        {/* Las unidades solo existen en un ramo con programa. En uno propio no
+            las armó nadie, y preguntar por una sería preguntar por algo que no
+            existe. */}
+        {unidades && unidades.length > 1 ? (
+          <>
+            <Text style={tipo.etiqueta}>¿En qué unidad va?</Text>
+            <View style={e.unidades}>
+              {unidades.map((u) => {
+                const activa = (unidad ?? unidades[0]!.id) === u.id;
+                return (
+                  <Pressable key={u.id} accessibilityRole="radio"
+                    accessibilityState={{ selected: activa }}
+                    accessibilityLabel={u.titulo}
+                    onPress={() => setUnidad(u.id)}
+                    style={({ pressed }) => [
+                      e.unidad,
+                      activa ? e.unidadElegida : null,
+                      pressed && !activa ? { backgroundColor: color.elemento } : null,
+                    ]}>
+                    {/* Sin numerarlas acá: el título de la unidad ya trae su
+                        número, y ponerle otro delante daba «1. 1 · Límites». */}
+                    <Text style={[e.unidadTexto, activa ? e.unidadTextoElegida : null]}
+                      numberOfLines={1}>
+                      {u.titulo}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </>
         ) : null}
 
@@ -234,6 +289,15 @@ export default function NuevoMaterial({
 }
 
 const e = StyleSheet.create({
+  unidades: { flexDirection: "row", flexWrap: "wrap", gap: espacio.s },
+  unidad: {
+    borderWidth: FILETE, borderColor: color.borde, borderRadius: radio.pastilla,
+    paddingHorizontal: espacio.m, paddingVertical: 8, maxWidth: "100%",
+  },
+  unidadElegida: { borderColor: color.bordeFuerte, backgroundColor: color.elemento },
+  unidadTexto: { ...tipo.detalle, color: color.textoSuave },
+  unidadTextoElegida: { color: color.texto, fontWeight: "700" },
+
   ramos: { gap: espacio.s },
   ramo: {
     flexDirection: "row", alignItems: "center", gap: espacio.m,

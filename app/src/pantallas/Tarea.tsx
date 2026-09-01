@@ -1,8 +1,15 @@
 import { useCallback, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { Boton, Cargando, Error, Pantalla, Pastilla } from "../ui/componentes.tsx";
+import { Icono } from "../ui/Icono.tsx";
 import { color, espacio, fechaYHora, radio, tipo } from "../ui/tema.ts";
 import { entregarTarea, tareaPorId } from "../lib/consultas.ts";
+import {
+  AVISO_SIN_ALMACENAMIENTO, HAY_ALMACENAMIENTO, direccionFirmada, elegirArchivo,
+  miEspacio, sePuedeElegirArchivo, subir, type AdjuntoElegido,
+} from "../lib/archivos.ts";
+import { detalleDe, revisar } from "../dominio/adjuntos.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { cuandoVence, estadoDeTarea } from "../dominio/tareas.ts";
 import { alTutor, type PropsPila } from "../lib/rutas.ts";
@@ -10,6 +17,8 @@ import { alTutor, type PropsPila } from "../lib/rutas.ts";
 export default function Tarea({ route, navigation }: PropsPila<"Tarea">) {
   const { tareaId } = route.params;
   const [entregando, setEntregando] = useState(false);
+  const [adjunto, setAdjunto] = useState<AdjuntoElegido | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const traer = useCallback(() => tareaPorId(tareaId), [tareaId]);
 
@@ -22,25 +31,75 @@ export default function Tarea({ route, navigation }: PropsPila<"Tarea">) {
   const estado = estadoDeTarea(tarea);
   const entregada = estado === "entregada";
 
+  /** Elegir qué se entrega. El archivo se sube recién al entregar. */
+  async function elegir() {
+    setAviso(null);
+    const elegido = await elegirArchivo();
+    if (!elegido) return;
+
+    const revision = revisar(elegido);
+    if (!revision.ok) { setAviso(revision.motivo); setAdjunto(null); return; }
+
+    setAdjunto(elegido);
+    // Se dice de inmediato y no al tocar Entregar: descubrir que no se podía
+    // después de haber elegido el archivo es la peor manera de enterarse.
+    if (!HAY_ALMACENAMIENTO) setAviso(AVISO_SIN_ALMACENAMIENTO);
+  }
+
   function entregar() {
     if (!tarea) return;
-    Alert.alert("Entregar tarea", `¿Entregar «${tarea.titulo}»?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Entregar",
-        onPress: async () => {
-          setEntregando(true);
-          try {
-            await entregarTarea(tarea.id);
-            recargar();
-          } catch (err) {
-            Alert.alert("No pude entregarla", err instanceof globalThis.Error ? err.message : "");
-          } finally {
-            setEntregando(false);
-          }
+    const conArchivo = adjunto !== null && HAY_ALMACENAMIENTO;
+    Alert.alert(
+      "Entregar tarea",
+      conArchivo
+        ? `¿Entregar «${tarea.titulo}» con ${adjunto!.nombre}?`
+        : `¿Entregar «${tarea.titulo}» sin adjuntar nada?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Entregar",
+          onPress: async () => {
+            setEntregando(true);
+            setAviso(null);
+            try {
+              let ruta: string | undefined;
+              if (conArchivo) {
+                // Al espacio propio: una entrega es de quien la hace, y el
+                // curso no tiene por qué poder abrirla.
+                const donde = await miEspacio();
+                if (!donde) { setAviso("Tu sesión venció. Vuelve a entrar."); return; }
+                const r = await subir(adjunto!, donde);
+                // Si el archivo no subió, la entrega no se registra: dejarla
+                // como entregada sin lo que se entregaba es peor que no
+                // entregarla, porque nadie se entera hasta la corrección.
+                if (!r.ok) { setAviso(r.motivo); return; }
+                ruta = r.url;
+              }
+              await entregarTarea(tarea.id, ruta);
+              setAdjunto(null);
+              recargar();
+            } catch (err) {
+              Alert.alert("No pude entregarla", err instanceof globalThis.Error ? err.message : "");
+            } finally {
+              setEntregando(false);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
+  }
+
+  async function abrirLoEntregado() {
+    const donde = await direccionFirmada(tarea?.entregado ?? null);
+    if (!donde) {
+      Alert.alert("No pude abrirlo", "El archivo ya no está disponible.");
+      return;
+    }
+    try {
+      await WebBrowser.openBrowserAsync(donde);
+    } catch {
+      Alert.alert("No pude abrirlo", "Tu teléfono no encontró con qué abrirlo.");
+    }
   }
 
   return (
@@ -79,11 +138,37 @@ export default function Tarea({ route, navigation }: PropsPila<"Tarea">) {
 
       <View style={e.acciones}>
         {!entregada ? (
-          <Boton
-            texto={entregando ? "Entregando…" : "Entregar tarea"}
-            onPress={entregar}
-            deshabilitado={entregando}
-          />
+          <>
+            {sePuedeElegirArchivo ? (
+              <Pressable accessibilityRole="button" style={e.adjuntar} onPress={() => void elegir()}
+                accessibilityLabel="Adjuntar un archivo a la entrega">
+                <Icono nombre="documento" tamano={18} tono={color.textoSuave} />
+                <Text style={e.adjuntarTexto} numberOfLines={1}>
+                  {adjunto ? adjunto.nombre : "Adjuntar un archivo"}
+                </Text>
+                {adjunto ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel="Quitar el archivo"
+                    hitSlop={10} onPress={() => { setAdjunto(null); setAviso(null); }}>
+                    <Icono nombre="cerrar" tamano={17} tono={color.textoSuave} />
+                  </Pressable>
+                ) : null}
+              </Pressable>
+            ) : null}
+            {adjunto ? <Text style={tipo.detalle}>{detalleDe(adjunto)}</Text> : null}
+            {aviso ? <Text style={e.aviso}>{aviso}</Text> : null}
+
+            <Boton
+              texto={entregando ? "Entregando…" : "Entregar tarea"}
+              onPress={entregar}
+              deshabilitado={entregando}
+            />
+          </>
+        ) : tarea.entregado ? (
+          <Pressable accessibilityRole="button" style={e.adjuntar} onPress={() => void abrirLoEntregado()}
+            accessibilityLabel="Ver lo que entregué">
+            <Icono nombre="documento" tamano={18} tono={color.marca} />
+            <Text style={[e.adjuntarTexto, { color: color.marca }]}>Ver lo que entregué</Text>
+          </Pressable>
         ) : null}
         <Pressable accessibilityRole="button" style={e.tutor}
           onPress={() => navigation.navigate(...alTutor(tarea.asignatura_id, `Estoy con «${tarea.titulo}».`))}>
@@ -124,6 +209,13 @@ const e = StyleSheet.create({
   vinneta: { color: color.textoSuave, fontSize: 14 },
   criterioTexto: { flex: 1, ...tipo.cuerpo, color: color.texto, lineHeight: 21 },
   acciones: { padding: espacio.m, gap: 9 },
+  adjuntar: {
+    flexDirection: "row", alignItems: "center", gap: espacio.s,
+    borderWidth: 1, borderColor: color.borde, borderRadius: radio.boton,
+    paddingVertical: espacio.m, paddingHorizontal: espacio.m,
+  },
+  adjuntarTexto: { flex: 1, fontSize: 15, fontWeight: "600", color: color.textoSuave },
+  aviso: { ...tipo.detalle, color: color.texto, lineHeight: 19 },
   tutor: {
     borderWidth: 1, borderColor: color.borde, borderRadius: radio.boton,
     paddingVertical: espacio.m, alignItems: "center",

@@ -141,7 +141,7 @@ export async function capitulosDe(claseId: string): Promise<Capitulo[]> {
 export async function misTareas(asignaturaId?: string): Promise<TareaConEstado[]> {
   let consulta = supabase
     .from("tareas")
-    .select("id, asignatura_id, titulo, enunciado, criterios, puntos, vence_en, entregas(entregado_en, puntos_obtenidos)")
+    .select("id, asignatura_id, titulo, enunciado, criterios, puntos, vence_en, entregas(entregado_en, puntos_obtenidos, archivo_url)")
     .order("vence_en");
   if (asignaturaId) consulta = consulta.eq("asignatura_id", asignaturaId);
 
@@ -160,6 +160,7 @@ export async function misTareas(asignaturaId?: string): Promise<TareaConEstado[]
       vence_en: t.vence_en,
       entregada_en: entrega?.entregado_en ?? null,
       puntos_obtenidos: entrega?.puntos_obtenidos ?? null,
+      entregado: entrega?.archivo_url ?? null,
     };
   });
 }
@@ -299,7 +300,7 @@ export async function crearHilo(
 export async function tareaPorId(tareaId: string): Promise<TareaConEstado | null> {
   const { data, error } = await supabase
     .from("tareas")
-    .select("id, asignatura_id, titulo, enunciado, criterios, puntos, vence_en, entregas(entregado_en, puntos_obtenidos)")
+    .select("id, asignatura_id, titulo, enunciado, criterios, puntos, vence_en, entregas(entregado_en, puntos_obtenidos, archivo_url)")
     .eq("id", tareaId)
     .maybeSingle();
   reventar("No pude cargar la tarea", error);
@@ -316,6 +317,7 @@ export async function tareaPorId(tareaId: string): Promise<TareaConEstado | null
     vence_en: data.vence_en,
     entregada_en: entrega?.entregado_en ?? null,
     puntos_obtenidos: entrega?.puntos_obtenidos ?? null,
+    entregado: entrega?.archivo_url ?? null,
   };
 }
 
