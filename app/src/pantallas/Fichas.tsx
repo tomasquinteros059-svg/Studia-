@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Boton, Cargando, Error as ErrorUI, Pantalla } from "../ui/componentes.tsx";
+import { Boton, Cargando, Copia, Error as ErrorUI, Pantalla } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
   FILETE, cifras, color, colorDeRamo, espacio, letra, radio, sombra, tipo,
@@ -38,7 +38,8 @@ export default function Fichas({ route }: Props) {
     async () => await misFichas(asignaturaId, tema),
     [asignaturaId, tema],
   );
-  const { datos, cargando, error, recargar } = usarCarga(traer, [asignaturaId, tema]);
+  const { datos, cargando, error, recargar, copiaDe } =
+    usarCarga(traer, [asignaturaId, tema], `fichas.${asignaturaId}.${tema}`);
 
   if (cargando) return <Cargando texto="Buscando tus fichas…" />;
   if (error) return <ErrorUI mensaje={error} reintentar={recargar} />;
@@ -72,6 +73,7 @@ export default function Fichas({ route }: Props) {
 
   return (
     <Pantalla alRefrescar={recargar} sinLimite>
+      <Copia de={copiaDe} />
       <View style={e.cabeza}>
         <View style={{ flex: 1 }}>
           <Text style={e.tema} numberOfLines={2}>{tema}</Text>

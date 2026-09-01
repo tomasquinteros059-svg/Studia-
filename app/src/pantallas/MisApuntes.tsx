@@ -3,7 +3,7 @@ import {
   Alert, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text,
   useWindowDimensions, View,
 } from "react-native";
-import { Campo, Cargando, Error, Vacio } from "../ui/componentes.tsx";
+import { Campo, Cargando, Copia, Error, Vacio } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -33,7 +33,8 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
     const [apuntes, asignaturas] = await Promise.all([misApuntes(), misAsignaturas()]);
     return { apuntes, asignaturas };
   }, []);
-  const { datos, cargando, refrescando, error, recargar, refrescar } = usarCarga(traer);
+  const { datos, cargando, refrescando, error, recargar, refrescar, copiaDe } =
+    usarCarga(traer, [], "apuntes");
 
   const [busqueda, setBusqueda] = useState("");
   const [eligiendoRamo, setEligiendoRamo] = useState(false);
@@ -100,6 +101,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
 
   return (
     <View style={e.pantalla}>
+      <Copia de={copiaDe} />
       <View style={e.buscador}>
         <Campo
           style={{ flex: 1 }}

@@ -44,7 +44,8 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
     return { apunte, asignaturas, resumen };
   }, [apunteId]);
 
-  const { datos, cargando, error, recargar } = usarCarga(traer, [apunteId]);
+  const { datos, cargando, error, recargar, copiaDe } =
+    usarCarga(traer, [apunteId], `apunte.${apunteId}`);
 
   const [contenido, setContenido] = useState<string | null>(null);
 

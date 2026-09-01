@@ -13,6 +13,8 @@ import { VERSION_VISIBLE } from "../lib/version.ts";
 import { aviso } from "../dominio/legales.ts";
 import { PALABRA_PARA_BORRAR, borrarMiCuenta } from "../lib/cuenta.ts";
 import { apagarAvisos, avisosEncendidos, encenderAvisos, sePuedeAvisar } from "../lib/avisos.ts";
+import { olvidarTodasLasCopias } from "../lib/copia.ts";
+import { comoSeCuentaElPlan, NOMBRE_DEL_PLAN } from "../dominio/planes.ts";
 import type { PropsPila } from "../lib/rutas.ts";
 import { comoSeDice } from "../dominio/fallas.ts";
 
@@ -108,13 +110,25 @@ export default function Perfil({ navigation }: PropsPila<"Perfil">) {
 
       <Encabezado texto="Sesión" />
       <View style={{ paddingHorizontal: espacio.m }}>
-        <Boton texto="Cerrar sesión" variante="suave" onPress={() => supabase.auth.signOut()} />
+        {/* Las copias guardadas se van con la sesión. Lo de una persona no
+            puede quedar en el teléfono esperando a la siguiente. */}
+        <Boton texto="Cerrar sesión" variante="suave" onPress={() => {
+          void olvidarTodasLasCopias().finally(() => void supabase.auth.signOut());
+        }} />
       </View>
 
       <Text style={e.pie}>
         Tu correo no se guarda en la base de datos de la app: sale de tu sesión.
         Nadie más puede verlo.
       </Text>
+
+      {/* Qué plan tiene, y qué cambia eso. Una función que funciona en
+          silencio es una función que nadie sabe que pagó. */}
+      <Encabezado texto="Tu plan" />
+      <View style={{ paddingHorizontal: espacio.m, gap: 6 }}>
+        <Text style={tipo.fila}>{NOMBRE_DEL_PLAN[datos.plan]}</Text>
+        <Text style={tipo.detalle}>{comoSeCuentaElPlan(datos.plan)}</Text>
+      </View>
 
       {/* Los avisos, antes de lo legal: es lo único de esta pantalla que
           alguien viene a cambiar de verdad. */}

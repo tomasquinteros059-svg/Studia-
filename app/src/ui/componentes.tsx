@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icono } from "./Icono.tsx";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import { CUADRICULA, FILETE, color, espacio, radio, sombra, tenue, tipo } from "./tema.ts";
+import { comoSeVeLaCopia } from "../dominio/planes.ts";
 
 export function Titulo({ children }: { children: ReactNode }) {
   return <Text style={e.titulo}>{children}</Text>;
@@ -140,6 +141,24 @@ export function Cargando({ texto = "Cargando…" }: { texto?: string }) {
     <View style={e.centro}>
       <ActivityIndicator color={color.marca} />
       <Text style={e.vacioTexto}>{texto}</Text>
+    </View>
+  );
+}
+
+/**
+ * La cinta que avisa que lo que se ve es una copia guardada.
+ *
+ * Va en la pantalla y no en un ajuste escondido: mostrar datos de otro día
+ * como si fueran de ahora es dejar que alguien decida con información vieja
+ * sin darle la oportunidad de notarlo. Devuelve nada cuando los datos vienen
+ * de la red, que es lo normal.
+ */
+export function Copia({ de }: { de: number | null }) {
+  if (de === null) return null;
+  return (
+    <View style={e.copia} accessibilityRole="alert">
+      <Icono nombre="aviso" tamano={15} tono={color.textoSuave} />
+      <Text style={e.copiaTexto}>{comoSeVeLaCopia(de, Date.now())}</Text>
     </View>
   );
 }
@@ -349,6 +368,13 @@ const e = StyleSheet.create({
 
   centro: { flex: 1, padding: espacio.xl, alignItems: "center", justifyContent: "center", gap: espacio.m },
   vacioTexto: { ...tipo.cuerpo, color: color.textoSuave, textAlign: "center", lineHeight: 22 },
+
+  copia: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: color.elemento,
+    paddingHorizontal: espacio.m, paddingVertical: 9,
+  },
+  copiaTexto: { ...tipo.detalle, color: color.textoSuave, flex: 1 },
 
   modalFondo: { flex: 1, backgroundColor: color.fondo },
   modalBarra: {

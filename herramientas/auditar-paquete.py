@@ -103,6 +103,12 @@ PIEZAS = {
         ("Tareas · nada pendiente, dicho como buena noticia", "No tienes nada pendiente"),
         ("Tareas · nada entregado", "Todavía no has entregado ninguna tarea"),
     ],
+    "Sin conexión": [
+        ("La copia se anuncia como copia", "Sin conexión · guardado"),
+        ("Y se avisa cuando ya está vieja", "puede estar desactualizado"),
+        ("Al plan gratis se le cuenta qué le falta", "Con el plan Personal"),
+        ("Portada · sin conexión en el plan pagado", "Estudiar sin conexión"),
+    ],
 }
 
 

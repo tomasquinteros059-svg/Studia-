@@ -12,7 +12,8 @@ import type {
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
-import { comoSeDice } from "../dominio/fallas.ts";
+import { comoFalla } from "../dominio/fallas.ts";
+import { planValido } from "../dominio/planes.ts";
 import type { Tramo } from "../dominio/escucha.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
@@ -22,7 +23,10 @@ function reventar(contexto: string, error: { message: string } | null): void {
   // El mensaje ya sale dicho en castellano y sin el detalle técnico. Pegar
   // «: Network request failed» al final del contexto era lo que hacía que un
   // problema de señal se leyera como una falla de la aplicación.
-  if (error) throw new Error(comoSeDice(error.message, contexto));
+  // `comoFalla` y no `new Error`: el mensaje traducido ya no se parece a lo
+  // que lo causó, así que la falla lleva su clase adjunta. Sin eso, la copia
+  // guardada en el aparato no se usaría nunca.
+  if (error) throw comoFalla(error.message, contexto);
 }
 
 export async function misAsignaturas(): Promise<Asignatura[]> {
@@ -340,7 +344,7 @@ export async function miPerfil(): Promise<Perfil> {
   if (!sesion.user) throw new Error("No hay sesión.");
 
   const { data, error } = await supabase
-    .from("perfiles").select("nombre, rol").eq("id", sesion.user.id).single();
+    .from("perfiles").select("nombre, rol, plan").eq("id", sesion.user.id).single();
   reventar("No pude cargar tu perfil", error);
 
   // El correo sale de la sesión, no de la base: la columna no es legible desde
@@ -350,6 +354,10 @@ export async function miPerfil(): Promise<Perfil> {
     nombre: data?.nombre ?? "",
     correo: sesion.user.email ?? "",
     rol: (data?.rol as Perfil["rol"]) ?? "estudiante",
+    // Por `planValido` y no directo: si la columna trajera algo raro, caer en
+    // el plan gratis es lo correcto. Un error de escritura en la base no
+    // puede regalar lo que se cobra.
+    plan: planValido(data?.plan),
   };
 }
 

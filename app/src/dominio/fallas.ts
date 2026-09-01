@@ -27,6 +27,37 @@ const SEÑALES: [Clase, RegExp][] = [
   ["no_esta", /pgrst116|no rows|not found|404/i],
 ];
 
+/**
+ * Una falla que se acuerda de qué clase era.
+ *
+ * Existe por un problema concreto y difícil de ver: en cuanto el mensaje se
+ * traduce —«Parece que no hay internet…»— deja de parecerse a lo que lo
+ * causó, y volver a mirarlo para clasificarlo devuelve «otra». Eso hacía que
+ * la copia guardada en el aparato no se usara nunca, justo cuando hacía falta.
+ *
+ * Con la clase adjunta, quien la recibe no tiene que adivinar leyendo texto.
+ */
+export class Falla extends Error {
+  readonly clase: Clase;
+  constructor(mensaje: string, clase: Clase) {
+    super(mensaje);
+    this.name = "Falla";
+    this.clase = clase;
+  }
+}
+
+/** El mensaje dicho para alguien, y la clase adjunta para el código. */
+export function comoFalla(algo: unknown, contexto?: string): Falla {
+  const crudo = algo instanceof Error ? algo.message : typeof algo === "string" ? algo : "";
+  return new Falla(comoSeDice(algo, contexto), claseDe(crudo));
+}
+
+/** Qué clase de falla es, mirando primero si ella misma lo dice. */
+export function claseDeLaFalla(algo: unknown): Clase {
+  if (algo instanceof Falla) return algo.clase;
+  return claseDe(algo instanceof Error ? algo.message : typeof algo === "string" ? algo : "");
+}
+
 export function claseDe(mensaje: string): Clase {
   for (const [clase, señal] of SEÑALES) if (señal.test(mensaje)) return clase;
   return "otra";

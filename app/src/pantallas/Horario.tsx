@@ -61,7 +61,7 @@ export default function Planificador({ navigation }: Props) {
   }, [lunes]);
 
   const { datos, cargando, refrescando, error, recargar, refrescar } =
-    usarCarga(traer, [lunes.getTime()]);
+    usarCarga(traer, [lunes.getTime()], `horario.${lunes.getTime()}`);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;

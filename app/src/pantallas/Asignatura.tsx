@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import {
-  Boton, Cargando, Encabezado, Error, Fila, Pastilla, Vacio,
-} from "../ui/componentes.tsx";
+import { Boton, Cargando, Copia, Encabezado, Error, Fila, Pastilla, Vacio } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
   FILETE, cifras, color, colorDeRamo, duracion, espacio, fechaCorta, hora,
@@ -82,7 +80,8 @@ export default function Asignatura({ route, navigation }: Props) {
     };
   }, [asignaturaId]);
 
-  const { datos, cargando, error, recargar } = usarCarga(traer, [asignaturaId]);
+  const { datos, cargando, error, recargar, copiaDe } =
+    usarCarga(traer, [asignaturaId], `ramo.${asignaturaId}`);
 
   useEffect(() => {
     navigation.setOptions({
@@ -141,6 +140,7 @@ export default function Asignatura({ route, navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: color.fondo }}>
+      <Copia de={copiaDe} />
       {/* El color del ramo es dueño de la cabecera: es cómo sabes dónde
           estás sin leer el título. */}
       <View style={[e.cabecera, { backgroundColor: tono }]}>

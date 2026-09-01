@@ -1,3 +1,6 @@
+import type { Plan } from "../dominio/planes.ts";
+export type { Plan };
+
 export type Asignatura = {
   id: string;
   codigo: string;
@@ -167,6 +170,8 @@ export type Perfil = {
   correo: string;
   /** Decide qué aplicación abre la persona. Lo pone el colegio, no el cliente. */
   rol: Rol;
+  /** Decide si la app guarda las cosas para estudiar sin señal. Lo pone el servidor. */
+  plan: Plan;
 };
 
 /** Un ramo que esta persona dicta, y con qué papel. */

@@ -1140,6 +1140,43 @@ end $$;
 reset role;
 delete from public.fichas where id = '22222222-0000-4000-8000-000000000001';
 
+-- ──────────────────────────────── el plan ────────────────────────────────
+--
+-- Es lo que separa lo pagado de lo gratis, así que la pregunta no es si la
+-- pantalla lo respeta: es si alguien con la clave anónima —que es pública, va
+-- dentro del APK— puede regalárselo con un update.
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+select pg_temp.afirmar('parte en el plan gratis',
+  (select plan from public.perfiles where id = auth.uid()), 'gratis');
+
+do $$
+declare paso boolean := false;
+begin
+  begin
+    update public.perfiles set plan = 'personal' where id = auth.uid();
+  exception when others then paso := true;
+  end;
+  perform pg_temp.afirmar('no puede regalarse el plan pagado', paso, true);
+end $$;
+
+select pg_temp.afirmar('y sigue en gratis después de intentarlo',
+  (select plan from public.perfiles where id = auth.uid()), 'gratis');
+
+-- Ni por la función, que es la otra puerta.
+do $$
+declare paso boolean := false;
+begin
+  begin
+    perform public.cambiar_plan('e0000000-0000-4000-8000-000000000001', 'institucion');
+  exception when others then paso := true;
+  end;
+  perform pg_temp.afirmar('ni llamando a la función de la administración', paso, true);
+end $$;
+
+reset role;
+
 -- ─────────────────────────── las caídas de la app ────────────────────────
 --
 -- Un alumno anota las suyas y no ve las de nadie. En un mensaje de error se

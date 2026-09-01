@@ -25,7 +25,8 @@ export default function Lectura({ route, navigation }: PropsPila<"Lectura">) {
   const { dosPaneles } = usarDisposicion();
 
   const traer = useCallback(() => lecturaPorId(materialId), [materialId]);
-  const { datos, cargando, error, recargar } = usarCarga(traer, [materialId]);
+  const { datos, cargando, error, recargar, copiaDe } =
+    usarCarga(traer, [materialId], `lectura.${materialId}`);
 
   const lector = usarLector(materialId, datos?.texto ?? "");
   const {

@@ -586,6 +586,9 @@ export async function miPerfil(): Promise<Perfil> {
     nombre: quien?.nombre ?? "Eduardo Q.",
     correo: quien?.correo ?? "eduardo@studia.cl",
     rol: quien?.rol ?? "estudiante",
+    // La demostración no guarda nada en el aparato: no hay servidor de donde
+    // traerlo, y sus datos ya viven en el teléfono.
+    plan: "gratis",
   };
 }
 

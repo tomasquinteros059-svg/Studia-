@@ -10,6 +10,8 @@ import { MODO_DEMO } from "./config.ts";
 import { miPerfil, misDictados } from "./consultas.ts";
 import { usarPerfilDemo } from "./perfiles-demo.ts";
 import type { Rol } from "./tipos.ts";
+import { anotarPlan } from "./copia.ts";
+import type { Plan } from "../dominio/planes.ts";
 
 export type QuienSoy = {
   nombre: string;
@@ -19,6 +21,8 @@ export type QuienSoy = {
   papel: "profesor" | "ayudante" | null;
   /** Identificadores de los ramos que dicta. Vacío para alumno y colegio. */
   dicta: string[];
+  /** Decide si la app guarda las cosas para estudiar sin señal. */
+  plan: Plan;
 };
 
 /**
@@ -42,12 +46,17 @@ export function usarQuienSoy(): { yo: QuienSoy | null; listo: boolean } {
           nombre: perfil.nombre,
           correo: perfil.correo,
           rol: perfil.rol,
+          plan: perfil.plan,
           // Basta con ser profesor en un ramo para poder publicar en ese ramo;
           // la base vuelve a decidirlo por ramo en cada escritura.
           papel: dictados.some((d) => d.papel === "profesor") ? "profesor"
                : dictados.length > 0 ? "ayudante" : null,
           dicta: dictados.map((d) => d.asignatura_id),
         });
+        // Lo anota para el resto de la app: `usarCarga` lo consulta en cada
+        // pantalla y hacerlo bajar por props sería atravesar veinte
+        // componentes que no tienen nada que ver con esto.
+        anotarPlan(perfil.plan);
       } catch {
         // Si no se pudo averiguar, se entra como estudiante: es lo que menos
         // puede hacer, y no deja a nadie fuera de su propia app.
@@ -70,6 +79,9 @@ export function usarQuienSoy(): { yo: QuienSoy | null; listo: boolean } {
       rol: p.rol,
       papel: p.papel ?? null,
       dicta: p.dicta,
+      // Sin servidor no hay plan que consultar, y los datos ya están en el
+      // teléfono: guardarlos otra vez no cambiaría nada.
+      plan: "gratis",
     },
   };
 }

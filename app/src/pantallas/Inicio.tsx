@@ -1,8 +1,6 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  Baldosa, Cargando, Encabezado, Error, Hoja, Pantalla, Pastilla,
-} from "../ui/componentes.tsx";
+import { Baldosa, Cargando, Copia, Encabezado, Error, Hoja, Pantalla, Pastilla } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
   FILETE, cifras, color, colorDeRamo, espacio, hora, inicialesDeRamo,
@@ -44,7 +42,8 @@ export default function Inicio({ navigation }: Props) {
     return { asignaturas, tareas, horario, vivo, notificaciones, evaluaciones };
   }, []);
 
-  const { datos, cargando, refrescando, error, recargar, refrescar } = usarCarga(traer);
+  const { datos, cargando, refrescando, error, recargar, refrescar, copiaDe } =
+    usarCarga(traer, [], "inicio");
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -66,6 +65,7 @@ export default function Inicio({ navigation }: Props) {
 
   return (
     <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
+      <Copia de={copiaDe} />
       <View style={e.saludo}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={tipo.etiqueta}>{nombreDia(hoy)}</Text>

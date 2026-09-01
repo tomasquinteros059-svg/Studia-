@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { claseDe, comoSeDice, vale_reintentar } from "./fallas.ts";
+import { claseDe, claseDeLaFalla, comoFalla, comoSeDice, vale_reintentar } from "./fallas.ts";
 
 // Lo que de verdad aparecía sin señal, palabra por palabra.
 test("sin internet se dice que no hay internet, no «Network request failed»", () => {
@@ -85,4 +85,31 @@ test("solo se ofrece reintentar cuando insistir puede servir", () => {
   assert.equal(vale_reintentar("permiso"), false);
   assert.equal(vale_reintentar("sesion"), false);
   assert.equal(vale_reintentar("no_esta"), false);
+});
+
+// El problema que hizo falta esta clase: en cuanto el mensaje se traduce, deja
+// de parecerse a lo que lo causó. Volver a mirarlo devolvía «otra», y por eso
+// la copia guardada en el aparato no se habría usado nunca.
+test("una falla traducida se sigue reconociendo como lo que era", () => {
+  const falla = comoFalla("Network request failed", "No pude cargar tus asignaturas");
+
+  assert.match(falla.message, /no hay internet/i);
+  // Mirar solo el texto ya no alcanza…
+  assert.equal(claseDe(falla.message), "otra");
+  // …y por eso la clase viaja con ella.
+  assert.equal(falla.clase, "red");
+  assert.equal(claseDeLaFalla(falla), "red");
+});
+
+test("lo que no es una Falla se clasifica leyéndolo, como antes", () => {
+  assert.equal(claseDeLaFalla(new Error("Failed to fetch")), "red");
+  assert.equal(claseDeLaFalla("JWT expired"), "sesion");
+  assert.equal(claseDeLaFalla(undefined), "otra");
+});
+
+test("una Falla sigue siendo un Error, para quien solo mire el mensaje", () => {
+  const falla = comoFalla(new Error("permission denied for table notas"));
+  assert.ok(falla instanceof Error);
+  assert.match(falla.message, /permiso/);
+  assert.equal(falla.clase, "permiso");
 });

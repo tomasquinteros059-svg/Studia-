@@ -1,8 +1,6 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import {
-  Cargando, Error as ErrorUI, Fila, HojaModal, Pantalla, Pastilla, Punto, Vacio,
-} from "../ui/componentes.tsx";
+import { Cargando, Copia, Error as ErrorUI, Fila, HojaModal, Pantalla, Pastilla, Punto, Vacio } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
   FILETE, color, colorDeRamo, espacio, fechaYHora, radio, sombra, tipo,
@@ -32,15 +30,21 @@ export default function Tareas({ navigation }: Props) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["id"]>("pendientes");
   const [armando, setArmando] = useState(false);
 
+  // Devuelve listas y no un Map: lo que sale de acá se guarda en el aparato
+  // para poder estudiar sin señal, y un Map pasado por JSON vuelve como un
+  // objeto vacío. El índice se arma abajo, al dibujar, que es donde se usa.
   const traer = useCallback(async () => {
     const [tareas, asignaturas] = await Promise.all([misTareas(), misAsignaturas()]);
-    return { tareas, porId: new Map(asignaturas.map((a) => [a.id, a])) };
+    return { tareas, asignaturas };
   }, []);
-  const { datos, cargando, refrescando, error, recargar, refrescar } = usarCarga(traer);
+  const { datos, cargando, refrescando, error, recargar, refrescar, copiaDe } =
+    usarCarga(traer, [], "tareas");
 
   if (cargando) return <Cargando />;
   if (error) return <ErrorUI mensaje={error} reintentar={recargar} />;
   if (!datos) return null;
+
+  const porId = new Map(datos.asignaturas.map((a) => [a.id, a]));
 
   const lista = ordenarTareas(datos.tareas).filter((t) => {
     const estado = estadoDeTarea(t);
@@ -51,6 +55,7 @@ export default function Tareas({ navigation }: Props) {
 
   return (
     <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
+      <Copia de={copiaDe} />
       <View style={e.filtros}>
         {FILTROS.map((f) => {
           const activo = f.id === filtro;
@@ -87,7 +92,7 @@ export default function Tareas({ navigation }: Props) {
         buena y hay que darla como tal.
       */}
       {lista.length === 0 ? <Vacio texto={SIN_NADA[filtro]} /> : lista.map((t) => {
-        const ramo = datos.porId.get(t.asignatura_id);
+        const ramo = porId.get(t.asignatura_id);
         const estado = estadoDeTarea(t);
         return (
           <Fila key={t.id}
@@ -113,7 +118,7 @@ export default function Tareas({ navigation }: Props) {
       <ArmarQuiz
         abierto={armando}
         cerrar={() => setArmando(false)}
-        ramos={[...datos.porId.values()]}
+        ramos={datos.asignaturas}
         alQuedarListo={(quizId, tono) => {
           setArmando(false);
           navigation.navigate("Quiz", { quizId, tono });
