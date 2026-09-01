@@ -135,7 +135,22 @@ lo compartido incrustado arriba, para que cada una se baste sola. Los genera:
 npm run juntar-funciones
 ```
 
+Cada función es un despliegue aparte, con su propio nombre y su propia
+dirección: la aplicación llama a cada una por el suyo. No se pegan las ocho
+juntas ni se agregan archivos —cada archivo de esa carpeta ya trae adentro lo
+que la función necesita, y por eso son largos—.
+
 *Verify JWT* se deja como viene, activado: las ocho lo esperan así.
+
+Antes de subirlas, si tienes Deno instalado:
+
+```bash
+npm run prueba:funciones-deno
+```
+
+Las compila las dieciséis —las ocho de `supabase/functions` y las ocho
+pegables— con el compilador que de verdad las corre. Sin Deno no falla: lo
+dice y se salta.
 
 Las claves van en **Edge Functions → Secrets**, con los mismos nombres.
 
