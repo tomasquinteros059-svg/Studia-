@@ -151,10 +151,14 @@ export default function Tutor({ route }: Props) {
               </Text>
             </View>
             <View style={{ flex: 1 }}>
+              {/* El nombre primero. Con la anotación arriba se leía «te
+                  pregunta / El Tutor», que es el sujeto después del verbo: la
+                  frase quedaba dada vuelta. Una anotación a mano va debajo de
+                  lo que anota, además, que es donde uno la escribiría. */}
+              <Text style={e.nombre} numberOfLines={1}>El Tutor</Text>
               <Text style={e.papel} numberOfLines={1}>
                 {conColumna ? "te pregunta de vuelta" : "te pregunta"}
               </Text>
-              <Text style={e.nombre} numberOfLines={1}>El Tutor</Text>
             </View>
             {elegida ? (
               <View style={e.contextoChip}>

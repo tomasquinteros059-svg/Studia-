@@ -37,7 +37,7 @@ export default function Notificaciones({ navigation }: Props) {
   return (
     <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
       {lista.some((n) => !n.leida) ? (
-        <Pressable style={e.marcarTodas}
+        <Pressable style={e.marcarTodas} accessibilityRole="button"
           onPress={async () => { await marcarTodasLeidas().catch(() => {}); recargar(); }}>
           <Text style={e.enlace}>Marcar todas como leídas</Text>
         </Pressable>

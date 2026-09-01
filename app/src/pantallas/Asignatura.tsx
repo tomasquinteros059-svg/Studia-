@@ -537,7 +537,8 @@ export default function Asignatura({ route, navigation }: Props) {
 
       <Modal visible={menuAbierto} transparent animationType="slide"
         onRequestClose={() => setMenuAbierto(false)}>
-        <Pressable style={e.fondoModal} onPress={() => setMenuAbierto(false)} accessibilityLabel="Cerrar" />
+        <Pressable style={e.fondoModal} onPress={() => setMenuAbierto(false)}
+          accessibilityRole="button" accessibilityLabel="Cerrar" />
         <View style={e.hoja}>
           <View style={e.asa} />
           <Text style={tipo.etiqueta}>Ir a una sección de</Text>

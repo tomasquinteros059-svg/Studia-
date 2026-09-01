@@ -193,7 +193,8 @@ export default function Sesion() {
         </Pressable>
       )}
 
-      <Pressable onPress={() => { setModo(creando ? "entrar" : "crear"); setError(null); setAviso(null); }}>
+      <Pressable accessibilityRole="button"
+        onPress={() => { setModo(creando ? "entrar" : "crear"); setError(null); setAviso(null); }}>
         <Text style={e.enlace}>
           {creando ? "¿Ya tienes cuenta? Iniciar sesión" : "¿No tienes cuenta? Crear cuenta"}
         </Text>

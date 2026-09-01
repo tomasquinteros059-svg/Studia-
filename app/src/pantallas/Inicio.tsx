@@ -112,7 +112,7 @@ export default function Inicio({ navigation }: Props) {
           quien cargó el suyo escribiéndolo también tiene clases hoy. */}
       {horario.length > 0 ? <>
       <Encabezado texto="Hoy" accion={
-        <Pressable onPress={() => navigation.navigate("Horario")}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Horario")}>
           <Text style={e.enlace}>Ver horario</Text>
         </Pressable>} />
       {bloquesDeHoy.length === 0 ? (
@@ -148,7 +148,7 @@ export default function Inicio({ navigation }: Props) {
 
       {hayColegio ? <>
       <Encabezado texto="Próximas entregas" accion={
-        <Pressable onPress={() => navigation.navigate("Tareas")}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Tareas")}>
           <Text style={e.enlace}>Ver todas</Text>
         </Pressable>} />
       {proximas.length === 0 ? (
@@ -186,7 +186,7 @@ export default function Inicio({ navigation }: Props) {
 
 
       <Encabezado texto="Mis asignaturas" accion={
-        <Pressable onPress={() => navigation.navigate("Notas")}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Notas")}>
           <Text style={e.enlace}>Ver notas</Text>
         </Pressable>} />
       {/*

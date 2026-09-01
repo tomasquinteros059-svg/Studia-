@@ -47,7 +47,10 @@ export default function InicioAdmin() {
 
   if (cargando) return <Cargando />;
   if (error) return <ErrorUI mensaje={error} reintentar={recargar} />;
-  if (!datos) return <ErrorUI mensaje="No pude cargar los datos del colegio." />;
+  // Con reintentar: esta es una pestaña, así que no hay flecha para volver.
+  // Sin salida y sin reintento, quedaba una pantalla que solo se abandona
+  // cerrando la aplicación.
+  if (!datos) return <ErrorUI mensaje="No pude cargar los datos del colegio." reintentar={recargar} />;
 
   // La misma revisión que corre el importador, ahora sobre lo que está
   // cargado: si alguien movió una sala desde la app, se ve acá.

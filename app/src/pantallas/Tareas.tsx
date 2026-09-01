@@ -15,6 +15,13 @@ import { cuandoVence, estadoDeTarea, ordenarTareas } from "../dominio/tareas.ts"
 import type { PropsPestana } from "../lib/rutas.ts";
 
 type Props = PropsPestana<"Tareas">;
+/** Qué se dice cuando la lista queda vacía, según lo que se estaba mirando. */
+const SIN_NADA: Record<"pendientes" | "entregadas" | "todas", string> = {
+  pendientes: "No tienes nada pendiente. Buen momento para repasar.",
+  entregadas: "Todavía no has entregado ninguna tarea.",
+  todas: "No hay tareas en tus ramos todavía.",
+};
+
 const FILTROS = [
   { id: "pendientes", texto: "Pendientes" },
   { id: "entregadas", texto: "Entregadas" },
@@ -73,7 +80,13 @@ export default function Tareas({ navigation }: Props) {
         </Pressable>
       </View>
 
-      {lista.length === 0 ? <Vacio texto="Nada por acá." /> : lista.map((t) => {
+      {/*
+        Cada filtro vacío quiere decir algo distinto, y decir «Nada por acá»
+        en los tres era desperdiciar el único momento en que la pantalla tiene
+        toda la atención de alguien. En pendientes, además, la noticia es
+        buena y hay que darla como tal.
+      */}
+      {lista.length === 0 ? <Vacio texto={SIN_NADA[filtro]} /> : lista.map((t) => {
         const ramo = datos.porId.get(t.asignatura_id);
         const estado = estadoDeTarea(t);
         return (

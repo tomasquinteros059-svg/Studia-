@@ -370,7 +370,7 @@ function Ajustes({
   return (
     <Modal visible={abierto} transparent animationType="slide" onRequestClose={cerrar}
       statusBarTranslucent>
-      <Pressable style={a.velo} onPress={cerrar} accessibilityLabel="Cerrar ajustes" />
+      <Pressable style={a.velo} onPress={cerrar} accessibilityRole="button" accessibilityLabel="Cerrar ajustes" />
       <View style={[a.hoja, { paddingBottom: espacio.l + margenAbajo }]}>
         <View style={a.asa} />
 

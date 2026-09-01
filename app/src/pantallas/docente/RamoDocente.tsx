@@ -421,7 +421,7 @@ function Corregir({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={cerrar}>
-      <Pressable style={e.velo} onPress={cerrar} accessibilityLabel="Cerrar" />
+      <Pressable style={e.velo} onPress={cerrar} accessibilityRole="button" accessibilityLabel="Cerrar" />
       <View style={e.hoja}>
         <Text style={tipo.etiqueta}>Corregir entrega</Text>
         <Text style={e.hojaTitulo}>{abierto.entrega.estudiante}</Text>
@@ -488,7 +488,7 @@ function EditarNota({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={cerrar}>
-      <Pressable style={e.velo} onPress={cerrar} accessibilityLabel="Cerrar" />
+      <Pressable style={e.velo} onPress={cerrar} accessibilityRole="button" accessibilityLabel="Cerrar" />
       <View style={e.hoja}>
         <Text style={tipo.etiqueta}>Poner nota</Text>
         <Text style={e.hojaTitulo}>{abierto.fila.estudiante}</Text>

@@ -99,6 +99,10 @@ PIEZAS = {
         ("La sesión vencida se distingue", "Tu sesión venció"),
         ("El apunte queda a salvo en el teléfono", "Guardado en el teléfono"),
     ],
+    "Los detalles": [
+        ("Tareas · nada pendiente, dicho como buena noticia", "No tienes nada pendiente"),
+        ("Tareas · nada entregado", "Todavía no has entregado ninguna tarea"),
+    ],
 }
 
 

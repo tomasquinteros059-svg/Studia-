@@ -213,7 +213,7 @@ export default function MisApuntes({ navigation }: PropsPestana<"Apuntes">) {
       <Modal visible={eligiendoRamo} transparent animationType="slide"
         onRequestClose={() => setEligiendoRamo(false)}>
         <Pressable style={e.fondoModal} onPress={() => setEligiendoRamo(false)}
-          accessibilityLabel="Cerrar" />
+          accessibilityRole="button" accessibilityLabel="Cerrar" />
         <View style={[e.hoja, { paddingBottom: espacio.l + margenes.bottom }]}>
           <View style={e.asa} />
           <Text style={tipo.etiqueta}>Apuntar en</Text>
