@@ -97,6 +97,12 @@ completo del producto. Ahora `docs/` tiene solo el sitio.
   de entrenamiento. Lo respetan solo si quieren, pero deja la negativa escrita.
 - `terminos.html` y `privacidad.html` en el sitio: Play Store exige una
   dirección web pública para la política de privacidad.
+- **Borrar la cuenta** desde el perfil, con confirmación escrita, y
+  `borrar-cuenta.html` como la dirección pública que Play Store también exige.
+  Un disparador quita el nombre de lo publicado en el foro, que es lo que la
+  política promete y la cascada por sí sola no hacía.
+- Ícono propio, adaptativo y monocromo, y la pantalla de arranque en el papel
+  de la aplicación.
 
 ## Lo que falta y no se puede hacer desde el código
 

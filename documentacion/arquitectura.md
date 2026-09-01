@@ -154,8 +154,10 @@ Son deliberadas y están acotadas. Cada una tiene su costo anotado.
 | No hay panel docente | Las asignaturas, tareas, notas y avisos entran por el seed o a mano |
 | La clase en vivo no tiene audio real | La pantalla, sus controles y **el permiso de micrófono ya funcionan**; falta el transporte que lleve la voz a la sala (ver spec, §9) |
 | Las grabaciones no tienen archivo | El reproductor está completo —avance, ±15 s, velocidades, capítulos— y suena en cuanto `clases.audio_url` tenga una URL. Con la columna vacía muestra el aviso y deja navegar los capítulos |
-| Las entregas no aceptan archivos | `entregas.archivo_url` existe; falta Supabase Storage y el selector de archivos |
+| Las entregas no aceptan archivos | `entregas.archivo_url` existe y el almacenamiento ya está (bucket `material`, con sus políticas probadas). Falta enganchar el selector en la pantalla de la entrega, que es lo mismo que ya hace `NuevoMaterial` |
 | No hay notificaciones push | Las notificaciones se leen dentro de la app, no llegan al teléfono |
+| Las funciones del servidor no están desplegadas | El tutor, el asistente, los quizzes, las fichas, el resumen, la sala y el borrado de cuenta están escritos y probados; sin `supabase functions deploy` no responde ninguno |
+| No hay reporte de errores | Cuando la app se cae en el teléfono de alguien, no se entera nadie |
 | Solo se ven nombres de compañeros, no correos ni en qué otros ramos están | Fue la exposición mínima que permite mostrar el curso. Si más adelante se quiere foto o perfil público, es una decisión aparte |
 
 ---
