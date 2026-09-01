@@ -23,7 +23,9 @@ Esta política se rige por la Ley N.º 19.628 sobre Protección de la Vida Priva
 
 **Del modo escucha:** los tramos de texto que tu teléfono transcribió, con el segundo de la clase en que se dijeron y una medida de qué tan seguro estaba el reconocedor.
 
-**Técnicos:** los mínimos para que la sesión funcione y para detectar fallas.
+**Técnicos:** los mínimos para que la sesión funcione.
+
+**De las caídas:** si la aplicación se cierra sola o una pantalla falla, se guarda qué falló, en qué pantalla, con qué versión y en qué clase de teléfono. Antes de guardarlo se le quitan los correos, las claves de sesión y las direcciones de archivos: eso está escrito en el código y probado, no es una promesa suelta. Sirve para arreglar el problema y se borra a los 30 días.
 
 ## 3. Qué no se guarda
 

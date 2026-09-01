@@ -1140,4 +1140,42 @@ end $$;
 reset role;
 delete from public.fichas where id = '22222222-0000-4000-8000-000000000001';
 
+-- ─────────────────────────── las caídas de la app ────────────────────────
+--
+-- Un alumno anota las suyas y no ve las de nadie. En un mensaje de error se
+-- cuela más de lo que uno cree, y quién se cae y en qué pantalla es algo que
+-- no le incumbe a un compañero.
+--
+-- El `set role` no sobra: la sección de arriba lo devolvió, y como
+-- superusuario las políticas no se aplican y la prueba pasaría sin probar nada.
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+insert into public.errores (persona_id, mensaje, origen)
+  values ('e0000000-0000-4000-8000-000000000001', 'reventó al abrir la materia', 'pantalla');
+-- Anotarla se pudo —la línea de arriba no falló—, y leerla no: leer las
+-- caídas es de la administración.
+select pg_temp.afirmar('anoto mi caída y no la puedo leer de vuelta',
+  (select count(*) from public.errores)::int, 0);
+
+do $$
+declare paso boolean := false;
+begin
+  begin
+    insert into public.errores (persona_id, mensaje, origen)
+      values ('e0000000-0000-4000-8000-000000000002', 'a nombre de otro', 'global');
+  exception when insufficient_privilege then paso := true;
+  end;
+  perform pg_temp.afirmar('no puedo anotar caídas a nombre de otro', paso, true);
+end $$;
+
+-- La administración sí las lee: es para lo que están. Quien hace de
+-- administración en estas pruebas es el segundo estudiante, al que más arriba
+-- se le cambió el rol.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+select pg_temp.afirmar('la administración las ve',
+  (select count(*) from public.errores)::int, 1);
+
+reset role;
+
 select '— también pasaron las pruebas de las fichas —' as resultado;

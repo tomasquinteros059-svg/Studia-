@@ -51,6 +51,8 @@ import MaterialDocente from "./src/pantallas/docente/MaterialDocente.tsx";
 import InicioAdmin from "./src/pantallas/admin/InicioAdmin.tsx";
 import { usarQuienSoy } from "./src/lib/quien-soy.ts";
 import { Icono } from "./src/ui/Icono.tsx";
+import { Barrera } from "./src/ui/Barrera.tsx";
+import { anotarPantalla, engancharManejadores } from "./src/lib/errores.ts";
 
 const Pila = createNativeStackNavigator<RutasPila>();
 const Pestanas = createBottomTabNavigator<RutasPestanas>();
@@ -131,6 +133,10 @@ export default function App() {
   // cuando no. La app no distingue: solo mira el rol.
   const { yo, listo: sePudoAveriguar } = usarQuienSoy();
 
+  // Lo que revienta fuera de React —un setTimeout, una promesa sin catch— no
+  // pasa por la barrera, y son la mitad de las caídas. Se engancha una vez.
+  useEffect(() => { engancharManejadores(); }, []);
+
   useEffect(() => {
     // En demostración no hay a quién preguntarle por la sesión: se entra directo.
     if (MODO_DEMO) { setListo(true); return; }
@@ -192,6 +198,7 @@ export default function App() {
   }
 
   return (
+    <Barrera>
     <SafeAreaProvider>
       <StatusBar style="dark" />
       {MODO_DEMO ? (
@@ -199,7 +206,12 @@ export default function App() {
           <Text style={cinta.texto}>{AVISO_DEMO}</Text>
         </SafeAreaView>
       ) : null}
-      <NavigationContainer theme={TEMA_NAVEGACION}>
+      <NavigationContainer
+        theme={TEMA_NAVEGACION}
+        // Para que un reporte de caída diga en qué pantalla fue. Sin esto,
+        // «reventó» sin más no alcanza para ir a buscar nada.
+        onStateChange={(estado) => anotarPantalla(rutaVisible(estado))}
+      >
         {/* Con servidor o sin él, se entra por la portada. */}
         {(MODO_DEMO && !yo) || (!sesion && !MODO_DEMO) ? (
           <Entrada />
@@ -241,7 +253,25 @@ export default function App() {
         )}
       </NavigationContainer>
     </SafeAreaProvider>
+    </Barrera>
   );
+}
+
+/**
+ * El nombre de la pantalla que se está viendo, atravesando los navegadores.
+ *
+ * Sin bajar hasta el fondo, todas las pantallas de las pestañas se llamarían
+ * «Principal», que es justo el nombre que no ayuda a encontrar nada.
+ */
+function rutaVisible(estado: { index?: number; routes?: unknown[] } | undefined): string | undefined {
+  let ruta = estado?.routes?.[estado?.index ?? 0] as
+    { name?: string; state?: { index?: number; routes?: unknown[] } } | undefined;
+  while (ruta?.state?.routes?.length) {
+    const dentro = ruta.state.routes[ruta.state.index ?? 0] as typeof ruta;
+    if (!dentro) break;
+    ruta = dentro;
+  }
+  return ruta?.name;
 }
 
 const ICONO_ADMIN = {

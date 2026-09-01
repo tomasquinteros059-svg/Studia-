@@ -84,6 +84,11 @@ PIEZAS = {
         ("Profesor · abrir la entrega", "Ver lo que entregó"),
         ("Profesor · entrega sin archivo", "Entregó sin adjuntar ningún archivo."),
     ],
+    "Cuando algo falla": [
+        ("La pantalla que se cayó", "Se cayó esta pantalla"),
+        ("No le echa la culpa a nadie", "No fue algo que hicieras mal"),
+        ("Privacidad · qué se guarda de una caída", "De las caídas:"),
+    ],
 }
 
 
