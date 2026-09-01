@@ -18,7 +18,8 @@
     "legales": "node --experimental-strip-types herramientas/legales.mjs",
     "licencias": "node herramientas/licencias.mjs",
     "prueba:legales": "node --experimental-strip-types herramientas/legales.mjs --revisar",
-    "prueba:licencias": "node herramientas/licencias.mjs --revisar"
+    "prueba:licencias": "node herramientas/licencias.mjs --revisar",
+    "icono": "python3 herramientas/icono.py"
   },
   "engines": {
     "node": ">=22.6"
