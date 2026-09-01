@@ -74,6 +74,36 @@ select json_build_object(
     ) g
   ),
 
+  -- Las políticas del almacenamiento, en texto. La aplicación arma las rutas
+  -- en dominio/almacen.ts y las políticas las leen por su primera carpeta: si
+  -- las dos puntas dejan de nombrar las mismas, la subida se rechaza sin decir
+  -- por qué.
+  --
+  -- El texto va expandido: varias políticas no nombran la carpeta, se la
+  -- preguntan a una función (`ramo_de_la_entrega(name)`). Sin pegar el cuerpo
+  -- de esas funciones, buscar la carpeta en la política no encuentra nada.
+  'politicas_de_almacen', (
+    select coalesce(json_agg(json_build_object(
+      'nombre', policyname, 'cmd', cmd, 'texto', expandido
+    )), '[]'::json)
+    from (
+      select p.policyname, p.cmd,
+             coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '') || ' ' ||
+             coalesce((
+               select string_agg(f.prosrc, ' ')
+               from pg_proc f
+               join pg_namespace fn on fn.oid = f.pronamespace
+               where fn.nspname = 'public'
+                 and coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')
+                     like '%' || f.proname || '(%'
+             ), '') as expandido
+      from pg_policies p
+      where p.schemaname = 'storage' and p.tablename = 'objects'
+    ) q
+  ),
+
+  'baldes', (select coalesce(json_agg(id), '[]'::json) from storage.buckets),
+
   -- Y qué funciones puede llamar: una `security definer` sin permiso concedido
   -- responde «permission denied», no un resultado vacío.
   'funciones_permitidas', (

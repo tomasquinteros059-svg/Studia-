@@ -335,6 +335,48 @@ function revisarArchivo(ruta) {
 
 for (const archivo of archivos) revisarArchivo(archivo);
 
+// ── El almacenamiento ────────────────────────────────────────────────────
+//
+// Las rutas las arma `carpetaDe` en dominio/almacen.ts, y las políticas las
+// leen por su primera carpeta con `dueno_de_la_ruta(name, '<carpeta>')`. Son
+// dos sitios distintos que tienen que nombrar lo mismo. Ya se separaron una
+// vez: las entregas se subían a "yo/" y el profesor no podía abrirlas, que es
+// la única persona además del alumno que tiene que poder.
+function revisarAlmacen() {
+  const almacen = "app/src/dominio/almacen.ts";
+  let fuente;
+  try {
+    fuente = readFileSync(almacen, "utf8");
+  } catch {
+    return; // sin ese archivo no hay nada que cruzar
+  }
+
+  const balde = /BALDE\s*=\s*"([^"]+)"/.exec(fuente)?.[1];
+  if (balde && !(catalogo.baldes ?? []).includes(balde)) {
+    quejas.push(`${almacen} · sube al balde "${balde}", que no existe en el servidor`);
+  }
+
+  // Las carpetas que arma el código: `case "yo": return \`yo/${…}\``.
+  const carpetas = [...fuente.matchAll(/return\s+`([a-z]+)\//g)].map((m) => m[1]);
+  const politicas = catalogo.politicas_de_almacen ?? [];
+
+  for (const carpeta of new Set(carpetas)) {
+    const suyas = politicas.filter((p) => p.texto.includes(`'${carpeta}'`));
+    if (suyas.length === 0) {
+      quejas.push(`${almacen} · guarda en "${carpeta}/" y ninguna política del balde mira esa carpeta`);
+      continue;
+    }
+    // Guardar sin poder leer después es lo mismo que no guardar.
+    for (const necesita of ["SELECT", "INSERT"]) {
+      if (!suyas.some((p) => p.cmd === necesita || p.cmd === "ALL")) {
+        quejas.push(`${almacen} · en "${carpeta}/" no hay política de ${necesita}`);
+      }
+    }
+    revisadas++;
+  }
+}
+revisarAlmacen();
+
 for (const q of quejas) console.error(q);
 
 if (quejas.length) {
