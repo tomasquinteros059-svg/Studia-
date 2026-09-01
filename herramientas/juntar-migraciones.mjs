@@ -19,11 +19,17 @@ const CARPETA = "supabase/migrations";
 // Con --revisar no escribe: compara y se queja si el archivo quedó viejo. Así
 // una migración nueva no se olvida aquí en silencio.
 const REVISAR = process.argv.includes("--revisar");
+// Para una base que ya tiene aplicadas las de antes: `--desde 20260901000800`
+// arma solo de ahí en adelante, con su propia anotación al final.
+const DESDE = process.argv.includes("--desde")
+  ? process.argv[process.argv.indexOf("--desde") + 1]
+  : null;
 const SALIDA = process.argv.find((a) => a.endsWith(".sql")) ?? "supabase/todo-de-una-vez.sql";
 
 const archivos = readdirSync(CARPETA)
   .filter((n) => n.endsWith(".sql"))
-  .sort(); // los nombres empiezan con la fecha, así que ordenar es cronológico
+  .sort() // los nombres empiezan con la fecha, así que ordenar es cronológico
+  .filter((n) => !DESDE || n >= DESDE);
 
 if (archivos.length === 0) {
   console.error(`No hay migraciones en ${CARPETA}.`);
@@ -53,6 +59,7 @@ trozos.push(
     "--",
     "-- Supabase corre todo esto junto: si una línea falla, deshace el resto y",
     "-- no queda nada a medias.",
+    ...(DESDE ? ["--", `-- Solo de ${DESDE} en adelante: las anteriores ya estaban aplicadas.`] : []),
     "",
   ].join("\n"),
 );
