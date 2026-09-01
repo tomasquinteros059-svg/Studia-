@@ -29,6 +29,32 @@ export const NOTA_MINIMA_APROBACION = 4.0;
 // ── Entregas ────────────────────────────────────────────────────────────
 
 /** Entregada y todavía sin puntaje: es la fila de trabajo del docente. */
+/**
+ * Reparte una lista en grupos según una clave.
+ *
+ * Existe porque las consultas del panel ahora traen las entregas de todas las
+ * tareas juntas —de a una eran setenta viajes al servidor— y alguien tiene que
+ * volver a separarlas. Ese alguien es la pantalla, no la consulta: repartir es
+ * barato y hacerlo en el servidor obligaría a una consulta por grupo, que es
+ * justo lo que se estaba sacando.
+ *
+ * Devuelve un grupo vacío para las claves que se pidan y no aparezcan: una
+ * tarea sin entregas tiene que salir con cero, no faltar de la lista.
+ */
+export function agrupadasPor<T>(
+  filas: readonly T[], clave: (fila: T) => string, esperadas: readonly string[] = [],
+): Map<string, T[]> {
+  const grupos = new Map<string, T[]>();
+  for (const k of esperadas) grupos.set(k, []);
+  for (const fila of filas) {
+    const k = clave(fila);
+    const grupo = grupos.get(k);
+    if (grupo) grupo.push(fila);
+    else grupos.set(k, [fila]);
+  }
+  return grupos;
+}
+
 export function porRevisar(entregas: EntregaDeCurso[]): EntregaDeCurso[] {
   return entregas
     .filter((e) => e.entregado_en !== null && e.puntos_obtenidos === null)

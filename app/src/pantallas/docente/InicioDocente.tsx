@@ -6,13 +6,15 @@ import {
   color, colorDeRamo, diaCorto, espacio, hora, radio, tenue, tipo,
 } from "../../ui/tema.ts";
 import {
-  claseEnVivo, clasesDe, cursoDe, entregasDe, evaluacionesDe, miHorario, misAsignaturas, misTareas, notasDe,
+  claseEnVivo, clasesDe, cursoDe, entregasDeVarias, evaluacionesDe, miHorario, misAsignaturas, misTareas, notasDeVarias,
 } from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { porHora } from "../../dominio/horario.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
 import { usarQuienSoy } from "../../lib/quien-soy.ts";
-import { estadoDeTarea, porRevisar, sinPublicar } from "../../dominio/curso.ts";
+import {
+  agrupadasPor, estadoDeTarea, porRevisar, sinPublicar,
+} from "../../dominio/curso.ts";
 import type { PropsPestanaDocente } from "../../lib/rutas.ts";
 
 export default function InicioDocente({ navigation }: PropsPestanaDocente<"Cursos">) {
@@ -31,18 +33,24 @@ export default function InicioDocente({ navigation }: PropsPestanaDocente<"Curso
       const [tareas, evaluaciones, clases] = await Promise.all([
         misTareas(ramo.id), evaluacionesDe(ramo.id), clasesDe(ramo.id),
       ]);
-      const conEntregas = await Promise.all(
-        tareas.map(async (t) => ({ tarea: t, entregas: await entregasDe(t.id, curso) })),
-      );
-      const notas = await Promise.all(
-        evaluaciones.map(async (ev) => ({ ev, filas: await notasDe(ev.id, curso) })),
-      );
+      // Dos consultas y no una por tarea y una por evaluación. Pedirlas de a
+      // una hacía que esta pantalla creciera con el semestre: cada tarea
+      // nueva sumaba un viaje al servidor, y con cinco ramos ya iban setenta.
+      const [entregas, notas] = await Promise.all([
+        entregasDeVarias(tareas.map((t) => t.id), curso),
+        notasDeVarias(evaluaciones.map((ev) => ev.id), curso),
+      ]);
+      const porTarea = agrupadasPor(entregas, (e) => e.tarea_id, tareas.map((t) => t.id));
+      const porEvaluacion = agrupadasPor(notas, (n) => n.evaluacion_id, evaluaciones.map((e) => e.id));
+
       return {
         ramo, clases, curso,
-        tareas: conEntregas.map(({ tarea, entregas }) => ({
-          tarea, entregas, estado: estadoDeTarea(entregas, curso.length),
-        })),
-        porPublicar: notas.reduce((n, x) => n + sinPublicar(x.filas), 0),
+        tareas: tareas.map((tarea) => {
+          const suyas = porTarea.get(tarea.id) ?? [];
+          return { tarea, entregas: suyas, estado: estadoDeTarea(suyas, curso.length) };
+        }),
+        porPublicar: evaluaciones.reduce(
+          (n, ev) => n + sinPublicar(porEvaluacion.get(ev.id) ?? []), 0),
       };
     }));
 

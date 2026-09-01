@@ -5,6 +5,7 @@ jest.mock("../../lib/consultas.ts", () => ({
   misAsignaturas: jest.fn(), misTareas: jest.fn(),
   evaluacionesDe: jest.fn(), materiaDe: jest.fn(),
   cursoDe: jest.fn(), entregasDe: jest.fn(), notasDe: jest.fn(), avanceDe: jest.fn(),
+  entregasDeVarias: jest.fn(), notasDeVarias: jest.fn(),
 }));
 
 // La pantalla pregunta quién soy, no de dónde salió.
@@ -37,6 +38,7 @@ const mock = consultas as jest.Mocked<typeof consultas>;
 // Las consultas del docente salen de la misma fachada que las del alumno.
 const mockD = mock as unknown as {
   cursoDe: jest.Mock; entregasDe: jest.Mock; notasDe: jest.Mock;
+  entregasDeVarias: jest.Mock; notasDeVarias: jest.Mock;
   avanceDe: jest.Mock; corregir: jest.Mock; ponerNota: jest.Mock; publicarNotas: jest.Mock;
 };
 
@@ -52,9 +54,10 @@ beforeEach(() => {
   mock.evaluacionesDe.mockResolvedValue([] as never);
   mock.materiaDe.mockResolvedValue([] as never);
   mockD.cursoDe.mockResolvedValue(curso as never);
-  mockD.notasDe.mockResolvedValue([] as never);
+  // El asistente pide todo junto: una consulta por ramo.
+  mockD.notasDeVarias.mockResolvedValue([] as never);
   // Solo Eduardo entregó.
-  mockD.entregasDe.mockResolvedValue([
+  mockD.entregasDeVarias.mockResolvedValue([
     { id: "en1", tarea_id: TAREA_PENDIENTE.id, estudiante_id: "a1", estudiante: "Eduardo Q.",
       entregado_en: "2026-08-20T10:00:00Z", puntos_obtenidos: null },
   ] as never);

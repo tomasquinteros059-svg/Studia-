@@ -1,9 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  aprobacion, distribucion, estadoDeTarea, faltanNota, porRevisar,
-  promedioDelCurso, puedeCorregir, puedePublicarNotas, sinPublicar,
-  type EntregaDeCurso, type NotaDeCurso,
+  agrupadasPor, aprobacion, distribucion, estadoDeTarea, faltanNota, porRevisar, promedioDelCurso, puedeCorregir, puedePublicarNotas, sinPublicar, type EntregaDeCurso, type NotaDeCurso,
 } from "./curso.ts";
 
 const entrega = (e: Partial<EntregaDeCurso> & { id: string }): EntregaDeCurso => ({
@@ -115,4 +113,40 @@ test("publicar notas es del profesor", () => {
 test("corregir lo hacen los dos", () => {
   assert.equal(puedeCorregir("profesor"), true);
   assert.equal(puedeCorregir("ayudante"), true);
+});
+
+// ── repartir lo que llegó junto ──────────────────────────────────────────
+
+test("reparte las entregas por su tarea", () => {
+  const filas = [
+    { tarea_id: "t1", quien: "ana" },
+    { tarea_id: "t2", quien: "beto" },
+    { tarea_id: "t1", quien: "caro" },
+  ];
+  const grupos = agrupadasPor(filas, (f) => f.tarea_id);
+
+  assert.equal(grupos.get("t1")?.length, 2);
+  assert.equal(grupos.get("t2")?.length, 1);
+});
+
+// Una tarea sin entregas tiene que salir con cero, no faltar de la lista: si
+// faltara, la pantalla la mostraría como si no existiera.
+test("una clave sin filas queda con un grupo vacío, no ausente", () => {
+  const grupos = agrupadasPor([{ tarea_id: "t1" }], (f) => f.tarea_id, ["t1", "t2", "t3"]);
+
+  assert.equal(grupos.get("t2")?.length, 0);
+  assert.equal(grupos.get("t3")?.length, 0);
+  assert.equal(grupos.size, 3);
+});
+
+test("mantiene el orden en que venían dentro de cada grupo", () => {
+  const filas = [
+    { id: "a", tarea_id: "t1" }, { id: "b", tarea_id: "t1" }, { id: "c", tarea_id: "t1" },
+  ];
+  assert.deepEqual(agrupadasPor(filas, (f) => f.tarea_id).get("t1")?.map((f) => f.id),
+    ["a", "b", "c"]);
+});
+
+test("sin filas ni claves esperadas, no inventa nada", () => {
+  assert.equal(agrupadasPor([], (f: { id: string }) => f.id).size, 0);
 });

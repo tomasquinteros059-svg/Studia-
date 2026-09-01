@@ -45,6 +45,10 @@ export const resumenDe = fuente.resumenDe;
 export const cursoDe = fuente.cursoDe;
 export const entregasDe = fuente.entregasDe;
 export const notasDe = fuente.notasDe;
+/* Las de varias a la vez: es lo que usa el panel de quien dicta, donde pedir
+   de a una convertía una pantalla en setenta viajes al servidor. */
+export const entregasDeVarias = fuente.entregasDeVarias;
+export const notasDeVarias = fuente.notasDeVarias;
 export const avanceDe = fuente.avanceDe;
 export const corregir = fuente.corregir;
 export const ponerNota = fuente.ponerNota;

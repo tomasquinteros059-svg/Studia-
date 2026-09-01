@@ -684,11 +684,13 @@ export function guardarResumenDemo(apunteId: string, resumen: ResumenGuardado): 
 // pasa por la misma fachada: si no, con Supabase conectado las pantallas del
 // profesor seguirían mostrando el curso inventado, y en silencio.
 import {
-  avanceDe, corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas,
+  avanceDe, corregir, cursoDe, entregasDe, entregasDeVarias, notasDe, notasDeVarias,
+  ponerNota, publicarNotas,
 } from "./datos-docente.ts";
 
 export {
-  avanceDe, corregir, cursoDe, entregasDe, notasDe, ponerNota, publicarNotas,
+  avanceDe, corregir, cursoDe, entregasDe, entregasDeVarias, notasDe, notasDeVarias,
+  ponerNota, publicarNotas,
 };
 
 // Y lo que arma quien llega por su cuenta vive en otro archivo más, por la
@@ -815,7 +817,8 @@ const _cobertura: Omit<typeof Real, "default"> = {
   hiloPorId, companerosDe, miPerfil, cambiarNombre, misNotificaciones,
   marcarLeida, marcarTodasLeidas, mensajesDe, misApuntes, apuntePorId, misDictados,
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
-  cursoDe, entregasDe, notasDe, avanceDe, corregir, ponerNota, publicarNotas,
+  cursoDe, entregasDe, entregasDeVarias, notasDe, notasDeVarias,
+  avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
   moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
   misSesiones, crearSesion, marcarSesion, borrarSesion,

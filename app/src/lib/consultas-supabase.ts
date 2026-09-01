@@ -518,6 +518,78 @@ export async function entregasDe(
   }));
 }
 
+/**
+ * Las entregas de varias tareas de una vez.
+ *
+ * Existe por una cuenta que se hace fea sola: el panel de quien dicta pedía
+ * las entregas de cada tarea por separado, y las notas de cada evaluación
+ * también. Una profesora con cinco ramos, ocho tareas y seis evaluaciones
+ * abría su pantalla con unos setenta viajes al servidor. Eso crece con el
+ * semestre —cada tarea nueva suma uno— y no se nota probando con dos.
+ *
+ * Devuelve todo junto y sin agrupar: agrupar es de quien lo va a dibujar, y
+ * `agrupadasPor` en el dominio lo hace en una línea.
+ */
+export async function entregasDeVarias(
+  tareaIds: string[], curso: { id: string; nombre: string }[],
+): Promise<EntregaDeCurso[]> {
+  if (tareaIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("entregas")
+    .select("id, tarea_id, estudiante_id, entregado_en, puntos_obtenidos, archivo_url")
+    .in("tarea_id", tareaIds);
+  reventar("No pude cargar las entregas", error);
+
+  const nombres = new Map(curso.map((a) => [a.id, a.nombre]));
+  return (data ?? []).map((e) => ({
+    id: e.id,
+    tarea_id: e.tarea_id,
+    estudiante_id: e.estudiante_id,
+    estudiante: nombres.get(e.estudiante_id) ?? "Sin nombre",
+    entregado_en: e.entregado_en,
+    puntos_obtenidos: e.puntos_obtenidos,
+    archivo: e.archivo_url ?? null,
+  }));
+}
+
+/**
+ * Las notas de varias evaluaciones de una vez.
+ *
+ * Igual que arriba, y con el mismo cuidado que la versión de a una: se parte
+ * del curso y no de las notas, porque quien todavía no tiene nota tiene que
+ * aparecer igual o el docente no sabe a quién le falta. Por eso devuelve una
+ * fila por alumno y evaluación, tenga nota o no.
+ */
+export async function notasDeVarias(
+  evaluacionIds: string[], curso: { id: string; nombre: string }[],
+): Promise<NotaDeCurso[]> {
+  if (evaluacionIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("notas")
+    .select("evaluacion_id, estudiante_id, nota, publicada_en")
+    .in("evaluacion_id", evaluacionIds);
+  reventar("No pude cargar las notas", error);
+
+  const puestas = new Map(
+    (data ?? []).map((n) => [`${n.evaluacion_id}·${n.estudiante_id}`, n]),
+  );
+
+  return evaluacionIds.flatMap((evaluacionId) =>
+    curso.map((alumno) => {
+      const fila = puestas.get(`${evaluacionId}·${alumno.id}`);
+      return {
+        evaluacion_id: evaluacionId,
+        estudiante_id: alumno.id,
+        estudiante: alumno.nombre,
+        nota: fila?.nota == null ? null : Number(fila.nota),
+        publicada: Boolean(fila?.publicada_en),
+      };
+    }),
+  );
+}
+
 export async function notasDe(
   evaluacionId: string, curso: { id: string; nombre: string }[],
 ): Promise<NotaDeCurso[]> {

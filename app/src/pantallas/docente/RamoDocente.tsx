@@ -8,16 +8,15 @@ import {
   FILETE, cifras, color, colorDeRamo, espacio, fechaCorta, radio, tenue, tipo,
 } from "../../ui/tema.ts";
 import {
-  clasesDe, corregir, crearEvaluacion, cursoDe, entregasDe, evaluacionesDe,
+  clasesDe, corregir, crearEvaluacion, cursoDe, entregasDeVarias, evaluacionesDe,
   materiaDe, misAsignaturas,
-  misTareas, notasDe, permitirEscucha, ponerNota, publicarNotas,
+  misTareas, notasDeVarias, permitirEscucha, ponerNota, publicarNotas,
 } from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
 import { usarQuienSoy } from "../../lib/quien-soy.ts";
 import {
-  aprobacion, distribucion, estadoDeTarea, porRevisar, promedioDelCurso,
-  puedePublicarNotas, sinPublicar, type EntregaDeCurso, type NotaDeCurso,
+  agrupadasPor, aprobacion, distribucion, estadoDeTarea, porRevisar, promedioDelCurso, puedePublicarNotas, sinPublicar, type EntregaDeCurso, type NotaDeCurso,
 } from "../../dominio/curso.ts";
 import { formatearNota } from "../../dominio/notas.ts";
 import PlanMensual from "./PlanMensual.tsx";
@@ -47,12 +46,17 @@ export default function RamoDocente({ route, navigation }: PropsPilaDocente<"Ram
       misAsignaturas(), misTareas(asignaturaId), evaluacionesDe(asignaturaId),
       materiaDe(asignaturaId), clasesDe(asignaturaId),
     ]);
-    const conEntregas = await Promise.all(
-      tareas.map(async (t) => ({ tarea: t, entregas: await entregasDe(t.id, curso) })),
-    );
-    const conNotas = await Promise.all(
-      evaluaciones.map(async (ev) => ({ ev, filas: await notasDe(ev.id, curso) })),
-    );
+    // Dos consultas para todo el ramo. De a una, cada tarea y cada evaluación
+    // sumaba un viaje al servidor, y eso crece solo durante el semestre.
+    const [entregas, notas] = await Promise.all([
+      entregasDeVarias(tareas.map((t) => t.id), curso),
+      notasDeVarias(evaluaciones.map((ev) => ev.id), curso),
+    ]);
+    const porTarea = agrupadasPor(entregas, (e) => e.tarea_id, tareas.map((t) => t.id));
+    const porEvaluacion = agrupadasPor(notas, (n) => n.evaluacion_id, evaluaciones.map((e) => e.id));
+
+    const conEntregas = tareas.map((tarea) => ({ tarea, entregas: porTarea.get(tarea.id) ?? [] }));
+    const conNotas = evaluaciones.map((ev) => ({ ev, filas: porEvaluacion.get(ev.id) ?? [] }));
     return {
       ramo: asignaturas.find((a) => a.id === asignaturaId) ?? null,
       curso, modulos, clases, tareas: conEntregas, evaluaciones: conNotas,

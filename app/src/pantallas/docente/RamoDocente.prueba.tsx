@@ -6,6 +6,7 @@ jest.mock("../../lib/consultas.ts", () => ({
   misAsignaturas: jest.fn(), misTareas: jest.fn(),
   evaluacionesDe: jest.fn(), materiaDe: jest.fn(),
   cursoDe: jest.fn(), entregasDe: jest.fn(), notasDe: jest.fn(),
+  entregasDeVarias: jest.fn(), notasDeVarias: jest.fn(),
   corregir: jest.fn(), ponerNota: jest.fn(), publicarNotas: jest.fn(),
   clasesDe: jest.fn(), permitirEscucha: jest.fn(), crearEvaluacion: jest.fn(),
   planDe: jest.fn(), planificar: jest.fn(), borrarDelPlan: jest.fn(),
@@ -75,6 +76,7 @@ const ARCHIVO = {
 // Las consultas del docente salen de la misma fachada que las del alumno.
 const mockD = mock as unknown as {
   cursoDe: jest.Mock; entregasDe: jest.Mock; notasDe: jest.Mock;
+  entregasDeVarias: jest.Mock; notasDeVarias: jest.Mock;
   avanceDe: jest.Mock; corregir: jest.Mock; ponerNota: jest.Mock; publicarNotas: jest.Mock;
   clasesDe: jest.Mock; permitirEscucha: jest.Mock; crearEvaluacion: jest.Mock;
   planDe: jest.Mock; planificar: jest.Mock; borrarDelPlan: jest.Mock;
@@ -89,8 +91,9 @@ beforeEach(() => {
   mock.evaluacionesDe.mockResolvedValue([{ id: "e-1", titulo: "Control 1", peso: 30, orden: 1, nota: null }] as never);
   mock.materiaDe.mockResolvedValue([] as never);
   mockD.cursoDe.mockResolvedValue(curso as never);
-  mockD.entregasDe.mockResolvedValue(entregas as never);
-  mockD.notasDe.mockResolvedValue(notas as never);
+  // La pantalla pide todo junto: una consulta por ramo, no una por tarea.
+  mockD.entregasDeVarias.mockResolvedValue(entregas as never);
+  mockD.notasDeVarias.mockResolvedValue(notas as never);
   mockD.publicarNotas.mockResolvedValue(undefined as never);
   mockD.corregir.mockResolvedValue(undefined as never);
   mockD.clasesDe.mockResolvedValue([] as never);
@@ -506,7 +509,7 @@ describe("corregir una entrega", () => {
    * cuentas —«17 de 20 entregaron»— a las pruebas que las revisan.
    */
   const sinArchivo = () => {
-    mockD.entregasDe.mockResolvedValue([...entregas, {
+    mockD.entregasDeVarias.mockResolvedValue([...entregas, {
       id: "en3", tarea_id: "t-1", estudiante_id: "a3", estudiante: "Diego Aravena",
       entregado_en: "2026-08-21T10:00:00Z", puntos_obtenidos: null, archivo: null,
     }] as never);
@@ -545,5 +548,45 @@ describe("corregir una entrega", () => {
 
     await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
       "No pude abrirlo", "El archivo ya no está disponible."));
+  });
+});
+
+// Que no vuelva a pedir de a una. Es lo único que no se ve mirando la
+// pantalla: funciona igual con dos tareas que con veinte, y la diferencia
+// —una consulta o veinte— solo aparece cuando la usa un colegio de verdad.
+describe("cuántos viajes al servidor hace el ramo", () => {
+  const conMuchasTareas = () => {
+    // La primera conserva su título porque `abrir` espera a verlo en pantalla.
+    const tareas = Array.from({ length: 12 }, (_, i) => ({
+      ...TAREA_PENDIENTE, id: `t-${i}`,
+      titulo: i === 0 ? TAREA_PENDIENTE.titulo : `Guía ${i}`,
+    }));
+    const evaluaciones = Array.from({ length: 8 }, (_, i) => ({
+      id: `e-${i}`, titulo: `Control ${i}`, peso: 10, orden: i, nota: null,
+    }));
+    mock.misTareas.mockResolvedValue(tareas as never);
+    mock.evaluacionesDe.mockResolvedValue(evaluaciones as never);
+    return { tareas, evaluaciones };
+  };
+
+  test("con doce tareas y ocho evaluaciones sigue siendo una consulta de cada cosa", async () => {
+    const { tareas, evaluaciones } = conMuchasTareas();
+    await abrir();
+
+    expect(mockD.entregasDeVarias).toHaveBeenCalledTimes(1);
+    expect(mockD.notasDeVarias).toHaveBeenCalledTimes(1);
+    // Y las pide todas, no solo las de la primera.
+    expect(mockD.entregasDeVarias).toHaveBeenCalledWith(
+      tareas.map((t) => t.id), expect.anything());
+    expect(mockD.notasDeVarias).toHaveBeenCalledWith(
+      evaluaciones.map((e) => e.id), expect.anything());
+  });
+
+  test("las de a una no se usan más en esta pantalla", async () => {
+    conMuchasTareas();
+    await abrir();
+
+    expect(mockD.entregasDe).not.toHaveBeenCalled();
+    expect(mockD.notasDe).not.toHaveBeenCalled();
   });
 });

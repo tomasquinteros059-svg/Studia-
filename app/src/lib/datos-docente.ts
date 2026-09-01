@@ -133,6 +133,23 @@ export async function notasDe(
   return copiar(NOTAS[evaluacionId] ?? []);
 }
 
+// Las de varias a la vez. Acá no ahorran nada —los datos ya están en el
+// teléfono— pero tienen que existir con la misma firma: si la demostración no
+// las tuviera, la pantalla se rompería justo en el modo con el que se muestra.
+export async function entregasDeVarias(
+  tareaIds: string[], _curso?: { id: string; nombre: string }[],
+): Promise<EntregaDeCurso[]> {
+  await dormir();
+  return copiar(tareaIds.flatMap((id) => ENTREGAS[id] ?? []));
+}
+
+export async function notasDeVarias(
+  evaluacionIds: string[], _curso?: { id: string; nombre: string }[],
+): Promise<NotaDeCurso[]> {
+  await dormir();
+  return copiar(evaluacionIds.flatMap((id) => NOTAS[id] ?? []));
+}
+
 /** Poner el puntaje de una entrega. */
 export async function corregir(tareaId: string, entregaId: string, puntos: number | null): Promise<void> {
   const entrega = (ENTREGAS[tareaId] ?? []).find((e) => e.id === entregaId);

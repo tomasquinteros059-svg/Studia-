@@ -6,9 +6,10 @@ import { Campo } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
 import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import {
-  avanceDe, cursoDe, entregasDe, evaluacionesDe, misAsignaturas, misTareas, notasDe,
+  avanceDe, cursoDe, entregasDeVarias, evaluacionesDe, misAsignaturas, misTareas, notasDeVarias,
 } from "../../lib/consultas.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
+import { agrupadasPor } from "../../dominio/curso.ts";
 import type { PropsPestanaDocente } from "../../lib/rutas.ts";
 import { usarDisposicion } from "../../lib/pantalla.ts";
 import { usarQuienSoy } from "../../lib/quien-soy.ts";
@@ -45,18 +46,29 @@ export default function Asistente({ route }: PropsPestanaDocente<"Asistente">) {
       const [tareas, evaluaciones, avance] = await Promise.all([
         misTareas(ramo.id), evaluacionesDe(ramo.id), avanceDe(ramo.id, inscritos),
       ]);
+      // Todo junto y repartido acá. Esta pantalla era la peor de las tres:
+      // pedía las entregas de cada tarea y las notas de cada evaluación de
+      // cada ramo, así que el número de viajes al servidor era el total de
+      // tareas y evaluaciones del semestre entero.
+      const [entregas, notas] = await Promise.all([
+        entregasDeVarias(tareas.map((t) => t.id), inscritos),
+        notasDeVarias(evaluaciones.map((ev) => ev.id), inscritos),
+      ]);
+      const porTarea = agrupadasPor(entregas, (e) => e.tarea_id, tareas.map((t) => t.id));
+      const porEvaluacion = agrupadasPor(notas, (n) => n.evaluacion_id, evaluaciones.map((e) => e.id));
+
       return {
         codigo: ramo.codigo,
         nombre: ramo.nombre,
         inscritos,
         avance,
-        tareas: await Promise.all(tareas.map(async (t) => ({
+        tareas: tareas.map((t) => ({
           id: t.id, titulo: t.titulo, puntos: t.puntos, vence_en: t.vence_en,
-          entregas: await entregasDe(t.id, inscritos),
-        }))),
-        evaluaciones: await Promise.all(evaluaciones.map(async (ev) => ({
-          id: ev.id, titulo: ev.titulo, peso: ev.peso, notas: await notasDe(ev.id, inscritos),
-        }))),
+          entregas: porTarea.get(t.id) ?? [],
+        })),
+        evaluaciones: evaluaciones.map((ev) => ({
+          id: ev.id, titulo: ev.titulo, peso: ev.peso, notas: porEvaluacion.get(ev.id) ?? [],
+        })),
       };
     }));
   }, [dicta.join(",")]);
