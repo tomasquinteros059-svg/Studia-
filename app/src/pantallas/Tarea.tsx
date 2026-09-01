@@ -13,6 +13,7 @@ import { detalleDe, revisar } from "../dominio/adjuntos.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { cuandoVence, estadoDeTarea } from "../dominio/tareas.ts";
 import { alTutor, type PropsPila } from "../lib/rutas.ts";
+import { comoSeDice } from "../dominio/fallas.ts";
 
 export default function Tarea({ route, navigation }: PropsPila<"Tarea">) {
   const { tareaId } = route.params;
@@ -79,7 +80,7 @@ export default function Tarea({ route, navigation }: PropsPila<"Tarea">) {
               setAdjunto(null);
               recargar();
             } catch (err) {
-              Alert.alert("No pude entregarla", err instanceof globalThis.Error ? err.message : "");
+              Alert.alert("No pude entregarla", comoSeDice(err));
             } finally {
               setEntregando(false);
             }

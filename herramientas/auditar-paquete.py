@@ -94,6 +94,11 @@ PIEZAS = {
         ("Qué no suena", "Los anuncios del profesor no suenan"),
         ("Permiso negado", "No diste permiso para avisarte"),
     ],
+    "Sin señal": [
+        ("Se dice que no hay internet", "Parece que no hay internet"),
+        ("La sesión vencida se distingue", "Tu sesión venció"),
+        ("El apunte queda a salvo en el teléfono", "Guardado en el teléfono"),
+    ],
 }
 
 

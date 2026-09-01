@@ -171,17 +171,21 @@ describe("editor de apuntes", () => {
 describe("guardado automático de apuntes", () => {
   beforeEach(() => jest.clearAllMocks());
 
-  test("escribir marca «Sin guardar» y guarda solo al rato", async () => {
+  test("escribir lo dice y guarda solo al rato", async () => {
     const t = await abrir();
     fireEvent.changeText(t.getByLabelText("Apuntes de la clase"), "Texto nuevo de la clase");
 
     // Todavía no salió nada a la red: el guardado espera a que dejes de escribir.
     expect(mock.guardarApunte).not.toHaveBeenCalled();
-    await waitFor(() => expect(t.getByText("Sin guardar")).toBeTruthy());
+    // Ya no dice «Sin guardar»: eso asustaba y además era mentira, porque la
+    // aplicación se estaba encargando.
+    await waitFor(() => expect(t.getByText("Escribiendo…")).toBeTruthy());
 
+    // Van los dos juntos: el texto y la tinta son un apunte, no dos. Y la
+    // tinta va como venía, no en null, o escribir borraría el dibujo.
     await waitFor(
       () => expect(mock.guardarApunte).toHaveBeenCalledWith(
-        APUNTE.id, { contenido: "Texto nuevo de la clase" }),
+        APUNTE.id, { contenido: "Texto nuevo de la clase", trazos: APUNTE.trazos ?? null }),
       { timeout: 4000 },
     );
     await waitFor(() => expect(t.getByText("Guardado")).toBeTruthy());
@@ -197,6 +201,7 @@ describe("guardado automático de apuntes", () => {
 
     await waitFor(() => expect(mock.guardarApunte).toHaveBeenCalled(), { timeout: 4000 });
     expect(mock.guardarApunte).toHaveBeenCalledTimes(1);
-    expect(mock.guardarApunte).toHaveBeenCalledWith(APUNTE.id, { contenido: "abc" });
+    expect(mock.guardarApunte).toHaveBeenCalledWith(
+      APUNTE.id, { contenido: "abc", trazos: APUNTE.trazos ?? null });
   });
 });

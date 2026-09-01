@@ -12,13 +12,17 @@ import type {
 import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
+import { comoSeDice } from "../dominio/fallas.ts";
 import type { Tramo } from "../dominio/escucha.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
 import { comoHora, type Colegio } from "../dominio/planilla.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
-  if (error) throw new Error(`${contexto}: ${error.message}`);
+  // El mensaje ya sale dicho en castellano y sin el detalle técnico. Pegar
+  // «: Network request failed» al final del contexto era lo que hacía que un
+  // problema de señal se leyera como una falla de la aplicación.
+  if (error) throw new Error(comoSeDice(error.message, contexto));
 }
 
 export async function misAsignaturas(): Promise<Asignatura[]> {

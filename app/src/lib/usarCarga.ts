@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { comoSeDice } from "../dominio/fallas.ts";
+
 export type Carga<T> = {
   datos: T | null;
   /** Primera carga: la pantalla todavía no tiene nada que mostrar. */
@@ -33,7 +35,10 @@ export function usarCarga<T>(traer: () => Promise<T>, deps: unknown[] = []): Car
     traerMemo()
       .then((r) => { if (vigente) setDatos(r); })
       .catch((e: unknown) => {
-        if (vigente) setError(e instanceof Error ? e.message : "Algo salió mal.");
+        // Acá pasan todas las pantallas, así que es el lugar donde arreglarlo
+        // una vez sirve para todas. Antes mostraba el mensaje crudo, y sin
+        // señal eso era «TypeError: Network request failed» en la cara.
+        if (vigente) setError(comoSeDice(e));
       })
       .finally(() => {
         if (!vigente) return;

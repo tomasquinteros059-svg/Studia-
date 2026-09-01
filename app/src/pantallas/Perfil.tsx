@@ -14,6 +14,7 @@ import { aviso } from "../dominio/legales.ts";
 import { PALABRA_PARA_BORRAR, borrarMiCuenta } from "../lib/cuenta.ts";
 import { apagarAvisos, avisosEncendidos, encenderAvisos, sePuedeAvisar } from "../lib/avisos.ts";
 import type { PropsPila } from "../lib/rutas.ts";
+import { comoSeDice } from "../dominio/fallas.ts";
 
 export default function Perfil({ navigation }: PropsPila<"Perfil">) {
   const { datos, cargando, error, recargar } = usarCarga(miPerfil, []);
@@ -57,7 +58,7 @@ export default function Perfil({ navigation }: PropsPila<"Perfil">) {
       recargar();
       Alert.alert("Listo", "Tu nombre quedó actualizado.");
     } catch (err) {
-      Alert.alert("No pude guardarlo", err instanceof globalThis.Error ? err.message : "");
+      Alert.alert("No pude guardarlo", comoSeDice(err));
     } finally {
       setGuardando(false);
     }
@@ -70,7 +71,7 @@ export default function Perfil({ navigation }: PropsPila<"Perfil">) {
       // No hace falta navegar: al cerrarse la sesión, la aplicación vuelve
       // sola a la portada.
     } catch (err) {
-      Alert.alert("No pude borrarla", err instanceof globalThis.Error ? err.message : "");
+      Alert.alert("No pude borrarla", comoSeDice(err));
     } finally {
       setBorrando(false);
     }

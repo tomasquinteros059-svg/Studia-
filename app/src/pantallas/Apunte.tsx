@@ -13,6 +13,8 @@ import { guardar as guardarTrazos, hayTinta, leer as leerTrazos, type Trazo, typ
 import { apuntePorId, guardarApunte, misAsignaturas, resumenDe } from "../lib/consultas.ts";
 import { pedirResumen, type ResultadoResumen } from "../lib/resumen.ts";
 import { guardarTutorALaVista, leerTutorALaVista } from "../lib/preferencias.ts";
+import { guardarBorrador, leerBorrador, olvidarBorrador } from "../lib/borradores.ts";
+import { comoSeVe, cualGana, valeGuardarlo } from "../dominio/borrador.ts";
 import { usarCarga } from "../lib/usarCarga.ts";
 import { usarDisposicion } from "../lib/pantalla.ts";
 import type { PropsPila } from "../lib/rutas.ts";
@@ -52,11 +54,22 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   const [trazos, setTrazos] = useState<Trazo[] | null>(null);
   const [aMano, setAMano] = useState(false);
   const [util, setUtil] = useState<Util>("lapiz");
-  const [guardado, setGuardado] = useState<"limpio" | "escribiendo" | "guardando">("limpio");
+  const [guardado, setGuardado] =
+    useState<"limpio" | "escribiendo" | "guardando" | "en_el_aparato">("limpio");
   const [resumiendo, setResumiendo] = useState(false);
   const [resumen, setResumen] = useState<ResultadoResumen | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temporizadorTinta = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Lo último escrito y lo último dibujado, fuera de React.
+   *
+   * El texto y los trazos se guardan juntos —es un apunte, no dos— y cada uno
+   * tiene su propio temporizador. Sin esto, el temporizador del dibujo
+   * guardaría el texto que había cuando se creó, y una flecha dibujada al
+   * final de la clase pisaría el texto con una versión de hace diez minutos.
+   */
+  const textoActual = useRef("");
+  const tintaActual = useRef<string | null>(null);
 
   // El tutor empieza guardado y se recuerda como se dejó. Nulo mientras se
   // lee la preferencia: sin eso, la columna aparecería y desaparecería de un
@@ -75,8 +88,48 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
   };
 
   useEffect(() => {
-    if (datos?.apunte) setTrazos(leerTrazos(datos.apunte.trazos));
+    if (!datos?.apunte) return;
+    setTrazos(leerTrazos(datos.apunte.trazos));
+    // Los dos espejos arrancan con lo que trae el apunte, y esto no es un
+    // detalle: el texto y los trazos ahora se guardan juntos, así que si la
+    // tinta arrancara en null, escribir una palabra habría guardado el apunte
+    // con el dibujo borrado.
+    textoActual.current = datos.apunte.contenido;
+    tintaActual.current = datos.apunte.trazos;
   }, [datos?.apunte]);
+
+  /**
+   * Al abrir: si quedó algo escrito que nunca subió, se recupera y se
+   * reintenta.
+   *
+   * Es el otro extremo de guardar en el aparato. Sin esto la copia local
+   * existiría y no serviría de nada: quien perdió la señal en clase abre el
+   * apunte en la noche y ve la versión vieja igual.
+   */
+  useEffect(() => {
+    const apunte = datos?.apunte;
+    if (!apunte) return;
+    let vigente = true;
+
+    void leerBorrador(apunteId).then(async (b) => {
+      if (!vigente || !b) return;
+      if (cualGana(b, apunte.actualizado_en) !== "borrador") {
+        // El servidor tiene algo más nuevo: la copia local ya no sirve.
+        void olvidarBorrador(apunteId);
+        return;
+      }
+      setContenido(b.contenido);
+      setTrazos(leerTrazos(b.trazos));
+      textoActual.current = b.contenido;
+      tintaActual.current = b.trazos;
+      setGuardado("en_el_aparato");
+      // Y se vuelve a intentar: puede que ahora sí haya señal.
+      await guardarDondeSePueda(b.contenido, b.trazos);
+    });
+
+    return () => { vigente = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apunteId, datos?.apunte]);
 
   useEffect(() => {
     if (datos?.resumen) {
@@ -89,19 +142,45 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
     }
   }, [datos?.resumen]);
 
+  /**
+   * Guarda contra el servidor y, si no se puede, en el aparato.
+   *
+   * Esto es lo que impide perder una clase entera de apuntes. Antes, cuando
+   * la llamada fallaba —una sala sin cobertura— la pantalla decía «Sin
+   * guardar» en letra chica y no volvía a intentar: al salir, cuarenta
+   * minutos de clase se iban, y nadie se enteraba hasta la noche.
+   */
+  const guardarDondeSePueda = useCallback(async (
+    texto: string, tinta: string | null,
+  ) => {
+    setGuardado("guardando");
+    try {
+      await guardarApunte(apunteId, { contenido: texto, trazos: tinta });
+      setGuardado("limpio");
+      // Subió: la copia local ya no hace falta y dejarla ahí solo puede
+      // resucitar texto viejo más adelante.
+      void olvidarBorrador(apunteId);
+    } catch {
+      if (valeGuardarlo(texto, tinta)) {
+        await guardarBorrador({ apunteId, contenido: texto, trazos: tinta, escritoEn: Date.now() });
+        setGuardado("en_el_aparato");
+      } else {
+        setGuardado("escribiendo");
+      }
+    }
+  }, [apunteId]);
+
   // Se guarda solo, poco después de dejar de escribir. Nadie debería perder
   // apuntes de clase por olvidar tocar un botón.
   const alEscribir = useCallback((texto: string) => {
     setContenido(texto);
+    textoActual.current = texto;
     setGuardado("escribiendo");
     if (temporizador.current) clearTimeout(temporizador.current);
     temporizador.current = setTimeout(() => {
-      setGuardado("guardando");
-      guardarApunte(apunteId, { contenido: texto })
-        .then(() => setGuardado("limpio"))
-        .catch(() => setGuardado("escribiendo"));
+      void guardarDondeSePueda(texto, tintaActual.current);
     }, ESPERA_GUARDADO);
-  }, [apunteId]);
+  }, [guardarDondeSePueda]);
 
   /**
    * Los trazos se guardan aparte del texto, y enteros.
@@ -115,15 +194,13 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
    */
   const alDibujar = useCallback((nuevos: Trazo[]) => {
     setTrazos(nuevos);
+    tintaActual.current = hayTinta(nuevos) ? guardarTrazos(nuevos) : null;
     setGuardado("escribiendo");
     if (temporizadorTinta.current) clearTimeout(temporizadorTinta.current);
     temporizadorTinta.current = setTimeout(() => {
-      setGuardado("guardando");
-      guardarApunte(apunteId, { trazos: hayTinta(nuevos) ? guardarTrazos(nuevos) : null })
-        .then(() => setGuardado("limpio"))
-        .catch(() => setGuardado("escribiendo"));
+      void guardarDondeSePueda(textoActual.current, hayTinta(nuevos) ? guardarTrazos(nuevos) : null);
     }, ESPERA_GUARDADO);
-  }, [apunteId]);
+  }, [guardarDondeSePueda]);
 
   // Al salir de la pantalla se guarda lo que quedó pendiente.
   useEffect(() => () => {
@@ -161,7 +238,7 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
           {ramo?.nombre ?? "Apuntes"}
         </Text>
         <Text style={tipo.detalle}>
-          {guardado === "limpio" ? "Guardado" : guardado === "guardando" ? "Guardando…" : "Sin guardar"}
+          {comoSeVe(guardado)}
         </Text>
         <Pressable
           accessibilityRole="button"

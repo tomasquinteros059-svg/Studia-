@@ -17,6 +17,7 @@ import { usarCarga } from "../../lib/usarCarga.ts";
 import {
   choquesDeHorario, porHora, type BloqueDeClase, type QuienDicta,
 } from "../../dominio/horario.ts";
+import { comoSeDice } from "../../dominio/fallas.ts";
 
 const SECCIONES = ["Ramos", "Horario", "Personas"] as const;
 type Seccion = (typeof SECCIONES)[number];
@@ -195,7 +196,7 @@ function Registro({
     } catch (err) {
       Alert.alert(
         "No pude cambiar el rol",
-        err instanceof globalThis.Error ? err.message : "",
+        comoSeDice(err),
       );
     } finally {
       setCambiando(null);

@@ -25,6 +25,7 @@ import { porcentajeVisto } from "../dominio/ramos.ts";
 import { unir } from "../dominio/horario-escrito.ts";
 import { inicialesDePersona } from "../dominio/personas.ts";
 import { type PropsPila } from "../lib/rutas.ts";
+import { comoSeDice } from "../dominio/fallas.ts";
 
 type Props = PropsPila<"Asignatura">;
 
@@ -470,7 +471,7 @@ export default function Asignatura({ route, navigation }: Props) {
                     navigation.navigate("Apunte", { apunteId: nuevo.id });
                   } catch (err) {
                     Alert.alert("No pude crear el apunte",
-                      err instanceof globalThis.Error ? err.message : "");
+                      comoSeDice(err));
                   }
                 }}>
                 <Icono nombre="nuevo" tamano={18} tono={color.marca} />
