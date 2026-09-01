@@ -75,13 +75,15 @@ Tu contenido se guarda mientras tengas la cuenta abierta.
 
 Los tramos del modo escucha se guardan hasta que se arma el resumen de la clase; después queda el resumen, que es de todo el curso, y no los tramos sueltos de cada teléfono.
 
-Si cierras tu cuenta, tus datos personales se eliminan. Lo que hayas publicado en el foro puede quedar, sin tu nombre, porque es parte de una conversación de otros.
+Si borras tu cuenta, tus datos personales se eliminan al instante. Lo que hayas publicado en el foro queda, sin tu nombre, porque es parte de una conversación de otros.
 
 ## 8. Tus derechos
 
 Puedes pedir acceso a tus datos, corregirlos, eliminarlos, oponerte a un tratamiento y pedir una copia para llevártela.
 
-Se hace escribiendo a equinterosm33@gmail.com. La respuesta llega dentro de los plazos que fija la ley.
+**Borrar tu cuenta lo haces tú, sin pedir permiso:** en la aplicación, en Perfil → Borrar mi cuenta. Es inmediato y no se puede deshacer.
+
+Lo demás se pide escribiendo a equinterosm33@gmail.com. La respuesta llega dentro de los plazos que fija la ley.
 
 Si crees que no se respetó tu derecho, puedes reclamar ante la autoridad de protección de datos personales de Chile.
 

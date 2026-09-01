@@ -37,3 +37,4 @@ correr "$DIR/supabase/pruebas/andamio.sql"
 for m in "$DIR"/supabase/migrations/*.sql; do correr "$m"; done
 correr "$DIR/supabase/seed.sql"
 correr "$DIR/supabase/pruebas/rls.sql"
+correr "$DIR/supabase/pruebas/borrado.sql"

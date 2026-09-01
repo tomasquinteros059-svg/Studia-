@@ -27,7 +27,7 @@ const app = join(raiz, "app");
 const config = join(app, "app.json");
 const docs = join(raiz, "docs");
 
-import { DESDE, DOCUMENTOS, TITULAR } from "../app/src/dominio/legales.ts";
+import { COMO_BORRAR, DESDE, DOCUMENTOS, TITULAR } from "../app/src/dominio/legales.ts";
 import { paginaLegal } from "./paginas-legales.mjs";
 
 const BASE = "/Sitio.ste";
@@ -54,7 +54,7 @@ try {
 // Se borra solo lo que genera este script, no la carpeta entera.
 const GENERADO = [
   "_expo", "assets", "index.html", "404.html", "metadata.json", ".nojekyll",
-  "robots.txt", "terminos.html", "privacidad.html",
+  "robots.txt", "terminos.html", "privacidad.html", "borrar-cuenta.html",
 ];
 for (const n of GENERADO) rmSync(join(docs, n), { recursive: true, force: true });
 mkdirSync(docs, { recursive: true });
@@ -126,5 +126,9 @@ writeFileSync(
 for (const d of DOCUMENTOS) {
   writeFileSync(join(docs, `${d.id === "terminos" ? "terminos" : "privacidad"}.html`), paginaLegal(d, BASE));
 }
+
+// Play Store exige una dirección pública que explique cómo se pide borrar la
+// cuenta, alcanzable sin instalar la aplicación. Esta es esa dirección.
+writeFileSync(join(docs, "borrar-cuenta.html"), paginaLegal(COMO_BORRAR, BASE));
 
 console.log("docs/ listo · base", BASE);

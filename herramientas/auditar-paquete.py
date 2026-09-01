@@ -70,6 +70,8 @@ PIEZAS = {
         ("Crear cuenta · confirmar por correo", "Te mandamos un correo a"),
         ("Clave nueva desde el enlace", "Tu clave nueva"),
         ("Enlace vencido", "Este enlace ya venció"),
+        ("Borrar la cuenta", "Borrar mi cuenta para siempre"),
+        ("Borrar · avisa que no se deshace", "Esto no se puede deshacer"),
     ],
 }
 

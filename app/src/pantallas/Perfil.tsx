@@ -11,12 +11,18 @@ import { salir } from "../lib/perfiles-demo.ts";
 import { inicialesDePersona } from "../dominio/personas.ts";
 import { VERSION_VISIBLE } from "../lib/version.ts";
 import { aviso } from "../dominio/legales.ts";
+import { PALABRA_PARA_BORRAR, borrarMiCuenta } from "../lib/cuenta.ts";
 import type { PropsPila } from "../lib/rutas.ts";
 
 export default function Perfil({ navigation }: PropsPila<"Perfil">) {
   const { datos, cargando, error, recargar } = usarCarga(miPerfil, []);
   const [nombre, setNombre] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // El borrado se abre en dos pasos: primero se despliega, después se escribe.
+  // Un botón rojo suelto en una pantalla se aprieta sin querer.
+  const [abriendoBorrado, setAbriendoBorrado] = useState(false);
+  const [confirmacion, setConfirmacion] = useState("");
+  const [borrando, setBorrando] = useState(false);
 
   const guardar = useCallback(async () => {
     const limpio = (nombre ?? "").trim();
@@ -33,6 +39,19 @@ export default function Perfil({ navigation }: PropsPila<"Perfil">) {
       setGuardando(false);
     }
   }, [nombre, recargar]);
+
+  const borrar = useCallback(async () => {
+    setBorrando(true);
+    try {
+      await borrarMiCuenta(confirmacion);
+      // No hace falta navegar: al cerrarse la sesión, la aplicación vuelve
+      // sola a la portada.
+    } catch (err) {
+      Alert.alert("No pude borrarla", err instanceof globalThis.Error ? err.message : "");
+    } finally {
+      setBorrando(false);
+    }
+  }, [confirmacion]);
 
   if (cargando) return <Cargando />;
   if (error) return <Error mensaje={error} reintentar={recargar} />;
@@ -87,6 +106,47 @@ export default function Perfil({ navigation }: PropsPila<"Perfil">) {
         derecha={<Icono nombre="siguiente" tamano={18} tono={color.textoTenue} />}
         onPress={() => navigation.navigate("Legal", { que: "terceros" })} />
 
+      {/* Borrar la cuenta va acá, al final y sin adornos.
+          Play Store lo exige desde 2024 a toda aplicación con registro, y la
+          política de privacidad lo promete. Pero además es lo correcto: quien
+          entregó sus apuntes a una aplicación tiene que poder llevárselos de
+          vuelta sin escribirle a nadie ni esperar respuesta. */}
+      <Encabezado texto="Borrar mi cuenta" />
+      <View style={{ paddingHorizontal: espacio.m, gap: espacio.s }}>
+        {!abriendoBorrado ? (
+          <>
+            <Text style={tipo.detalle}>
+              Se borra tu perfil y todo lo tuyo: apuntes, notas, entregas, fichas,
+              quizzes y lo que le preguntaste al tutor. No se puede deshacer.
+            </Text>
+            <Boton texto="Borrar mi cuenta" variante="suave"
+              onPress={() => setAbriendoBorrado(true)} />
+          </>
+        ) : (
+          <>
+            <Text style={e.avisoBorrado}>
+              Esto no se puede deshacer. Lo que hayas escrito en el foro se queda,
+              porque es parte de la conversación de tu curso, pero deja de llevar
+              tu nombre.
+            </Text>
+            <Text style={tipo.detalle}>
+              Para confirmar, escribe {PALABRA_PARA_BORRAR} aquí abajo.
+            </Text>
+            <Campo value={confirmacion} onChangeText={setConfirmacion}
+              autoCapitalize="characters" autoCorrect={false}
+              accessibilityLabel={`Escribe ${PALABRA_PARA_BORRAR} para confirmar`}
+              placeholder={PALABRA_PARA_BORRAR} />
+            <Boton
+              texto={borrando ? "Borrando…" : "Borrar mi cuenta para siempre"}
+              onPress={borrar}
+              deshabilitado={borrando || confirmacion.trim().toUpperCase() !== PALABRA_PARA_BORRAR}
+            />
+            <Boton texto="Mejor no" variante="suave"
+              onPress={() => { setAbriendoBorrado(false); setConfirmacion(""); }} />
+          </>
+        )}
+      </View>
+
       <Text style={e.copyright}>{aviso(new Date().getFullYear())}</Text>
 
       {/* Para saber qué versión estás probando sin tener que adivinar. */}
@@ -117,5 +177,9 @@ const e = StyleSheet.create({
   copyright: {
     ...tipo.detalle, color: color.textoTenue,
     textAlign: "center", paddingTop: espacio.l,
+  },
+  avisoBorrado: {
+    ...tipo.cuerpo, color: color.texto, lineHeight: 21,
+    backgroundColor: `${color.vivo}14`, borderRadius: 14, padding: espacio.m,
   },
 });

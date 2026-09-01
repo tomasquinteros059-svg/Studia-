@@ -202,14 +202,15 @@ export const PRIVACIDAD: Documento = {
       parrafos: [
         `Tu contenido se guarda mientras tengas la cuenta abierta.`,
         `Los tramos del modo escucha se guardan hasta que se arma el resumen de la clase; después queda el resumen, que es de todo el curso, y no los tramos sueltos de cada teléfono.`,
-        `Si cierras tu cuenta, tus datos personales se eliminan. Lo que hayas publicado en el foro puede quedar, sin tu nombre, porque es parte de una conversación de otros.`,
+        `Si borras tu cuenta, tus datos personales se eliminan al instante. Lo que hayas publicado en el foro queda, sin tu nombre, porque es parte de una conversación de otros.`,
       ],
     },
     {
       titulo: "8. Tus derechos",
       parrafos: [
         `Puedes pedir acceso a tus datos, corregirlos, eliminarlos, oponerte a un tratamiento y pedir una copia para llevártela.`,
-        `Se hace escribiendo a ${CORREO}. La respuesta llega dentro de los plazos que fija la ley.`,
+        `**Borrar tu cuenta lo haces tú, sin pedir permiso:** en la aplicación, en Perfil → Borrar mi cuenta. Es inmediato y no se puede deshacer.`,
+        `Lo demás se pide escribiendo a ${CORREO}. La respuesta llega dentro de los plazos que fija la ley.`,
         `Si crees que no se respetó tu derecho, puedes reclamar ante la autoridad de protección de datos personales de Chile.`,
       ],
     },
@@ -225,6 +226,61 @@ export const PRIVACIDAD: Documento = {
       titulo: "10. Cambios",
       parrafos: [
         `Si esta política cambia, se avisa dentro de la aplicación y cambia la fecha de arriba. Vale la pena volver a leerla cuando eso pase.`,
+      ],
+    },
+  ],
+};
+
+/**
+ * Cómo borrar la cuenta, como página aparte.
+ *
+ * No entra en DOCUMENTOS —no es un documento legal, y en la aplicación el
+ * camino es el botón, no un texto— pero Play Store exige una dirección web
+ * pública que explique cómo se pide el borrado, alcanzable **sin** instalar la
+ * aplicación. De ahí que exista esta página.
+ */
+export const COMO_BORRAR: Documento = {
+  id: "terminos",
+  titulo: "Borrar tu cuenta de StudIA",
+  bajada: "Cómo borrarla tú mismo, y qué se borra exactamente.",
+  actualizado: ACTUALIZADO,
+  secciones: [
+    {
+      titulo: "Desde la aplicación, en un minuto",
+      parrafos: [
+        `Abre StudIA → **Perfil** → baja hasta **Borrar mi cuenta**. Te va a pedir que escribas la palabra BORRAR para confirmar, y con eso queda hecho al instante.`,
+        `No hay que escribirle a nadie ni esperar respuesta.`,
+      ],
+    },
+    {
+      titulo: "Si no tienes la aplicación a mano",
+      parrafos: [
+        `Escribe a ${CORREO} desde el correo con el que entras a StudIA. La cuenta se borra dentro de los plazos que fija la ley.`,
+        `Si eres apoderado y quieres borrar la cuenta de tu pupilo, escribe a la misma dirección diciendo quién eres.`,
+      ],
+    },
+    {
+      titulo: "Qué se borra",
+      parrafos: [
+        `Tu perfil, tu nombre y tu correo.`,
+        `Tus apuntes —escritos y a mano—, tus notas, tus entregas, tus fichas, tus quizzes y tus sesiones de estudio.`,
+        `Todo lo que le preguntaste al tutor.`,
+        `Tus inscripciones en ramos y tus notificaciones.`,
+      ],
+    },
+    {
+      titulo: "Qué no se borra, y por qué",
+      parrafos: [
+        `**Lo que publicaste en el foro se queda, pero deja de llevar tu nombre.** Es parte de una conversación de otras personas: borrarlo dejaría respuestas colgando de preguntas que ya no existen.`,
+        `**El resumen de una clase presencial se queda.** Es del curso entero, no de un alumno, y se arma cruzando lo que oyeron muchos teléfonos. No dice quién dijo qué.`,
+        `Nada de esto permite volver a identificarte.`,
+      ],
+    },
+    {
+      titulo: "Se borra, no se esconde",
+      parrafos: [
+        `El borrado es inmediato y no se puede deshacer. No queda una copia «por si acaso»: las tablas están encadenadas para que al irse la cuenta se vaya con ella todo lo suyo, y hay una prueba automática que lo comprueba en cada cambio de la base de datos.`,
+        `Si algo de esto no calza con lo que ves, escribe a ${CORREO}.`,
       ],
     },
   ],
