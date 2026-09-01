@@ -50,6 +50,17 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Método no permitido." }, 405, origen);
   if (!CLAVE_SERVICIO) return json({ error: "Sin clave de servicio." }, 503, origen);
 
+  // Solo la tarea programada, no cualquiera con una sesión.
+  //
+  // Supabase comprueba que el token sea válido, y el de cualquier estudiante lo
+  // es: sin esto, cualquiera podía disparar la corrida de avisos. No es un robo
+  // —los avisos van a sus dueños igual— pero adelanta lo que tenía que salir a
+  // su hora, y marca como enviado lo que quizás no salió.
+  const clave = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (clave !== CLAVE_SERVICIO) {
+    return json({ error: "Esta función la llama la tarea programada." }, 403, origen);
+  }
+
   // Fuera de hora no se manda nada, y tampoco se marca: los avisos que no
   // salieron ahora salen a la mañana siguiente. Marcarlos sería perderlos.
   if (!esHoraDecente(horaLocal())) {

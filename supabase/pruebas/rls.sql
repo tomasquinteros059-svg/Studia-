@@ -1140,6 +1140,71 @@ end $$;
 reset role;
 delete from public.fichas where id = '22222222-0000-4000-8000-000000000001';
 
+-- ─────────────────────── quedarse con el aparato de otro ─────────────────
+--
+-- El identificador de aparato es único, así que registrar el de otra persona
+-- choca con su fila. La pregunta es qué pasa entonces: si el choque se
+-- resolviera actualizando, alguien podría quedarse con el teléfono de un
+-- compañero —dejarlo sin avisos y llevarse los suyos a ese aparato—.
+--
+-- Razonarlo no basta: depende de contra qué fila se evalúa la política al
+-- resolver el choque, y eso hay que preguntárselo a la base.
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
+insert into public.aparatos (persona_id, token, plataforma)
+values ('e0000000-0000-4000-8000-000000000002', 'ExponentPushToken[del-otro]', 'android');
+
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+do $$
+declare paso boolean := false;
+begin
+  begin
+    insert into public.aparatos (persona_id, token, plataforma)
+    values ('e0000000-0000-4000-8000-000000000001', 'ExponentPushToken[del-otro]', 'android')
+    on conflict (token) do update set persona_id = excluded.persona_id;
+  exception when others then paso := true;
+  end;
+  perform pg_temp.afirmar('no puedo quedarme con el aparato de otro', paso, true);
+end $$;
+
+-- Se mira como superusuario: desde la sesión de arriba la fila no se ve, y
+-- «no la veo» no es lo mismo que «ya no es suya». La primera vez esta
+-- comprobación falló justamente por eso.
+reset role;
+select pg_temp.afirmar('y su aparato sigue siendo suyo',
+  (select persona_id from public.aparatos where token = 'ExponentPushToken[del-otro]'),
+  'e0000000-0000-4000-8000-000000000002'::uuid);
+
+-- ──────────────── quién puede llamar a las funciones ─────────────────────
+--
+-- En Postgres una función nace abierta a todo el mundo. Una SECURITY DEFINER
+-- sin comprobación adentro es, entonces, una puerta: no la abre un descuido de
+-- las políticas, la abre el valor por omisión del motor.
+set role authenticated;
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+-- Borrar el historial de caídas es de la administración. Un alumno que pudiera
+-- llamarla no roba nada: deja al colegio sin la información con la que iba a
+-- arreglar las cosas, y sin enterarse.
+do $$
+declare paso boolean := false;
+begin
+  begin
+    perform public.limpiar_errores_viejos();
+  exception when others then paso := true;
+  end;
+  perform pg_temp.afirmar('un alumno no puede borrar el registro de caídas', paso, true);
+end $$;
+
+-- Y las dos que las políticas del almacenamiento necesitan sí se pueden
+-- llamar. Cerrarlas parecía prudente y habría roto la lectura de archivos con
+-- un «permission denied for function», que no se parece en nada a su causa.
+select pg_temp.afirmar('las funciones que usan las políticas siguen llamables',
+  public.dueno_de_la_ruta('yo/e0000000-0000-4000-8000-000000000001/x.pdf', 'yo'),
+  'e0000000-0000-4000-8000-000000000001'::uuid);
+
+reset role;
+
 -- ──────────────────────────────── el plan ────────────────────────────────
 --
 -- Es lo que separa lo pagado de lo gratis, así que la pregunta no es si la
