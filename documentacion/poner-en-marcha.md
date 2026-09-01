@@ -120,6 +120,25 @@ Las de LiveKit —`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`— son 
 para el audio en vivo. Sin ellas, esa pantalla dice que no está configurado y el
 resto de la aplicación funciona igual.
 
+### Sin consola, desde una tablet
+
+En **Edge Functions → Deploy a new function → Via Editor**, una por una, con el
+nombre exacto de la tabla de arriba, y pegando el archivo que le corresponde de
+`supabase/funciones-de-una-vez/`.
+
+Las ocho comparten código —`_compartido/cors.ts` y el núcleo de cada una—, y en
+el editor del panel cada función es su propia raíz: ese `../_compartido/` no
+lleva a ninguna parte. Los archivos de esa carpeta son las mismas funciones con
+lo compartido incrustado arriba, para que cada una se baste sola. Los genera:
+
+```bash
+npm run juntar-funciones
+```
+
+*Verify JWT* se deja como viene, activado: las ocho lo esperan así.
+
+Las claves van en **Edge Functions → Secrets**, con los mismos nombres.
+
 ---
 
 ## 4 · Configurar la entrada

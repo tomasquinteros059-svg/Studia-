@@ -10,7 +10,7 @@
     "tipos": "npm --prefix app run tipos",
     "test": "npm run prueba",
     "prueba:ui": "npm --prefix app run prueba:ui",
-    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run prueba:legales && npm run prueba:licencias && npm run tipos && npm run prueba:paquete && npm run prueba:bd && npm run prueba:importar && npm run prueba:migraciones-juntas",
+    "prueba:todo": "npm run prueba && npm run prueba:ui && npm run prueba:sintaxis && npm run prueba:legales && npm run prueba:licencias && npm run tipos && npm run prueba:paquete && npm run prueba:bd && npm run prueba:importar && npm run prueba:migraciones-juntas && npm run prueba:funciones-juntas",
     "prueba:paquete": "npm --prefix app run paquete",
     "prueba:importar": "./supabase/pruebas/importar.sh",
     "prueba:paquete-android": "npm --prefix app run paquete:android && python3 herramientas/auditar-paquete.py",
@@ -22,7 +22,9 @@
     "icono": "python3 herramientas/icono.py",
     "comprobar-servidor": "node herramientas/comprobar-servidor.mjs",
     "juntar-migraciones": "node herramientas/juntar-migraciones.mjs",
-    "prueba:migraciones-juntas": "node herramientas/juntar-migraciones.mjs --revisar"
+    "prueba:migraciones-juntas": "node herramientas/juntar-migraciones.mjs --revisar",
+    "juntar-funciones": "node herramientas/juntar-funciones.mjs",
+    "prueba:funciones-juntas": "node herramientas/juntar-funciones.mjs --revisar"
   },
   "engines": {
     "node": ">=22.6"
