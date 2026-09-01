@@ -40,3 +40,11 @@ correr "$DIR/supabase/pruebas/rls.sql"
 correr "$DIR/supabase/pruebas/lotes.sql"
 correr "$DIR/supabase/pruebas/almacen.sql"
 correr "$DIR/supabase/pruebas/borrado.sql"
+
+# Y con la base ya armada, cruzar contra ella cada consulta de la aplicación.
+# Acá y no en las pruebas de la app porque hace falta el esquema de verdad:
+# qué columnas hay, qué claves foráneas, y sobre todo qué tiene permitido
+# tocar una sesión con la clave anónima.
+CATALOGO="$BASE/catalogo.json"
+psql -h "$SOCK" -U postgres -d studia -At -f "$DIR/supabase/pruebas/catalogo.sql" > "$CATALOGO"
+(cd "$DIR" && node herramientas/cruzar-consultas.mjs --catalogo "$CATALOGO")

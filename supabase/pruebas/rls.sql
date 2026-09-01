@@ -363,6 +363,14 @@ select '— también pasaron las pruebas de apuntes —' as resultado;
 -- Ana dicta Cálculo I (MAT1610) y Álgebra (MAT1203). No dicta Física.
 set pruebas.uid = 'd0000000-0000-4000-8000-000000000001';
 
+-- Lo primero que hace la aplicación al entrar es preguntar qué dicta esta
+-- persona: de ahí sale si le muestra el panel docente o no. Se cuenta acá
+-- porque durante un tiempo esta lectura estaba caída y ninguna prueba lo
+-- decía: la política existía, el permiso de tabla no, y todo lo demás del
+-- panel pregunta por `dicta()`, que es security definer y no lo necesita.
+select pg_temp.afirmar('lee sus propios dictados, que es de donde sale el panel',
+  (select count(*) from dictados)::int, 2);
+
 select pg_temp.afirmar('ve solo los 2 ramos que dicta',
   (select count(*) from asignaturas)::int, 2);
 select pg_temp.afirmar('ve el horario de esos 2 ramos',
@@ -445,21 +453,56 @@ exception when raise_exception then
   raise notice 'ok · corregir no permite mover la fecha de entrega';
 end $$;
 
--- Nadie se asciende solo.
+-- Nadie se asciende solo. Lo niegan dos cosas a la vez y da igual cuál conteste
+-- primero: el permiso, que sobre `perfiles` solo alcanza la columna `nombre`, y
+-- el disparador `al_editar_perfil`, que además revisa el valor. Lo que se
+-- comprueba acá es que no se pueda, no por cuál de las dos.
 do $$
 declare v_rol text;
 begin
   begin
     update public.perfiles set rol = 'estudiante' where id = auth.uid();
     raise exception 'FALLA · pude cambiarme el rol';
-  exception when raise_exception then
-    if sqlerrm like 'FALLA%' then raise; end if;
+  exception
+    when insufficient_privilege then null;
+    when raise_exception then
+      if sqlerrm like 'FALLA%' then raise; end if;
   end;
   select rol into v_rol from public.perfiles where id = auth.uid();
   if v_rol <> 'profesor' then
     raise exception 'FALLA · el rol quedó en %', v_rol;
   end if;
   raise notice 'ok · el rol no se cambia desde el cliente';
+end $$;
+
+-- Y del perfil propio no se toca nada más que el nombre. El correo es la copia
+-- que ve la administración en `registros()`: si se pudiera escribir, cualquiera
+-- podría dejar ahí el correo de otra persona.
+do $$
+begin
+  begin
+    update public.perfiles set correo = 'otro@studia.cl' where id = auth.uid();
+    raise exception 'FALLA · pude cambiarme el correo del perfil';
+  exception
+    when insufficient_privilege then null;
+    when raise_exception then
+      if sqlerrm like 'FALLA%' then raise; end if;
+  end;
+  raise notice 'ok · el correo del perfil no se escribe desde el cliente';
+end $$;
+
+do $$
+begin
+  begin
+    insert into public.perfiles (id, nombre, correo)
+    values (gen_random_uuid(), 'Perfil fantasma', 'fantasma@studia.cl');
+    raise exception 'FALLA · pude crear un perfil a mano';
+  exception
+    when insufficient_privilege then null;
+    when raise_exception then
+      if sqlerrm like 'FALLA%' then raise; end if;
+  end;
+  raise notice 'ok · los perfiles solo los crea el alta de la cuenta';
 end $$;
 
 -- ========================== como el ayudante ===========================

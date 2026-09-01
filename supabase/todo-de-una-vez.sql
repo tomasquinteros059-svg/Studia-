@@ -3,7 +3,7 @@
 -- Generado por herramientas/juntar-migraciones.mjs. No lo edites a mano:
 -- lo que vale son los archivos de supabase/migrations, y este se rehace.
 --
--- 27 migraciones, de 20260825000100 a 20260901000700.
+-- 29 migraciones, de 20260825000100 a 20260901000900.
 --
 -- Supabase corre todo esto junto: si una línea falla, deshace el resto y
 -- no queda nada a medias.
@@ -2513,6 +2513,60 @@ comment on function public.limpiar_errores_viejos() is
 
 
 -- ───────────────────────────────────────────────────────────────────
+-- 20260901000800 · leer dictados
+-- ───────────────────────────────────────────────────────────────────
+
+-- Un docente no podía ver qué dicta.
+--
+-- `20260826000300_administracion.sql` concede sobre `dictados` insert, update
+-- y delete, y se saltó select. La política "veo mis dictados" está escrita y es
+-- correcta, pero una política no sirve de nada sin el permiso de tabla: Postgres
+-- mira primero el grant, y sin él responde «permission denied for table
+-- dictados» antes de llegar a evaluar ninguna política.
+--
+-- Lo que se rompía: `misDictados()`, que es de donde sale si esta persona dicta
+-- algo. Sin eso la aplicación no muestra el panel docente y en su lugar aparece
+-- «No pude cargar tus ramos». Todo el lado del profesor, caído, para todos.
+--
+-- No apareció antes porque las pruebas de acceso entran como `postgres`, que se
+-- salta los permisos, y porque el resto del panel docente pregunta a través de
+-- `dicta()`, que es `security definer` y tampoco los necesita. Lo encontró
+-- herramientas/cruzar-consultas.mjs, cruzando cada consulta de la aplicación
+-- contra los permisos de verdad.
+
+grant select on public.dictados to authenticated;
+
+
+-- ───────────────────────────────────────────────────────────────────
+-- 20260901000900 · perfil solo el nombre
+-- ───────────────────────────────────────────────────────────────────
+
+-- Del perfil propio, el cliente solo cambia el nombre.
+--
+-- `20260825000200_rls.sql` concedía `insert, update` sobre `perfiles` entera.
+-- La lectura sí estaba afinada por columna desde el principio —id, nombre,
+-- creado_en, rol, plan— pero la escritura no, y quedaron alcanzables dos
+-- columnas que nadie debería poder tocar desde un teléfono:
+--
+--   · `correo`, que el cliente no puede leer pero sí podía escribir. El correo
+--     de verdad vive en auth.users; esta es la copia que `registros()` le
+--     muestra a la administración. Alguien podía dejar ahí el correo de otra
+--     persona y la lista de la administración lo habría mostrado como cierto.
+--
+--   · `id` y `creado_en`, que no se cambian nunca.
+--
+-- `rol` y `plan` ya estaban protegidos por el disparador `al_editar_perfil`,
+-- que sigue donde estaba: esto no lo reemplaza, lo acompaña. La diferencia es
+-- que ahora la base lo niega antes, por permisos, y no por una excepción.
+--
+-- `insert` se va entero: la fila la crea el disparador de alta, que es
+-- `security definer` y no usa los permisos de quien se registra.
+
+revoke insert, update on public.perfiles from authenticated;
+grant  update (nombre) on public.perfiles to authenticated;
+
+
+-- ───────────────────────────────────────────────────────────────────
 -- Quedan anotadas como aplicadas
 -- ───────────────────────────────────────────────────────────────────
 
@@ -2551,5 +2605,7 @@ insert into supabase_migrations.schema_migrations (version, name) values
   ('20260901000400', 'errores'),
   ('20260901000500', 'avisos'),
   ('20260901000600', 'planes'),
-  ('20260901000700', 'permisos_afinados')
+  ('20260901000700', 'permisos_afinados'),
+  ('20260901000800', 'leer_dictados'),
+  ('20260901000900', 'perfil_solo_el_nombre')
 on conflict (version) do nothing;
