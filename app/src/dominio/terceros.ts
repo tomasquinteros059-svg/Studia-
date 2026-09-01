@@ -98,7 +98,7 @@ export const TERCEROS: Tercero[] = [
   },
   {
     "nombre": "expo-constants",
-    "version": "57.0.14",
+    "version": "57.0.16",
     "licencia": "MIT",
     "copyright": "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
     "texto": 0
@@ -113,6 +113,13 @@ export const TERCEROS: Tercero[] = [
   {
     "nombre": "expo-linking",
     "version": "57.0.8",
+    "licencia": "MIT",
+    "copyright": "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
+    "texto": 0
+  },
+  {
+    "nombre": "expo-notifications",
+    "version": "57.0.15",
     "licencia": "MIT",
     "copyright": "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
     "texto": 0

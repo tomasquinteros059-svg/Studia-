@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, StyleSheet, Switch, Text, View } from "react-native";
 import { Boton, Campo, Cargando, Encabezado, Error, Fila, Pantalla } from "../ui/componentes.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { cifras, color, espacio, tipo } from "../ui/tema.ts";
@@ -12,6 +12,7 @@ import { inicialesDePersona } from "../dominio/personas.ts";
 import { VERSION_VISIBLE } from "../lib/version.ts";
 import { aviso } from "../dominio/legales.ts";
 import { PALABRA_PARA_BORRAR, borrarMiCuenta } from "../lib/cuenta.ts";
+import { apagarAvisos, avisosEncendidos, encenderAvisos, sePuedeAvisar } from "../lib/avisos.ts";
 import type { PropsPila } from "../lib/rutas.ts";
 
 export default function Perfil({ navigation }: PropsPila<"Perfil">) {
@@ -23,6 +24,28 @@ export default function Perfil({ navigation }: PropsPila<"Perfil">) {
   const [abriendoBorrado, setAbriendoBorrado] = useState(false);
   const [confirmacion, setConfirmacion] = useState("");
   const [borrando, setBorrando] = useState(false);
+  // Null mientras no se sabe: preguntarle al sistema toma un momento y pintar
+  // el interruptor en «no» antes de saberlo lo hace parpadear.
+  const [avisos, setAvisos] = useState<boolean | null>(null);
+  const [cambiandoAvisos, setCambiandoAvisos] = useState(false);
+
+  useEffect(() => {
+    if (!sePuedeAvisar) { setAvisos(false); return; }
+    let vigente = true;
+    void avisosEncendidos().then((si) => { if (vigente) setAvisos(si); });
+    return () => { vigente = false; };
+  }, []);
+
+  const cambiarAvisos = useCallback(async (encender: boolean) => {
+    setCambiandoAvisos(true);
+    try {
+      const r = encender ? await encenderAvisos() : await apagarAvisos();
+      if (!r.ok) { Alert.alert("Los avisos quedaron como estaban", r.motivo); return; }
+      setAvisos(encender);
+    } finally {
+      setCambiandoAvisos(false);
+    }
+  }, []);
 
   const guardar = useCallback(async () => {
     const limpio = (nombre ?? "").trim();
@@ -91,6 +114,29 @@ export default function Perfil({ navigation }: PropsPila<"Perfil">) {
         Tu correo no se guarda en la base de datos de la app: sale de tu sesión.
         Nadie más puede verlo.
       </Text>
+
+      {/* Los avisos, antes de lo legal: es lo único de esta pantalla que
+          alguien viene a cambiar de verdad. */}
+      <Encabezado texto="Avisos" />
+      <View style={{ paddingHorizontal: espacio.m, gap: espacio.s }}>
+        <View style={e.filaAviso}>
+          <View style={{ flex: 1 }}>
+            <Text style={tipo.fila}>Avisarme en el teléfono</Text>
+            <Text style={tipo.detalle}>
+              {sePuedeAvisar
+                ? "La clase que empieza, la entrega que vence y las notas publicadas. Los anuncios del profesor no suenan: los ves al abrir la app."
+                : "Este aparato no puede recibir avisos."}
+            </Text>
+          </View>
+          <Switch
+            value={avisos === true}
+            onValueChange={(v) => void cambiarAvisos(v)}
+            disabled={!sePuedeAvisar || avisos === null || cambiandoAvisos}
+            accessibilityLabel="Avisarme en el teléfono"
+            trackColor={{ true: color.marca, false: color.elemento }}
+          />
+        </View>
+      </View>
 
       {/* Los textos legales se leen desde acá y no desde un enlace a la web:
           quien aceptó unos términos tiene derecho a leerlos, y en la sala
@@ -178,6 +224,7 @@ const e = StyleSheet.create({
     ...tipo.detalle, color: color.textoTenue,
     textAlign: "center", paddingTop: espacio.l,
   },
+  filaAviso: { flexDirection: "row", alignItems: "center", gap: espacio.m },
   avisoBorrado: {
     ...tipo.cuerpo, color: color.texto, lineHeight: 21,
     backgroundColor: `${color.vivo}14`, borderRadius: 14, padding: espacio.m,

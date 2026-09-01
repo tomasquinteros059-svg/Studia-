@@ -36,6 +36,13 @@
         }
       ],
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/icono-monocromo.png",
+          "color": "#2F45D4"
+        }
+      ],
+      [
         "expo-audio",
         {
           "microphonePermission": "StudIA usa el micrófono solo cuando pides la palabra en una clase en vivo.",

@@ -11,13 +11,21 @@ jest.mock("../lib/cuenta.ts", () => ({
   borrarMiCuenta: jest.fn(),
 }));
 jest.mock("../lib/supabase.ts", () => ({ supabase: { auth: { signOut: jest.fn() } } }));
+jest.mock("../lib/avisos.ts", () => ({
+  sePuedeAvisar: true,
+  avisosEncendidos: jest.fn(),
+  encenderAvisos: jest.fn(),
+  apagarAvisos: jest.fn(),
+}));
 
 import * as consultas from "../lib/consultas.ts";
 import * as cuenta from "../lib/cuenta.ts";
+import * as avisos from "../lib/avisos.ts";
 import Perfil from "./Perfil.tsx";
 
 const mockC = consultas as jest.Mocked<typeof consultas>;
 const mockCuenta = cuenta as jest.Mocked<typeof cuenta>;
+const mockAvisos = avisos as jest.Mocked<typeof avisos>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -25,6 +33,9 @@ beforeEach(() => {
     nombre: "Eduardo Soto", correo: "eduardo@alumnos.uc.cl",
   } as never);
   mockCuenta.borrarMiCuenta.mockResolvedValue(undefined as never);
+  mockAvisos.avisosEncendidos.mockResolvedValue(false as never);
+  mockAvisos.encenderAvisos.mockResolvedValue({ ok: true } as never);
+  mockAvisos.apagarAvisos.mockResolvedValue({ ok: true } as never);
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
 });
 
@@ -114,5 +125,47 @@ describe("borrar la cuenta", () => {
 
     await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
       "No pude borrarla", "No pude conectar. Revisa tu internet."));
+  });
+});
+
+describe("los avisos al teléfono", () => {
+  const interruptor = (t: Awaited<ReturnType<typeof abrir>>) =>
+    t.getByLabelText("Avisarme en el teléfono");
+
+  test("se pueden encender desde el perfil", async () => {
+    const t = await abrir();
+    await act(async () => { fireEvent(interruptor(t), "valueChange", true); });
+
+    await waitFor(() => expect(mockAvisos.encenderAvisos).toHaveBeenCalled());
+    expect(interruptor(t).props.value).toBe(true);
+  });
+
+  test("y apagar, que es lo que de verdad tiene que funcionar", async () => {
+    mockAvisos.avisosEncendidos.mockResolvedValue(true as never);
+    const t = await abrir();
+    await waitFor(() => expect(interruptor(t).props.value).toBe(true));
+
+    await act(async () => { fireEvent(interruptor(t), "valueChange", false); });
+    await waitFor(() => expect(mockAvisos.apagarAvisos).toHaveBeenCalled());
+    expect(interruptor(t).props.value).toBe(false);
+  });
+
+  // Si el permiso se negó una vez, el sistema no lo vuelve a preguntar. Sin
+  // decirlo, el interruptor se queda en «no» y parece que la app está rota.
+  test("si el permiso está negado se explica, y el interruptor no miente", async () => {
+    mockAvisos.encenderAvisos.mockResolvedValue({
+      ok: false, motivo: "No diste permiso para avisarte.",
+    } as never);
+    const t = await abrir();
+    await act(async () => { fireEvent(interruptor(t), "valueChange", true); });
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
+      "Los avisos quedaron como estaban", "No diste permiso para avisarte."));
+    expect(interruptor(t).props.value).toBe(false);
+  });
+
+  test("se dice qué avisa y qué no, para que nadie los apague por ruidosos", async () => {
+    const t = await abrir();
+    expect(t.getByText(/Los anuncios del profesor no suenan/)).toBeTruthy();
   });
 });

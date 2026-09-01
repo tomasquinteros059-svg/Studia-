@@ -89,6 +89,11 @@ PIEZAS = {
         ("No le echa la culpa a nadie", "No fue algo que hicieras mal"),
         ("Privacidad · qué se guarda de una caída", "De las caídas:"),
     ],
+    "Avisos": [
+        ("Encender los avisos", "Avisarme en el teléfono"),
+        ("Qué no suena", "Los anuncios del profesor no suenan"),
+        ("Permiso negado", "No diste permiso para avisarte"),
+    ],
 }
 
 

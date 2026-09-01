@@ -53,6 +53,7 @@ import { usarQuienSoy } from "./src/lib/quien-soy.ts";
 import { Icono } from "./src/ui/Icono.tsx";
 import { Barrera } from "./src/ui/Barrera.tsx";
 import { anotarPantalla, engancharManejadores } from "./src/lib/errores.ts";
+import { prepararAvisos } from "./src/lib/avisos.ts";
 
 const Pila = createNativeStackNavigator<RutasPila>();
 const Pestanas = createBottomTabNavigator<RutasPestanas>();
@@ -135,7 +136,12 @@ export default function App() {
 
   // Lo que revienta fuera de React —un setTimeout, una promesa sin catch— no
   // pasa por la barrera, y son la mitad de las caídas. Se engancha una vez.
-  useEffect(() => { engancharManejadores(); }, []);
+  useEffect(() => {
+    engancharManejadores();
+    // Sin esto, un aviso que llega con la aplicación abierta no se ve en
+    // ninguna parte: el sistema da por hecho que la app ya lo mostró.
+    prepararAvisos();
+  }, []);
 
   useEffect(() => {
     // En demostración no hay a quién preguntarle por la sesión: se entra directo.
