@@ -14,6 +14,7 @@ por diseño, **nunca resuelve el ejercicio**.
 |---|---|
 | [`app/`](app) | La aplicación en Expo (React Native) |
 | [`supabase/`](supabase) | Esquema, políticas de acceso, datos de ejemplo y la función del tutor |
+| [`documentacion/poner-en-marcha.md`](documentacion/poner-en-marcha.md) | **De un repositorio a una app que funciona: el orden exacto** |
 | [`documentacion/arquitectura.md`](documentacion/arquitectura.md) | Cómo levantarlo, cómo se verifica y qué está simplificado |
 | [`documentacion/instalar-en-tablet.md`](documentacion/instalar-en-tablet.md) | Compilar el APK y probarlo en una tablet Android |
 | [`documentacion/studia-spec.md`](documentacion/studia-spec.md) | Especificación de producto: navegación, pantallas, sistema visual y decisiones abiertas |

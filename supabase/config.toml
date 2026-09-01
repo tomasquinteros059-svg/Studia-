@@ -10,3 +10,25 @@ verify_jwt = true
 
 [functions.sala]
 verify_jwt = true
+
+# Las cinco que llegaron después. Van escritas aunque `verify_jwt` sea el
+# valor por omisión: una lista completa es la única manera de darse cuenta,
+# leyendo este archivo, de que una función quedó sin desplegar.
+[functions.asistente]
+verify_jwt = true
+
+[functions.quiz]
+verify_jwt = true
+
+[functions.fichas]
+verify_jwt = true
+
+# Comprueba la sesión adentro y borra con la clave de servicio: quién pide el
+# borrado sale de su propio token y de ningún parámetro.
+[functions.borrar-cuenta]
+verify_jwt = true
+
+# La llama una tarea programada con la clave de servicio, que también es un
+# JWT válido del proyecto.
+[functions.avisar]
+verify_jwt = true
