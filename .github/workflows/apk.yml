@@ -24,6 +24,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    # Contra qué servidor se compila.
+    #
+    # `expo export` y `assembleRelease` empaquetan el JavaScript, y ahí es donde
+    # estas dos variables quedan dentro del APK. Si no están, `lib/config.ts`
+    # pone la app en modo demostración: datos de ejemplo en el teléfono, sin
+    # cuentas y sin nada que se guarde en ninguna parte.
+    #
+    # Van al nivel del trabajo y no de un paso porque hacen falta en los cinco
+    # que empaquetan: la auditoría del paquete y las tres compilaciones.
+    #
+    # Se cargan en Settings → Secrets and variables → Actions:
+    #   SUPABASE_URL        https://xxxxxxxx.supabase.co
+    #   SUPABASE_ANON_KEY   la clave anónima del proyecto
+    # La anónima es pública por diseño —va dentro del APK, que cualquiera puede
+    # abrir—; lo que protege los datos son las políticas de acceso de la base.
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
     steps:
       # Con la profundidad de siempre —un solo commit— `git rev-list --count`
       # devolvería 1, y numerar la compilación con 1 la dejaría por debajo de
@@ -144,8 +163,21 @@ jobs:
             c.expo.extra = { ...c.expo.extra, compilacion: codigo };
             fs.writeFileSync(ruta, JSON.stringify(c, null, 2) + "\n");
           ' "$codigo"
-          echo "Versión $version · compilación $codigo"
-          echo "sufijo=$version-$codigo-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          # Un APK sin servidor y uno conectado se ven igual por fuera y hacen
+          # cosas distintas: en el primero nada de lo que hagas se guarda. Que
+          # se distingan por el nombre del archivo, antes de instalarlo.
+          if [ -n "${EXPO_PUBLIC_SUPABASE_URL}" ] && [ -n "${EXPO_PUBLIC_SUPABASE_ANON_KEY}" ]; then
+            modo="conectada"
+            marca=""
+          else
+            modo="demostración"
+            marca="-demo"
+            echo "::warning::Sin SUPABASE_URL ni SUPABASE_ANON_KEY: el APK sale en modo demostración."
+          fi
+
+          echo "Versión $version · compilación $codigo · $modo"
+          echo "modo=$modo" >> "$GITHUB_OUTPUT"
+          echo "sufijo=$version-$codigo-${GITHUB_SHA::7}$marca" >> "$GITHUB_OUTPUT"
 
       - name: Compilar el APK para arm64
         working-directory: app/android
@@ -211,8 +243,12 @@ jobs:
           triple. Solo hace falta si el otro dice que no se puede instalar, cosa que
           pasa en aparatos viejos o en un Chromebook con procesador Intel.
 
-          Se instala tocándolo y aceptando instalar desde esta fuente. Trae datos de
-          ejemplo, así que funciona sin servidor.
+          Se instala tocándolo y aceptando instalar desde esta fuente.
+
+          Esta compilación es **${{ steps.nombre.outputs.modo }}**. Si el nombre del
+          archivo termina en \`-demo\`, la app trae datos de ejemplo que viven en el
+          teléfono: no hay cuentas, nada se guarda en un servidor y dos aparatos no
+          ven lo mismo. Sirve para recorrer las pantallas, no para usarla de verdad.
 
           El nombre del archivo lleva la versión, el número de compilación y el commit,
           así que no se puede confundir con una descarga anterior. La app dice lo mismo

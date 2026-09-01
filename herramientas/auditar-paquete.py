@@ -64,6 +64,13 @@ PIEZAS = {
         ("Licencias · el aviso de una biblioteca", "Copyright (c) Meta Platforms"),
         ("Aviso de copyright", "Todos los derechos reservados."),
     ],
+    "La cuenta": [
+        ("Recuperar la clave", "Olvidé mi clave"),
+        ("Recuperar · sin delatar quién tiene cuenta", "tiene cuenta, le llega un enlace"),
+        ("Crear cuenta · confirmar por correo", "Te mandamos un correo a"),
+        ("Clave nueva desde el enlace", "Tu clave nueva"),
+        ("Enlace vencido", "Este enlace ya venció"),
+    ],
 }
 
 

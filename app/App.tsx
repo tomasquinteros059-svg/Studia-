@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as Linking from "expo-linking";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -36,6 +37,9 @@ import Apunte from "./src/pantallas/Apunte.tsx";
 import Lectura from "./src/pantallas/Lectura.tsx";
 import Consejos from "./src/pantallas/Consejos.tsx";
 import Legal, { TITULO_LEGAL } from "./src/pantallas/Legal.tsx";
+import ClaveNueva, { EnlaceInservible } from "./src/pantallas/ClaveNueva.tsx";
+import { leerEnlace } from "./src/dominio/recuperacion.ts";
+import { abrirConEnlace } from "./src/lib/recuperacion.ts";
 import Quiz from "./src/pantallas/Quiz.tsx";
 import Fichas from "./src/pantallas/Fichas.tsx";
 import MisApuntes from "./src/pantallas/MisApuntes.tsx";
@@ -118,6 +122,11 @@ function AppDocente() {
 export default function App() {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [listo, setListo] = useState(false);
+  // Qué se está haciendo con el enlace que abrió la aplicación, si es que
+  // alguno la abrió. Null es el caso normal: se entró tocando el ícono.
+  const [enlace, setEnlace] = useState<
+    { paso: "clave" } | { paso: "problema"; mensaje: string } | null
+  >(null);
   // Quién eres sale de la base cuando hay servidor, y del perfil elegido
   // cuando no. La app no distingue: solo mira el rol.
   const { yo, listo: sePudoAveriguar } = usarQuienSoy();
@@ -134,11 +143,51 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // El enlace de «olvidé mi clave».
+  //
+  // Llega de dos formas y hay que atender las dos: si la aplicación estaba
+  // cerrada, el sistema la abre con la dirección adentro; si estaba abierta en
+  // segundo plano, llega como un aviso. Atender solo la segunda es el error
+  // fácil, y deja al que abre el correo con la app cerrada —o sea, a casi
+  // todos— mirando la portada sin entender por qué no pasó nada.
+  useEffect(() => {
+    if (MODO_DEMO) return;
+    let vivo = true;
+
+    async function atender(url: string | null) {
+      const leido = leerEnlace(url);
+      if (leido.tipo === "otro") return;
+      if (leido.tipo === "problema") { if (vivo) setEnlace({ paso: "problema", mensaje: leido.mensaje }); return; }
+
+      const problema = await abrirConEnlace(leido.acceso, leido.refresco);
+      if (!vivo) return;
+      setEnlace(problema ? { paso: "problema", mensaje: problema } : { paso: "clave" });
+    }
+
+    void Linking.getInitialURL().then(atender);
+    const sub = Linking.addEventListener("url", ({ url }) => void atender(url));
+    return () => { vivo = false; sub.remove(); };
+  }, []);
+
   if (!listo || !sePudoAveriguar) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.fondo }}>
         <ActivityIndicator color={color.marca} />
       </View>
+    );
+  }
+
+  // Por encima de todo: quien viene del correo va a cambiar su clave, y
+  // dejarlo caer en la aplicación normal —la sesión ya está abierta— sería
+  // justo no hacer aquello para lo que pidió el enlace.
+  if (enlace) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        {enlace.paso === "clave"
+          ? <ClaveNueva listo={() => setEnlace(null)} />
+          : <EnlaceInservible mensaje={enlace.mensaje} listo={() => setEnlace(null)} />}
+      </SafeAreaProvider>
     );
   }
 

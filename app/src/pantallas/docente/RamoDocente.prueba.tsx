@@ -44,6 +44,7 @@ jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
 
 import * as consultas from "../../lib/consultas.ts";
 import RamoDocente from "./RamoDocente.tsx";
+import { semanasDelMes } from "../../dominio/planificacion.ts";
 
 const mock = consultas as jest.Mocked<typeof consultas>;
 // Las consultas del docente salen de la misma fachada que las del alumno.
@@ -349,11 +350,18 @@ describe("el plan del mes", () => {
 
   test("con plan guardado ya no ofrece la propuesta", async () => {
     conUnidades();
-    const lunes = (() => {
-      const d = new Date();
-      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    })();
+    // El lunes de la primera semana del mes que la pantalla está mostrando.
+    //
+    // Antes esto era «el lunes de esta semana», y fallaba los primeros días de
+    // cualquier mes que no empiece en lunes: hoy es martes 1 de septiembre, el
+    // lunes de esta semana cae en agosto, y una semana pertenece al mes de su
+    // lunes. El plan quedaba fuera del mes y la pantalla, con razón, no lo
+    // mostraba. La prueba tiene que preguntarle al dominio en qué semanas
+    // está parada la pantalla, no adivinarlas.
+    const hoy = new Date();
+    const primera = semanasDelMes(hoy.getFullYear(), hoy.getMonth())[0]!.empieza;
+    const lunes = `${primera.getFullYear()}-${String(primera.getMonth() + 1).padStart(2, "0")}`
+      + `-${String(primera.getDate()).padStart(2, "0")}`;
     mockD.planDe.mockResolvedValue([
       { id: "b1", semana: lunes, titulo: "Lo que yo decidí", detalle: "", modulo_id: null, orden: 1 },
     ] as never);
