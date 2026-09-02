@@ -28,3 +28,6 @@ datos/importado.sql
 
 # Lo deja Python al cargar `herramientas/auditar-paquete.py` como módulo.
 __pycache__/
+
+# Las capturas para la ficha de la tienda: se regeneran con npm run capturas.
+capturas/
