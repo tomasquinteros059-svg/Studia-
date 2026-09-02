@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Campo, Cargando, Error as ErrorUI } from "../ui/componentes.tsx";
+import { ReportarIA } from "../ui/ReportarIA.tsx";
 import {
   FILETE, color, colorDeRamo, espacio, inicialesDeRamo, letra, radio, sombra, tipo,
 } from "../ui/tema.ts";
@@ -178,6 +179,12 @@ export default function Tutor({ route }: Props) {
               <View key={i} style={[e.burbuja, b.rol === "estudiante" ? e.mia : e.suya]}>
                 {b.rol === "tutor" ? <Text style={e.quien}>Tutor:</Text> : null}
                 <Text style={e.burbujaTexto}>{b.texto}</Text>
+                {/* La primera burbuja es la presentación que escribió quien
+                    dicta el ramo, no la escribió la IA: no hay nada que
+                    reportarle. */}
+                {b.rol === "tutor" && i > 0
+                  ? <ReportarIA origen="tutor" contenido={b.texto} />
+                  : null}
               </View>
             ))}
 

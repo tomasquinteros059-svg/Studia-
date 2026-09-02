@@ -49,6 +49,7 @@ export const ICONOS = {
   destacador: "brush-outline",
   deshacer: "arrow-undo-outline",
   aviso: "alert-circle-outline",
+  reportar: "flag-outline",
   anterior: "chevron-back",
   siguiente: "chevron-forward",
   abajo: "chevron-down",

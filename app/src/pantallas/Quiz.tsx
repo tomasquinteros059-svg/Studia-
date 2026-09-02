@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Boton, Cargando, Error as ErrorUI, Pantalla } from "../ui/componentes.tsx";
+import { ReportarIA } from "../ui/ReportarIA.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
   FILETE, cifras, color, colorDeRamo, espacio, letra, radio, sombra, tenue, tipo,
@@ -191,6 +192,21 @@ function Preguntando({
           <Boton texto={ultima ? "Ver cómo me fue" : "Siguiente"} onPress={seguir}
             deshabilitado={guardando} />
         </View>
+      ) : null}
+
+      {/* Recién cuando ya contestó: antes, la bandera al lado del enunciado
+          sería una distracción en medio de la pregunta. Va la pregunta entera
+          —enunciado, opciones y explicación— porque lo que puede estar mal es
+          cualquiera de las tres. */}
+      {contestada ? (
+        <ReportarIA
+          origen="quiz"
+          contenido={[
+            pregunta.pregunta,
+            ...pregunta.opciones.map((t, i) => `${LETRAS[i]}. ${t}`),
+            pregunta.explicacion,
+          ].join("\n")}
+        />
       ) : null}
     </View>
   );

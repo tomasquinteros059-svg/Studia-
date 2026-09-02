@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { Campo } from "../../ui/componentes.tsx";
 import { Icono } from "../../ui/Icono.tsx";
+import { ReportarIA } from "../../ui/ReportarIA.tsx";
 import { color, espacio, radio, tenue, tipo } from "../../ui/tema.ts";
 import {
   avanceDe, cursoDe, entregasDeVarias, evaluacionesDe, misAsignaturas, misTareas, notasDeVarias,
@@ -173,6 +174,11 @@ export default function Asistente({ route }: PropsPestanaDocente<"Asistente">) {
                 ))}
               </View>
             ) : null}
+            {/* Solo lo que contestó la IA. Ni las preguntas propias ni los
+                avisos de que algo falló. */}
+            {!b.mia && !b.falla
+              ? <ReportarIA origen="asistente" contenido={b.texto} />
+              : null}
           </View>
         ))}
 

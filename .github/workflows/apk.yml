@@ -42,6 +42,14 @@ jobs:
     env:
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      # La clave con que se sube a Google Play. Va acá arriba y no en el paso
+      # porque `secrets` no se puede mirar desde un `if:` y `env` sí, y el
+      # .aab solo tiene sentido armarlo cuando la clave está.
+      #   ANDROID_KEYSTORE_BASE64    el archivo .jks en base64
+      #   ANDROID_KEYSTORE_PASSWORD  la clave del archivo
+      #   ANDROID_KEY_ALIAS          el alias de la clave de adentro
+      #   ANDROID_KEY_PASSWORD       la clave de esa clave
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
     steps:
       # Con la profundidad de siempre —un solo commit— `git rev-list --count`
@@ -100,6 +108,14 @@ jobs:
         run: npx expo prebuild --platform android --no-install
         env:
           EXPO_NO_TELEMETRY: "1"
+
+      # El proyecto nativo se regenera acá en cada compilación, y sale firmando
+      # el release con el keystore de depuración. Para la tablet da lo mismo;
+      # Google Play lo rechaza. Esto deja la firma condicionada a que exista la
+      # clave de subida, y se cae si la plantilla de Expo cambió de forma —que
+      # es la manera en que esto se rompería sin que nadie lo note—.
+      - name: Preparar la firma de subida
+        run: node herramientas/firmar-android.mjs app/android/app/build.gradle
 
       # `assembleRelease` empaqueta el JavaScript adentro del APK. Un build de
       # depuración no sirve: esperaría un servidor de desarrollo en la red y
@@ -224,13 +240,70 @@ jobs:
           ./gradlew assembleRelease --no-daemon
           cp app/build/outputs/apk/release/*.apk "../../entrega/StudIA-universal-${{ steps.nombre.outputs.sufijo }}.apk"
 
+      # ── Google Play ─────────────────────────────────────────────────────
+      #
+      # Va después de los APK a propósito. Las propiedades de la firma se
+      # escriben recién acá, así que los tres APK de arriba salen con la clave
+      # de depuración: esa es la que permite instalarlos encima del que ya está
+      # en la tablet sin desinstalar nada. Si salieran firmados con la de
+      # subida, cada actualización obligaría a desinstalar primero.
+      #
+      # Play no acepta APK para una aplicación nueva: pide un .aab.
+      - name: Armar el .aab para Google Play
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        working-directory: app/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./limpiar.sh
+          # El archivo queda junto a build.gradle: `storeFile file(...)` resuelve
+          # desde ahí.
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/subida.keystore
+          # Por gradle.properties y no por -P: así las claves no quedan escritas
+          # en la línea de comando, que se ve entera en el registro.
+          {
+            echo "STUDIA_KEYSTORE=subida.keystore"
+            echo "STUDIA_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "STUDIA_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "STUDIA_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> gradle.properties
+          ./gradlew bundleRelease --no-daemon
+          cp app/build/outputs/bundle/release/*.aab \
+            "../../entrega/StudIA-${{ steps.nombre.outputs.sufijo }}.aab"
+
+      # Un .aab firmado con la clave equivocada se ve igual que uno bueno, y el
+      # error aparece recién al subirlo, con un mensaje que no dice que el
+      # problema sea la firma.
+      - name: Comprobar con qué clave quedó firmado
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        run: |
+          firma=$(keytool -printcert -jarfile entrega/*.aab 2>/dev/null | grep -m1 "Propietario\|Owner")
+          echo "$firma"
+          if echo "$firma" | grep -qi "Android Debug"; then
+            echo "::error::El .aab salió firmado con la clave de depuración. Play lo rechazaría."
+            exit 1
+          fi
+          if [ -z "$firma" ]; then
+            echo "::error::El .aab no trae firma."
+            exit 1
+          fi
+
+      - name: Sin clave de subida no hay .aab
+        if: env.ANDROID_KEYSTORE_BASE64 == ''
+        run: |
+          echo "::warning::Sin ANDROID_KEYSTORE_BASE64 no se arma el .aab. Los APK sirven para probar, no para publicar en Google Play."
+
       - name: Cuánto pesa cada uno
         run: ls -lh entrega/
 
       - uses: actions/upload-artifact@v4
         with:
           name: studia-apk
-          path: entrega/*.apk
+          path: |
+            entrega/*.apk
+            entrega/*.aab
           if-no-files-found: error
           retention-days: 30
 

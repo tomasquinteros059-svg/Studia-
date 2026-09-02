@@ -529,6 +529,33 @@ begin
   raise notice 'ok · el ayudante sí puede cargar material';
 end $$;
 
+-- ================== reportar una respuesta de la IA ==================
+-- Google Play exige que se pueda avisar desde adentro cuando la IA responde
+-- algo ofensivo. Lo que se comprueba acá es que ese aviso llegue y que no se
+-- convierta en una manera de leer lo que reportaron los demás.
+set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
+
+do $$
+begin
+  insert into public.reportes (persona_id, origen, contenido, motivo)
+  values (auth.uid(), 'tutor', 'una respuesta que no correspondía', 'ofensivo');
+  raise notice 'ok · el estudiante puede reportar una respuesta de la IA';
+end $$;
+
+do $$
+begin
+  insert into public.reportes (persona_id, origen, contenido, motivo)
+  values ('e0000000-0000-4000-8000-000000000002', 'tutor', 'a nombre de otro', 'falso');
+  raise exception 'FALLA · pude reportar a nombre de otra persona';
+exception when insufficient_privilege or check_violation then
+  raise notice 'ok · no se reporta a nombre de otro';
+end $$;
+
+-- Quien reporta no necesita volver a verlo; lo que necesita es que alguien lo
+-- mire. Y sobre todo no puede ver lo que reportaron los demás.
+select pg_temp.afirmar('un reporte no se lee de vuelta desde el aparato',
+  (select count(*) from public.reportes)::int, 0);
+
 -- ================== el estudiante sigue sin poder escribir ==================
 set pruebas.uid = 'e0000000-0000-4000-8000-000000000001';
 
@@ -573,6 +600,8 @@ select pg_temp.afirmar('la administración ve todas las asignaturas',
   (select count(*) from asignaturas)::int, 6);
 select pg_temp.afirmar('la administración saca la lista de un curso que no dicta',
   (select count(*) from public.alumnos_de(pg_temp.id_de('MAT1610')))::int, 2);
+select pg_temp.afirmar('la administración sí lee los reportes de la IA',
+  (select count(*) from public.reportes)::int, 1);
 select pg_temp.afirmar('la administración no ve apuntes de nadie',
   (select count(*) from apuntes)::int, 0);
 

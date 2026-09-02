@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Boton, Cargando, Copia, Error as ErrorUI, Pantalla } from "../ui/componentes.tsx";
+import { ReportarIA } from "../ui/ReportarIA.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import {
   FILETE, cifras, color, colorDeRamo, espacio, letra, radio, sombra, tipo,
@@ -156,6 +157,8 @@ function Tarjeta({
         <>
           <Text style={e.pregunta} numberOfLines={2}>{ficha.pregunta}</Text>
           <Text style={e.respuesta}>{ficha.respuesta}</Text>
+          <ReportarIA origen="fichas"
+            contenido={`${ficha.pregunta}\n\n${ficha.respuesta}`} />
           <View style={e.decidir}>
             <Pressable accessibilityRole="button"
               accessibilityLabel={`No la sabía: ${ficha.pregunta}`}

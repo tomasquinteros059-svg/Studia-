@@ -5,6 +5,7 @@ import {
   ScrollView, StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { Boton, Cargando, Error as ErrorUI } from "../ui/componentes.tsx";
+import { ReportarIA } from "../ui/ReportarIA.tsx";
 import { Icono } from "../ui/Icono.tsx";
 import { PanelTutor } from "../ui/PanelTutor.tsx";
 import { Pizarra } from "../ui/Pizarra.tsx";
@@ -351,6 +352,7 @@ export default function Apunte({ route, navigation }: PropsPila<"Apunte">) {
       <View>
         <Text style={tipo.etiqueta}>Resumen de la clase</Text>
         <Text style={e.resumenCuerpo}>{resumen.cuerpo}</Text>
+        <ReportarIA origen="resumen" contenido={resumen.cuerpo} />
         {!resumen.conTranscripcion ? (
           <Text style={e.avisoTranscripcion}>
             Hecho solo con tus apuntes y el temario del ramo. Cuando las clases
