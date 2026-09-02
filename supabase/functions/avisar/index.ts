@@ -14,10 +14,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 import { cabecerasCors, json } from "../_compartido/cors.ts";
+import { claveServicio, clavesDeServicio } from "../_compartido/entorno.ts";
 import { comoSuena, esHoraDecente, vibra, type TipoDeAviso } from "../_compartido/avisos-nucleo.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
-const CLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const CLAVE_SERVICIO = claveServicio();
 
 /** A dónde se le manda a Expo. No necesita credencial: el token la lleva. */
 const EXPO = "https://exp.host/--/api/v2/push/send";
@@ -57,7 +58,9 @@ Deno.serve(async (req: Request) => {
   // —los avisos van a sus dueños igual— pero adelanta lo que tenía que salir a
   // su hora, y marca como enviado lo que quizás no salió.
   const clave = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-  if (clave !== CLAVE_SERVICIO) {
+  // Contra todas las que el proyecto tenga puestas: quien llama pudo mandar la
+  // del formato viejo o la del nuevo, y las dos son igual de válidas.
+  if (!clavesDeServicio().includes(clave)) {
     return json({ error: "Esta función la llama la tarea programada." }, 403, origen);
   }
 

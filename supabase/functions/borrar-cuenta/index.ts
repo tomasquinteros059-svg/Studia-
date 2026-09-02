@@ -23,10 +23,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 import { cabecerasCors, json } from "../_compartido/cors.ts";
+import { claveAnon, claveServicio } from "../_compartido/entorno.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
-const CLAVE_ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
-const CLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const CLAVE_ANON = claveAnon();
+const CLAVE_SERVICIO = claveServicio();
 
 /**
  * Lo que hay que escribir para confirmar.

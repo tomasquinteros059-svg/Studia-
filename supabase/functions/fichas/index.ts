@@ -17,13 +17,14 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.120.0";
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 import { cabecerasCors, json } from "../_compartido/cors.ts";
+import { claveAnon, claveServicio } from "../_compartido/entorno.ts";
 import {
   CUANTAS_FICHAS, leerFichas, promptFichas, suficientesFichas,
 } from "../_compartido/quiz-nucleo.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
-const CLAVE_ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
-const CLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const CLAVE_ANON = claveAnon();
+const CLAVE_SERVICIO = claveServicio();
 
 const claude = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 const servicio = createClient(URL_SUPABASE, CLAVE_SERVICIO, { auth: { persistSession: false } });

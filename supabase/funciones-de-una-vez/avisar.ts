@@ -20,7 +20,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
-const CLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const CLAVE_SERVICIO = claveServicio();
 
 /** A dónde se le manda a Expo. No necesita credencial: el token la lleva. */
 const EXPO = "https://exp.host/--/api/v2/push/send";
@@ -60,7 +60,9 @@ Deno.serve(async (req: Request) => {
   // —los avisos van a sus dueños igual— pero adelanta lo que tenía que salir a
   // su hora, y marca como enviado lo que quizás no salió.
   const clave = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-  if (clave !== CLAVE_SERVICIO) {
+  // Contra todas las que el proyecto tenga puestas: quien llama pudo mandar la
+  // del formato viejo o la del nuevo, y las dos son igual de válidas.
+  if (!clavesDeServicio().includes(clave)) {
     return json({ error: "Esta función la llama la tarea programada." }, 403, origen);
   }
 
@@ -174,6 +176,52 @@ function json(cuerpo: unknown, estado: number, origen: string | null): Response 
     status: estado,
     headers: { ...cabecerasCors(origen), "Content-Type": "application/json; charset=utf-8" },
   });
+}
+
+// ── de _compartido/entorno.ts ──────────────────────────────────────────
+
+// De dónde salen las claves del propio proyecto.
+//
+// Supabase le pone estas variables a cada función; no se cargan a mano. El
+// problema es que hay dos generaciones de nombres conviviendo: los proyectos
+// viejos traen `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`, y los que se
+// crean con el formato nuevo de claves —`sb_publishable_…` y `sb_secret_…`—
+// pueden traerlas como `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`.
+//
+// Leer solo un par de nombres deja la función en pie pero muerta: arranca sin
+// quejarse, y cada consulta se cae con «Invalid API key» sin decir por qué.
+// Acá se aceptan los dos, que además es lo correcto mientras dure la
+// transición: un proyecto puede tener puestos los cuatro.
+
+/** El valor del primero de estos nombres que esté puesto y no venga vacío. */
+function delEntorno(...nombres: string[]): string {
+  for (const nombre of nombres) {
+    const valor = Deno.env.get(nombre)?.trim();
+    if (valor) return valor;
+  }
+  return "";
+}
+
+/** La clave pública, la que lleva la aplicación. */
+function claveAnon(): string {
+  return delEntorno("SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY");
+}
+
+/** La clave que se salta las políticas de acceso. No sale de acá adentro. */
+function claveServicio(): string {
+  return delEntorno("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY");
+}
+
+/**
+ * Todas las claves de servicio que el proyecto tenga puestas.
+ *
+ * Para comparar contra lo que llega en una cabecera: quien llama pudo mandar
+ * cualquiera de las dos, y son igual de válidas.
+ */
+function clavesDeServicio(): string[] {
+  return ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"]
+    .map((n) => Deno.env.get(n)?.trim())
+    .filter((v): v is string => Boolean(v));
 }
 
 // ── de _compartido/avisos-nucleo.ts ────────────────────────────────────

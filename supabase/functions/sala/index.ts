@@ -7,12 +7,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 import { cabecerasCors, json } from "../_compartido/cors.ts";
+import { claveAnon } from "../_compartido/entorno.ts";
 import {
   construirReclamos, firmarToken, nombreDeSala, type Papel,
 } from "../_compartido/sala-nucleo.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
-const CLAVE_ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+const CLAVE_ANON = claveAnon();
 const LIVEKIT_URL = Deno.env.get("LIVEKIT_URL") ?? "";
 const LIVEKIT_API_KEY = Deno.env.get("LIVEKIT_API_KEY") ?? "";
 const LIVEKIT_API_SECRET = Deno.env.get("LIVEKIT_API_SECRET") ?? "";
