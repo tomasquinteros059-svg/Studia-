@@ -77,6 +77,14 @@ jobs:
           # listado deja el APK incumpliendo una licencia sin que nada avise.
           npm run prueba:legales
           npm run prueba:licencias
+          # Que las funciones del servidor sean TypeScript válido, y que los
+          # dos archivos generados —las migraciones juntas y las funciones
+          # pegables— no hayan quedado atrás de lo que sí se editó. Son los
+          # que se copian a mano en el panel de Supabase: si quedan viejos,
+          # el servidor y el APK dejan de ser la misma versión y nada avisa.
+          npm run prueba:sintaxis
+          npm run prueba:migraciones-juntas
+          npm run prueba:funciones-juntas
 
       # Que el APK traiga de verdad lo que dice traer.
       #
