@@ -16,6 +16,7 @@ import {
 } from "./quiz-demo.ts";
 import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
 import type { Tramo } from "../dominio/escucha.ts";
+import type { QuienDicta } from "../dominio/horario.ts";
 import type {
   Apunte, ApunteEnLista, Asignatura, BloqueHorario, BloquePlan, TramoOido, Capitulo, Clase, EvaluacionConNota,
   Dictado, Hilo, Lectura, Material, MensajeTutor, Modulo, Notificacion, Perfil,
@@ -808,6 +809,23 @@ export {
   moduloParaMaterial,
 };
 
+/**
+ * Quién dicta cada ramo, sacado de los perfiles de ejemplo.
+ *
+ * Vive acá y no en la pantalla de administración: esa pantalla lo pedía
+ * directamente a los perfiles de ejemplo, así que con el servidor conectado
+ * revisaba el horario contra profesores inventados.
+ */
+export async function quienDicta(): Promise<QuienDicta[]> {
+  return PERFILES_DEMO
+    .filter((p) => p.rol === "profesor")
+    .flatMap((p) => p.dicta.map((id) => ({
+      quien: p.correo,
+      codigo: ASIGNATURAS.find((a) => a.id === id)?.codigo ?? id,
+      papel: p.papel ?? "profesor",
+    })));
+}
+
 // Si en `consultas-supabase.ts` aparece una consulta nueva, esto deja de
 // compilar hasta que exista también acá.
 const _cobertura: Omit<typeof Real, "default"> = {
@@ -816,6 +834,7 @@ const _cobertura: Omit<typeof Real, "default"> = {
   todasLasEvaluaciones, foroDe, respuestasDe, responderHilo, crearHilo,
   hiloPorId, companerosDe, miPerfil, cambiarNombre, misNotificaciones,
   marcarLeida, marcarTodasLeidas, mensajesDe, misApuntes, apuntePorId, misDictados,
+  quienDicta,
   crearApunte, guardarApunte, fijarApunte, borrarApunte, resumenDe,
   cursoDe, entregasDe, entregasDeVarias, notasDe, notasDeVarias,
   avanceDe, corregir, ponerNota, publicarNotas,

@@ -16,8 +16,15 @@ export type BloqueDeClase = {
   sala: string;
 };
 
-/** Quién dicta qué, para detectar a un profesor citado en dos partes. */
-export type QuienDicta = { correo: string; codigo: string; papel: string };
+/**
+ * Quién dicta qué, para detectar a un profesor citado en dos partes.
+ *
+ * `quien` es lo que se muestra en el aviso, y llega de dos lados distintos:
+ * de la planilla que se pega —donde el profesor viene identificado por su
+ * correo— y del servidor, donde llega su nombre. Se llama así y no `correo`
+ * porque la mitad de las veces no lo es.
+ */
+export type QuienDicta = { quien: string; codigo: string; papel: string };
 
 export type Choque = {
   tipo: "sala" | "docente";
@@ -50,7 +57,7 @@ export function choquesDeHorario(bloques: BloqueDeClase[], dictan: QuienDicta[])
   const profesoresDe = new Map<string, string[]>();
   for (const d of dictan) {
     if (d.papel !== "profesor") continue;
-    profesoresDe.set(d.codigo, [...(profesoresDe.get(d.codigo) ?? []), d.correo]);
+    profesoresDe.set(d.codigo, [...(profesoresDe.get(d.codigo) ?? []), d.quien]);
   }
 
   for (let i = 0; i < bloques.length; i++) {
@@ -69,11 +76,11 @@ export function choquesDeHorario(bloques: BloqueDeClase[], dictan: QuienDicta[])
       }
 
       const suyos = profesoresDe.get(b.codigo) ?? [];
-      for (const correo of profesoresDe.get(a.codigo) ?? []) {
-        if (!suyos.includes(correo)) continue;
+      for (const quien of profesoresDe.get(a.codigo) ?? []) {
+        if (!suyos.includes(quien)) continue;
         choques.push({
           tipo: "docente",
-          mensaje: `${correo} tiene ${a.codigo} y ${b.codigo} juntos el ${cuando}.`,
+          mensaje: `${quien} tiene ${a.codigo} y ${b.codigo} juntos el ${cuando}.`,
         });
       }
     }

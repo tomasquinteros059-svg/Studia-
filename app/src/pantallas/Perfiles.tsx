@@ -32,6 +32,10 @@ const iconoDe = (p: PerfilDemo) =>
   p.institucion ? ICONO[p.rol] : ("tutor" as const);
 
 /**
+ * SOLO EN DEMOSTRACIÓN. Esta pantalla la monta `Entrada.tsx` únicamente
+ * cuando no hay servidor configurado; con Supabase conectado se entra por
+ * `Sesion.tsx` y nada de lo de acá se carga.
+ *
  * La puerta cuando no hay servidor: el correo primero, siempre.
  *
  * Con Supabase conectado esta pantalla no aparece y quién eres lo decide el

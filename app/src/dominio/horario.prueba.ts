@@ -44,8 +44,8 @@ test("salas distintas a la misma hora no chocan", () => {
 test("un profesor citado en dos ramos a la vez", () => {
   const c = choquesDeHorario(
     [b({}), b({ codigo: "MAT1203", sala: "B-104" })],
-    [{ correo: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
-     { correo: "ana@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
+    [{ quien: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
+     { quien: "ana@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
   );
   assert.equal(c.length, 1);
   assert.equal(c[0]!.tipo, "docente");
@@ -55,8 +55,8 @@ test("un profesor citado en dos ramos a la vez", () => {
 test("profesores distintos en cada ramo no chocan", () => {
   const c = choquesDeHorario(
     [b({}), b({ codigo: "MAT1203", sala: "B-104" })],
-    [{ correo: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
-     { correo: "otro@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
+    [{ quien: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
+     { quien: "otro@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
   );
   assert.deepEqual(c, []);
 });
@@ -64,8 +64,8 @@ test("profesores distintos en cada ramo no chocan", () => {
 test("un ayudante repetido no se reporta como choque de profesor", () => {
   const c = choquesDeHorario(
     [b({}), b({ codigo: "MAT1203", sala: "B-104" })],
-    [{ correo: "ana@colegio.cl", codigo: "MAT1610", papel: "ayudante" },
-     { correo: "ana@colegio.cl", codigo: "MAT1203", papel: "ayudante" }],
+    [{ quien: "ana@colegio.cl", codigo: "MAT1610", papel: "ayudante" },
+     { quien: "ana@colegio.cl", codigo: "MAT1203", papel: "ayudante" }],
   );
   assert.deepEqual(c, []);
 });
@@ -73,8 +73,8 @@ test("un ayudante repetido no se reporta como choque de profesor", () => {
 test("sala y profesor chocando a la vez dan dos avisos distintos", () => {
   const c = choquesDeHorario(
     [b({}), b({ codigo: "MAT1203" })],
-    [{ correo: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
-     { correo: "ana@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
+    [{ quien: "ana@colegio.cl", codigo: "MAT1610", papel: "profesor" },
+     { quien: "ana@colegio.cl", codigo: "MAT1203", papel: "profesor" }],
   );
   assert.deepEqual(c.map((x) => x.tipo).sort(), ["docente", "sala"]);
 });

@@ -28,6 +28,8 @@ export const hiloPorId = fuente.hiloPorId;
 export const companerosDe = fuente.companerosDe;
 export const miPerfil = fuente.miPerfil;
 export const misDictados = fuente.misDictados;
+/* Quién dicta cada ramo del colegio: lo mira la administración. */
+export const quienDicta = fuente.quienDicta;
 export const cambiarNombre = fuente.cambiarNombre;
 export const misNotificaciones = fuente.misNotificaciones;
 export const marcarLeida = fuente.marcarLeida;

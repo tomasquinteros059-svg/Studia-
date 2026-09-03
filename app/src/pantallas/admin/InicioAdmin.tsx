@@ -7,15 +7,14 @@ import {
   tenue, tipo,
 } from "../../ui/tema.ts";
 import {
-  cambiarRol, cargarCatalogo, cursoDe, miHorario, misAsignaturas, registros,
+  cambiarRol, cargarCatalogo, cursoDe, miHorario, misAsignaturas, quienDicta, registros,
 } from "../../lib/consultas.ts";
 import { NOMBRE_DEL_ROL, buscar, cuentaPorRol } from "../../dominio/personas.ts";
 import type { Registro as RegistroDePersona } from "../../lib/tipos.ts";
 import CargarCatalogo from "./CargarCatalogo.tsx";
-import { PERFILES_DEMO } from "../../lib/perfiles-demo.ts";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import {
-  choquesDeHorario, porHora, type BloqueDeClase, type QuienDicta,
+  choquesDeHorario, porHora, type BloqueDeClase,
 } from "../../dominio/horario.ts";
 import { comoSeDice } from "../../dominio/fallas.ts";
 
@@ -33,12 +32,12 @@ export default function InicioAdmin() {
   const [cargandoCatalogo, setCargando] = useState(false);
 
   const traer = useCallback(async () => {
-    const [asignaturas, horario, registro] = await Promise.all([
-      misAsignaturas(), miHorario(), registros(),
+    const [asignaturas, horario, registro, dictados] = await Promise.all([
+      misAsignaturas(), miHorario(), registros(), quienDicta(),
     ]);
     const cursos = await Promise.all(asignaturas.map((a) => cursoDe(a.id)));
     return {
-      asignaturas, horario, registro,
+      asignaturas, horario, registro, dictados,
       inscritos: cursos.reduce((n, c) => n + c.length, 0),
     };
   }, []);
@@ -62,14 +61,11 @@ export default function InicioAdmin() {
     fin: enMinutos(b.hora_fin),
     sala: b.sala,
   }));
-  const dictados: QuienDicta[] = PERFILES_DEMO
-    .filter((p) => p.rol === "profesor")
-    .flatMap((p) => p.dicta.map((id) => ({
-      correo: p.correo,
-      codigo: porId.get(id) ?? id,
-      papel: p.papel ?? "profesor",
-    })));
-  const problemas = choquesDeHorario(bloques, dictados);
+  // Quién dicta cada ramo sale del servidor. Durante un tiempo salió de los
+  // perfiles de ejemplo: con el servidor conectado, esta revisión se hacía
+  // contra profesores inventados y salía siempre limpia, y no porque el
+  // horario estuviera bien.
+  const problemas = choquesDeHorario(bloques, datos.dictados);
 
   return (
     <View style={{ flex: 1, backgroundColor: color.fondo }}>

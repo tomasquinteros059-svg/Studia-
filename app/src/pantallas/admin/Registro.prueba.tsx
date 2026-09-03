@@ -8,6 +8,7 @@ jest.mock("../../lib/consultas.ts", () => ({
   cursoDe: jest.fn(),
   cargarCatalogo: jest.fn(),
   registros: jest.fn(),
+  quienDicta: jest.fn(),
   cambiarRol: jest.fn(),
 }));
 
@@ -25,6 +26,7 @@ const GENTE = [
 const abrirRegistro = async (gente = GENTE) => {
   mock.misAsignaturas.mockResolvedValue([] as never);
   mock.miHorario.mockResolvedValue([] as never);
+  mock.quienDicta.mockResolvedValue([] as never);
   mock.cursoDe.mockResolvedValue([] as never);
   mock.registros.mockResolvedValue(gente as never);
   mock.cambiarRol.mockResolvedValue(undefined as never);

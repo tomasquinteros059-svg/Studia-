@@ -329,7 +329,7 @@ export function revisar(p: Planillas): { colegio: Colegio; problemas: Problema[]
   // cargado. Vive en el dominio de la app para que no haya dos copias.
   for (const c of choquesDeHorario(
     horario.map((x) => ({ codigo: x.codigo, dia: x.dia, inicio: x.inicio, fin: x.fin, sala: x.sala })),
-    dictados.map((d) => ({ correo: d.correo, codigo: d.codigo, papel: d.papel })),
+    dictados.map((d) => ({ quien: d.correo, codigo: d.codigo, papel: d.papel })),
   )) {
     b.problemas.push({ archivo: "horario.csv", linea: 0, mensaje: c.mensaje });
   }

@@ -18,6 +18,7 @@ import type { Tramo } from "../dominio/escucha.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
 import { comoHora, type Colegio } from "../dominio/planilla.ts";
+import type { QuienDicta } from "../dominio/horario.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
   // El mensaje ya sale dicho en castellano y sin el detalle técnico. Pegar
@@ -362,6 +363,20 @@ export async function miPerfil(): Promise<Perfil> {
 }
 
 /** Qué dicta esta persona, y con qué papel. Vacío para un estudiante. */
+/**
+ * Quién dicta cada ramo del colegio. Para la administración y nadie más.
+ *
+ * Sale de una función y no de una consulta directa: hace falta el nombre de
+ * cada docente, y el nombre de otra persona no es legible desde el cliente.
+ * La función comprueba el rol adentro, así que llamarla sin él devuelve vacío
+ * en vez de fallar.
+ */
+export async function quienDicta(): Promise<QuienDicta[]> {
+  const { data, error } = await supabase.rpc("dictados_del_colegio");
+  reventar("No pude cargar quién dicta cada ramo", error);
+  return (data ?? []) as QuienDicta[];
+}
+
 export async function misDictados(): Promise<Dictado[]> {
   const { data: sesion } = await supabase.auth.getUser();
   if (!sesion.user) return [];

@@ -7,6 +7,7 @@ jest.mock("../../lib/consultas.ts", () => ({
   cursoDe: jest.fn(),
   cargarCatalogo: jest.fn(),
   registros: jest.fn(),
+  quienDicta: jest.fn(),
   cambiarRol: jest.fn(),
 }));
 
@@ -32,6 +33,7 @@ FIS1503,martes,14:00,16:00,Lab,Laboratorio`;
 const conDatos = () => {
   mock.misAsignaturas.mockResolvedValue([RAMO] as never);
   mock.miHorario.mockResolvedValue([] as never);
+  mock.quienDicta.mockResolvedValue([] as never);
   mock.cursoDe.mockResolvedValue([] as never);
   mock.cargarCatalogo.mockResolvedValue({ ramos: 2, bloques: 2 } as never);
   mock.registros.mockResolvedValue([] as never);

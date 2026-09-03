@@ -91,6 +91,8 @@ jobs:
           # que se copian a mano en el panel de Supabase: si quedan viejos,
           # el servidor y el APK dejan de ser la misma versión y nada avisa.
           npm run prueba:sintaxis
+          # Que ningún dato de ejemplo pueda llegar a un colegio de verdad.
+          npm run prueba:sin-ejemplos
           npm run prueba:migraciones-juntas
           npm run prueba:funciones-juntas
 

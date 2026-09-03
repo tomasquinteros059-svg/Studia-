@@ -529,6 +529,11 @@ begin
   raise notice 'ok · el ayudante sí puede cargar material';
 end $$;
 
+-- La función que usa el panel de administración no es una puerta trasera para
+-- leerse la nómina del colegio: comprueba el rol adentro y devuelve vacío.
+select pg_temp.afirmar('un estudiante no saca quién dicta cada ramo',
+  (select count(*) from public.dictados_del_colegio())::int, 0);
+
 -- ================== reportar una respuesta de la IA ==================
 -- Google Play exige que se pueda avisar desde adentro cuando la IA responde
 -- algo ofensivo. Lo que se comprueba acá es que ese aviso llegue y que no se
@@ -602,6 +607,13 @@ select pg_temp.afirmar('la administración saca la lista de un curso que no dict
   (select count(*) from public.alumnos_de(pg_temp.id_de('MAT1610')))::int, 2);
 select pg_temp.afirmar('la administración sí lee los reportes de la IA',
   (select count(*) from public.reportes)::int, 1);
+
+-- Quién dicta cada ramo, que es con lo que el panel revisa los choques de
+-- horario. Ana dicta dos ramos e Ignacio ayuda en uno: tres filas.
+select pg_temp.afirmar('la administración ve quién dicta cada ramo',
+  (select count(*) from public.dictados_del_colegio())::int, 3);
+select pg_temp.afirmar('y le llega el nombre, no solo el identificador',
+  (select count(*) from public.dictados_del_colegio() where quien is not null)::int, 3);
 select pg_temp.afirmar('la administración no ve apuntes de nadie',
   (select count(*) from apuntes)::int, 0);
 
