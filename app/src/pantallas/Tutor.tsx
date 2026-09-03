@@ -4,7 +4,7 @@ import {
   StyleSheet, Text, View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Campo, Cargando, Error as ErrorUI } from "../ui/componentes.tsx";
+import { Boton, Campo, Cargando, Error as ErrorUI } from "../ui/componentes.tsx";
 import { ReportarIA } from "../ui/ReportarIA.tsx";
 import {
   FILETE, color, colorDeRamo, espacio, inicialesDeRamo, letra, radio, sombra, tipo,
@@ -34,7 +34,7 @@ type Burbuja = { rol: "estudiante" | "tutor"; texto: string };
  * que se elige a la izquierda: el tutor toma su color, su material y su
  * pregunta de apertura.
  */
-export default function Tutor({ route }: Props) {
+export default function Tutor({ navigation, route }: Props) {
   const margenes = useSafeAreaInsets();
   const { ancho } = usarDisposicion();
   const [elegida, setElegida] = useState<Asignatura | null>(null);
@@ -115,6 +115,31 @@ export default function Tutor({ route }: Props) {
   const asignaturas = datos?.asignaturas ?? [];
   // Recién acá cabe la lista de ramos al lado sin apretar la conversación.
   const conColumna = ancho >= 980;
+
+  // El primer día no hay ningún ramo, y el tutor sin ramo no tiene de qué
+  // hablar: no sabe qué estás estudiando ni con qué material. Sin esto la
+  // pantalla quedaba con el sello «?», la conversación en blanco y un campo
+  // de texto que no llevaba a ninguna parte.
+  if (asignaturas.length === 0) {
+    return (
+      <View style={e.sinRamos}>
+        <View style={[e.selloVacio, { backgroundColor: color.marca }]}>
+          <Text style={e.selloTexto}>?</Text>
+        </View>
+        <Text style={e.tituloVacio}>El tutor necesita saber qué estás estudiando</Text>
+        <Text style={e.bajadaVacia}>
+          No da respuestas: te devuelve preguntas hasta que llegues tú. Para eso
+          tiene que conocer tu ramo y su material.
+        </Text>
+        <Boton texto="Empezar por un ramo" onPress={() => navigation.navigate("Inicio")} />
+        <Text style={e.notaVacia}>
+          En Inicio puedes pegar tu horario completo, crear un ramo o subir el
+          primer material. Con cualquiera de las tres, el tutor ya tiene de qué
+          hablar.
+        </Text>
+      </View>
+    );
+  }
 
   // Las sugerencias salen de lo que a esta persona le pasó en este ramo. Solo
   // se muestran mientras no haya conversación: una vez que se está hablando,
@@ -296,6 +321,18 @@ function ListaDeRamos({
 }
 
 const e = StyleSheet.create({
+  sinRamos: {
+    flex: 1, backgroundColor: color.fondo, alignItems: "center", justifyContent: "center",
+    gap: espacio.m, padding: espacio.l,
+  },
+  selloVacio: {
+    width: 54, height: 54, borderRadius: radio.tarjeta, borderWidth: FILETE,
+    borderColor: color.bordeFuerte, alignItems: "center", justifyContent: "center",
+  },
+  tituloVacio: { ...tipo.titulo, textAlign: "center" },
+  bajadaVacia: { ...tipo.cuerpo, color: color.textoSuave, textAlign: "center", maxWidth: 340 },
+  notaVacia: { ...tipo.detalle, color: color.textoSuave, textAlign: "center", maxWidth: 340 },
+
   pantalla: { flex: 1, backgroundColor: color.fondo },
   marco: { flex: 1 },
   marcoAncho: {

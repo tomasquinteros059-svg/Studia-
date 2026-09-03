@@ -27,6 +27,28 @@ export default function Notas({ navigation }: Props) {
     })),
   );
 
+  // Sin ningún ramo, la pantalla mostraba el promedio en blanco, la escala de
+  // 1,0 a 7,0 y una lista vacía. Explicar cómo se pondera antes de que exista
+  // una sola nota es hablarle a nadie.
+  if (datos.asignaturas.length === 0) {
+    return (
+      <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
+        <View style={e.sinRamos}>
+          <Text style={tipo.titulo}>Todavía no hay notas que promediar</Text>
+          <Text style={e.sinRamosBajada}>
+            Acá va a salir tu promedio ponderado por créditos, y el de cada
+            ramo, en cuanto tengas evaluaciones rendidas.
+          </Text>
+          <Text style={e.sinRamosNota}>
+            Si tu establecimiento usa StudIA, las notas las publica quien hace
+            la clase. Si llegaste por tu cuenta, empieza cargando tus ramos
+            desde Inicio.
+          </Text>
+        </View>
+      </Pantalla>
+    );
+  }
+
   return (
     <Pantalla alRefrescar={refrescar} refrescando={refrescando}>
       <View style={e.hero}>
@@ -66,6 +88,10 @@ export default function Notas({ navigation }: Props) {
 }
 
 const e = StyleSheet.create({
+  sinRamos: { padding: espacio.l, gap: espacio.s, alignItems: "flex-start" },
+  sinRamosBajada: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 22 },
+  sinRamosNota: { ...tipo.detalle, color: color.textoSuave, lineHeight: 20, marginTop: espacio.xs },
+
   hero: {
     alignItems: "center", paddingVertical: espacio.xl, gap: espacio.xs,
     backgroundColor: color.papel,
