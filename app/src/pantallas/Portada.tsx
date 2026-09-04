@@ -14,6 +14,7 @@ import { VistaLegal, TITULO_LEGAL, type Cual } from "./Legal.tsx";
 import { aviso } from "../dominio/legales.ts";
 import { PROVEEDORES, type Proveedor } from "../dominio/acceso-proveedores.ts";
 import { entrarCon } from "../lib/proveedores.ts";
+import { accionDelPlan, comoEstaElCobro, seMuestranPrecios } from "../dominio/tienda.ts";
 import {
   MONEDAS, PLANES, monedaDeIdioma, monedaPorCodigo, precioDe, referencia,
   type Moneda, type Plan,
@@ -754,8 +755,14 @@ function Precios({
     ).catch(() => { /* sin cliente de correo */ });
   };
 
+  // En el teléfono no se muestran precios mientras no se pueda cobrar ahí
+  // mismo: es la política de Play, y un catálogo de precios con un botón que
+  // manda a pagar por fuera es motivo de rechazo. En el navegador sí.
+  const conPrecios = seMuestranPrecios(Platform.OS);
+
   return (
     <>
+      {conPrecios ? (
       <View style={e.monedas}>
         <Text style={e.monedasEtiqueta}>Ver en</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -776,36 +783,42 @@ function Precios({
           })}
         </ScrollView>
       </View>
+      ) : null}
 
       <View style={[e.planes, media ? e.planesAnchos : null]}>
-        {PLANES.map((plan) => (
-          <Tarjeta key={plan.id} plan={plan} moneda={moneda}
-            anchura={ancha ? "tercio" : media ? "mitad" : "entera"}
-            elegir={plan.id === "institucion" ? escribir : entrar} />
-        ))}
+        {PLANES.map((plan) => {
+          const accion = accionDelPlan(plan.id, Platform.OS);
+          return (
+            <Tarjeta key={plan.id} plan={plan} moneda={moneda}
+              conPrecio={conPrecios}
+              anchura={ancha ? "tercio" : media ? "mitad" : "entera"}
+              accion={accion}
+              elegir={accion?.tipo === "escribir" ? escribir : entrar} />
+          );
+        })}
       </View>
 
-      {/* Mientras no haya cobro conectado, decirlo. Una tabla de precios con
-          un botón que en realidad no cobra nada es la clase de cosa que se
-          descubre después y hace desconfiar de todo lo demás. Es una línea, y
-          se saca el día que exista la pasarela. */}
-      <Text style={e.aunNoSeCobra}>
-        Todavía no hay cobro conectado: por ahora las cuentas entran con todo
-        abierto. Cuando lo haya, esto lo va a decir antes de pedirte nada.
-      </Text>
+      {/* Qué pasa con el cobro, dicho antes de que alguien pregunte. Una
+          tabla de precios con un botón que en realidad no cobra nada es la
+          clase de cosa que se descubre después y hace desconfiar de todo lo
+          demás. */}
+      <Text style={e.aunNoSeCobra}>{comoEstaElCobro(Platform.OS)}</Text>
     </>
   );
 }
 
 function Tarjeta({
-  plan, moneda, anchura, elegir,
+  plan, moneda, anchura, accion, conPrecio, elegir,
 }: {
   plan: Plan;
   moneda: Moneda;
   anchura: Anchura;
+  /** Null cuando ese plan no lleva botón: ofrecer lo que no se puede cumplir. */
+  accion: { texto: string; tipo: "entrar" | "escribir" } | null;
+  conPrecio: boolean;
   elegir: () => void;
 }) {
-  const nota = plan.precio === "personal" ? referencia(moneda) : null;
+  const nota = conPrecio && plan.precio === "personal" ? referencia(moneda) : null;
 
   return (
     <View style={[
@@ -822,13 +835,15 @@ function Tarjeta({
       <Text style={e.planNombre}>{plan.nombre}</Text>
       <Text style={e.planPara}>{plan.para}</Text>
 
-      <View style={e.precioCaja}>
-        <Text style={[e.precio, plan.precio === null ? e.precioConversado : null]}>
-          {precioDe(plan, moneda)}
-        </Text>
-        <Text style={e.periodo}>{plan.periodo}</Text>
-        {nota ? <Text style={e.equivale}>{nota}</Text> : null}
-      </View>
+      {conPrecio || plan.precio === null ? (
+        <View style={e.precioCaja}>
+          <Text style={[e.precio, plan.precio === null ? e.precioConversado : null]}>
+            {precioDe(plan, moneda)}
+          </Text>
+          <Text style={e.periodo}>{plan.periodo}</Text>
+          {nota ? <Text style={e.equivale}>{nota}</Text> : null}
+        </View>
+      ) : null}
 
       <View style={e.incluye}>
         {plan.incluye.map((x) => (
@@ -841,8 +856,10 @@ function Tarjeta({
         ))}
       </View>
 
-      <BotonDuro texto={plan.accion} onPress={elegir}
-        tono={plan.destacado ? "azul" : "papel"} ancho />
+      {accion ? (
+        <BotonDuro texto={accion.texto} onPress={elegir}
+          tono={plan.destacado ? "azul" : "papel"} ancho />
+      ) : null}
     </View>
   );
 }

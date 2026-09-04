@@ -64,6 +64,8 @@ export const crearModulo = fuente.crearModulo;
 export const cargarCatalogo = fuente.cargarCatalogo;
 export const registros = fuente.registros;
 export const cambiarRol = fuente.cambiarRol;
+/* El plan de una persona: el camino de las instituciones, por contrato. */
+export const cambiarPlan = fuente.cambiarPlan;
 export const moduloParaMaterial = fuente.moduloParaMaterial;
 export const crearMaterial = fuente.crearMaterial;
 

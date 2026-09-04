@@ -54,6 +54,8 @@ export type Registro = {
   nombre: string;
   correo: string;
   rol: Rol;
+  /** En qué plan está. Lo mira la administración para saber a quién le toca qué. */
+  plan: Plan;
   creado_en: string;
 };
 

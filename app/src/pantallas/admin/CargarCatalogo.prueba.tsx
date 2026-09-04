@@ -9,6 +9,7 @@ jest.mock("../../lib/consultas.ts", () => ({
   registros: jest.fn(),
   quienDicta: jest.fn(),
   cambiarRol: jest.fn(),
+  cambiarPlan: jest.fn(),
 }));
 
 import * as consultas from "../../lib/consultas.ts";

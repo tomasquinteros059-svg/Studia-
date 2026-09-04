@@ -10,6 +10,7 @@ jest.mock("../../lib/consultas.ts", () => ({
   registros: jest.fn(),
   quienDicta: jest.fn(),
   cambiarRol: jest.fn(),
+  cambiarPlan: jest.fn(),
 }));
 
 import * as consultas from "../../lib/consultas.ts";
@@ -18,9 +19,9 @@ import InicioAdmin from "./InicioAdmin.tsx";
 const mock = consultas as jest.Mocked<typeof consultas>;
 
 const GENTE = [
-  { id: "p-1", nombre: "José Pérez", correo: "jose@colegio.cl", rol: "estudiante", creado_en: "2026-03-04T10:00:00Z" },
-  { id: "p-2", nombre: "Ana Ríos", correo: "ana@colegio.cl", rol: "profesor", creado_en: "2026-03-01T10:00:00Z" },
-  { id: "p-3", nombre: "Secretaría", correo: "secre@colegio.cl", rol: "administrador", creado_en: "2026-02-20T10:00:00Z" },
+  { id: "p-1", nombre: "José Pérez", correo: "jose@colegio.cl", rol: "estudiante", plan: "gratis", creado_en: "2026-03-04T10:00:00Z" },
+  { id: "p-2", nombre: "Ana Ríos", correo: "ana@colegio.cl", rol: "profesor", plan: "gratis", creado_en: "2026-03-01T10:00:00Z" },
+  { id: "p-3", nombre: "Secretaría", correo: "secre@colegio.cl", rol: "administrador", plan: "gratis", creado_en: "2026-02-20T10:00:00Z" },
 ];
 
 const abrirRegistro = async (gente = GENTE) => {
@@ -112,5 +113,59 @@ describe("el registro de personas", () => {
   test("sin registro que mostrar se explica por qué, en vez de una lista vacía", async () => {
     const t = await abrirRegistro([]);
     expect(t.getByText(/solo lo ve quien administra/)).toBeTruthy();
+  });
+});
+
+// ── El plan, que es el camino de las instituciones ──────────────────────
+//
+// StudIA se cobra de dos maneras y ninguna pasa por una pasarela propia. A las
+// personas, por Google Play. A las instituciones, por contrato: se conversa,
+// se factura y se firma afuera, y alguien de la administración deja acá el
+// plan que se acordó. Sin esta pantalla, ese camino no existía.
+
+describe("el plan de cada persona", () => {
+  test("se ve en qué plan está cada quien", async () => {
+    const t = await abrirRegistro([
+      { ...GENTE[0]!, plan: "institucion" },
+      { ...GENTE[1]!, plan: "gratis" },
+    ]);
+    expect(t.getByLabelText("Plan Institución para José Pérez")).toBeTruthy();
+    expect(t.getByLabelText("Plan Gratis para Ana Ríos")).toBeTruthy();
+  });
+
+  test("dejarle el plan de la institución a alguien lo manda al servidor", async () => {
+    mock.cambiarPlan.mockResolvedValue(undefined as never);
+    const t = await abrirRegistro();
+
+    await act(async () => {
+      fireEvent.press(t.getByLabelText("Plan Institución para José Pérez"));
+    });
+    expect(mock.cambiarPlan).toHaveBeenCalledWith("p-1", "institucion");
+  });
+
+  test("el plan que ya tiene no se puede volver a tocar", async () => {
+    const t = await abrirRegistro([{ ...GENTE[0]!, plan: "personal" }]);
+
+    await act(async () => {
+      fireEvent.press(t.getByLabelText("Plan Personal para José Pérez"));
+    });
+    expect(mock.cambiarPlan).not.toHaveBeenCalled();
+  });
+
+  test("si el servidor lo rechaza, se dice y no se calla", async () => {
+    const alerta = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    mock.cambiarPlan.mockRejectedValue(new Error("Solo la administración cambia el plan.") as never);
+    const t = await abrirRegistro();
+
+    await act(async () => {
+      fireEvent.press(t.getByLabelText("Plan Personal para José Pérez"));
+    });
+    expect(alerta).toHaveBeenCalledWith("No pude cambiar el plan", "Solo la administración cambia el plan.");
+    alerta.mockRestore();
+  });
+
+  test("se explica de dónde sale cada plan, para no bajárselo a quien pagó", async () => {
+    const t = await abrirRegistro();
+    expect(t.getByText(/lo pone el servidor solo, cuando Play avisa/)).toBeTruthy();
   });
 });

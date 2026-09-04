@@ -529,6 +529,17 @@ begin
   raise notice 'ok · el ayudante sí puede cargar material';
 end $$;
 
+-- El plan pagado no se lo pone uno mismo. La institución lo deja puesto desde
+-- la administración; el personal lo pone el servidor cuando Google Play avisa.
+do $$
+begin
+  perform public.cambiar_plan(auth.uid(), 'institucion');
+  raise exception 'FALLA · un estudiante se puso el plan de institución';
+exception when raise_exception then
+  if sqlerrm like 'FALLA%' then raise; end if;
+  raise notice 'ok · nadie se pone solo un plan pagado';
+end $$;
+
 -- La función que usa el panel de administración no es una puerta trasera para
 -- leerse la nómina del colegio: comprueba el rol adentro y devuelve vacío.
 select pg_temp.afirmar('un estudiante no saca quién dicta cada ramo',
@@ -610,6 +621,12 @@ select pg_temp.afirmar('la administración sí lee los reportes de la IA',
 
 -- Quién dicta cada ramo, que es con lo que el panel revisa los choques de
 -- horario. Ana dicta dos ramos e Ignacio ayuda en uno: tres filas.
+-- El registro trae el plan: es lo que la administración mira para saber a
+-- quién ya le corresponde lo que la institución contrató.
+select pg_temp.afirmar('el registro dice en qué plan está cada quien',
+  (select count(*) from public.registros() where plan is not null)::int,
+  (select count(*) from public.registros())::int);
+
 select pg_temp.afirmar('la administración ve quién dicta cada ramo',
   (select count(*) from public.dictados_del_colegio())::int, 3);
 select pg_temp.afirmar('y le llega el nombre, no solo el identificador',

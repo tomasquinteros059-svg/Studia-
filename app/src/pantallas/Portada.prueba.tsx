@@ -1,4 +1,5 @@
 import { act, fireEvent, render as renderCrudo, waitFor } from "@testing-library/react-native";
+import { Platform } from "react-native";
 import { ConMargenes } from "../../pruebas/dobles.tsx";
 import type { ReactElement } from "react";
 
@@ -14,7 +15,12 @@ const mock = proveedores as jest.Mocked<typeof proveedores>;
 const render = async (elemento: ReactElement) =>
   await renderCrudo(<ConMargenes>{elemento}</ConMargenes>);
 
+const dondeEstamos = Platform.OS;
+/** Para probar las dos caras: en el navegador hay precios, en el teléfono no. */
+const comoSiFuera = (donde: string) => { (Platform as { OS: string }).OS = donde; };
+
 beforeEach(() => jest.clearAllMocks());
+afterEach(() => comoSiFuera(dondeEstamos));
 
 describe("la portada", () => {
   test("cuenta qué es esto antes de pedir nada", async () => {
@@ -164,6 +170,7 @@ describe("la portada", () => {
   });
 
   test("cambiar de moneda cambia el precio y la línea de referencia", async () => {
+    comoSiFuera("web");
     const t = await render(<Portada entrar={jest.fn()} />);
 
     await act(async () => {
@@ -181,6 +188,7 @@ describe("la portada", () => {
   });
 
   test("los dos planes de persona llevan a la misma puerta", async () => {
+    comoSiFuera("web");
     const entrar = jest.fn();
     const t = await render(<Portada entrar={entrar} />);
 
@@ -190,8 +198,61 @@ describe("la portada", () => {
   });
 
   test("mientras no haya cobro, se dice; no se calla", async () => {
+    comoSiFuera("web");
     const t = await render(<Portada entrar={jest.fn()} />);
     expect(t.getByText(/Todavía no hay cobro conectado/)).toBeTruthy();
+  });
+
+  // ── En el teléfono, la política de Google Play ────────────────────────
+  //
+  // Una aplicación que vende contenido digital tiene que cobrarlo con el
+  // sistema de Play. Mostrar precios que llevan a pagar por fuera es motivo
+  // de rechazo, y después de suspensión.
+
+  test("en el teléfono no se muestra ningún precio", async () => {
+    comoSiFuera("android");
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    expect(t.queryByText("$14.990")).toBeNull();
+    expect(t.queryByText("US$16")).toBeNull();
+    expect(t.queryByText(/equivale a/)).toBeNull();
+    // Ni el selector de monedas, que existe solo para mirar precios.
+    expect(t.queryByLabelText("Ver los precios en Peso chileno")).toBeNull();
+  });
+
+  test("en el teléfono el plan Personal no ofrece un botón que no cobra", async () => {
+    comoSiFuera("android");
+    const t = await render(<Portada entrar={jest.fn()} />);
+
+    expect(t.queryByRole("button", { name: "Empezar con Personal" })).toBeNull();
+    // Pero el plan se sigue mostrando: lo que se saca es el precio y el
+    // botón, no lo que StudIA hace.
+    expect(t.getByText("Personal")).toBeTruthy();
+    expect(t.getByText("Ramos ilimitados")).toBeTruthy();
+  });
+
+  test("en el teléfono la cuenta gratis sí se puede crear", async () => {
+    comoSiFuera("android");
+    const entrar = jest.fn();
+    const t = await render(<Portada entrar={entrar} />);
+
+    await act(async () => {
+      fireEvent.press(t.getByRole("button", { name: "Crear cuenta gratis" }));
+    });
+    expect(entrar).toHaveBeenCalledTimes(1);
+  });
+
+  test("y el colegio puede escribir: un contrato no es una compra en la app", async () => {
+    comoSiFuera("android");
+    const t = await render(<Portada entrar={jest.fn()} />);
+    expect(t.getByRole("button", { name: "Escríbenos" })).toBeTruthy();
+    expect(t.getByText("Conversemos")).toBeTruthy();
+  });
+
+  test("en el teléfono se dice que el Personal todavía no se contrata acá", async () => {
+    comoSiFuera("android");
+    const t = await render(<Portada entrar={jest.fn()} />);
+    expect(t.getByText(/todavía no se puede contratar desde la aplicación/)).toBeTruthy();
   });
 
   test("dice qué se acepta al entrar, y el texto se puede leer ahí mismo", async () => {

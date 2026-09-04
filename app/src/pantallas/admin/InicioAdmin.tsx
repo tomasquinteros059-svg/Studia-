@@ -7,16 +7,24 @@ import {
   tenue, tipo,
 } from "../../ui/tema.ts";
 import {
-  cambiarRol, cargarCatalogo, cursoDe, miHorario, misAsignaturas, quienDicta, registros,
+  cambiarPlan, cambiarRol, cargarCatalogo, cursoDe, miHorario, misAsignaturas,
+  quienDicta, registros,
 } from "../../lib/consultas.ts";
 import { NOMBRE_DEL_ROL, buscar, cuentaPorRol } from "../../dominio/personas.ts";
-import type { Registro as RegistroDePersona } from "../../lib/tipos.ts";
+import type { Plan, Registro as RegistroDePersona } from "../../lib/tipos.ts";
 import CargarCatalogo from "./CargarCatalogo.tsx";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import {
   choquesDeHorario, porHora, type BloqueDeClase,
 } from "../../dominio/horario.ts";
 import { comoSeDice } from "../../dominio/fallas.ts";
+
+const PLANES_POSIBLES: Plan[] = ["gratis", "personal", "institucion"];
+const NOMBRE_DEL_PLAN: Record<Plan, string> = {
+  gratis: "Gratis",
+  personal: "Personal",
+  institucion: "Institución",
+};
 
 const SECCIONES = ["Ramos", "Horario", "Personas"] as const;
 type Seccion = (typeof SECCIONES)[number];
@@ -202,6 +210,18 @@ function Registro({
     }
   };
 
+  const ponerPlan = async (persona: RegistroDePersona, plan: Plan) => {
+    setCambiando(persona.id);
+    try {
+      await cambiarPlan(persona.id, plan);
+      recargar();
+    } catch (err) {
+      Alert.alert("No pude cambiar el plan", comoSeDice(err));
+    } finally {
+      setCambiando(null);
+    }
+  };
+
   if (gente.length === 0) {
     return (
       <Text style={e.pie}>
@@ -234,26 +254,53 @@ function Registro({
           titulo={p.nombre}
           detalle={`${p.correo} · desde ${fechaCorta(p.creado_en)}`}
           derecha={
-            <View style={e.roles}>
-              {ROLES.map((rol) => {
-                const suyo = p.rol === rol;
-                return (
-                  <Pressable key={rol} accessibilityRole="button"
-                    accessibilityState={{ selected: suyo }}
-                    accessibilityLabel={`${NOMBRE_DEL_ROL[rol]} para ${p.nombre}`}
-                    disabled={suyo || cambiando !== null}
-                    onPress={() => void cambiar(p, rol)}
-                    style={({ pressed }) => [
-                      e.rol, suyo ? e.rolSuyo : null,
-                      pressed && !suyo ? { backgroundColor: color.elemento } : null,
-                      cambiando === p.id ? { opacity: 0.5 } : null,
-                    ]}>
-                    <Text style={[e.rolTexto, suyo ? e.rolTextoSuyo : null]}>
-                      {NOMBRE_DEL_ROL[rol]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+            <View style={e.mandos}>
+              <View style={e.roles}>
+                {ROLES.map((rol) => {
+                  const suyo = p.rol === rol;
+                  return (
+                    <Pressable key={rol} accessibilityRole="button"
+                      accessibilityState={{ selected: suyo }}
+                      accessibilityLabel={`${NOMBRE_DEL_ROL[rol]} para ${p.nombre}`}
+                      disabled={suyo || cambiando !== null}
+                      onPress={() => void cambiar(p, rol)}
+                      style={({ pressed }) => [
+                        e.rol, suyo ? e.rolSuyo : null,
+                        pressed && !suyo ? { backgroundColor: color.elemento } : null,
+                        cambiando === p.id ? { opacity: 0.5 } : null,
+                      ]}>
+                      <Text style={[e.rolTexto, suyo ? e.rolTextoSuyo : null]}>
+                        {NOMBRE_DEL_ROL[rol]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* El plan. Es el camino de las instituciones: lo que se
+                  contrató se deja puesto acá. El de las personas lo pone
+                  Google Play, no esta pantalla. */}
+              <View style={e.roles}>
+                {PLANES_POSIBLES.map((plan) => {
+                  const suyo = p.plan === plan;
+                  return (
+                    <Pressable key={plan} accessibilityRole="button"
+                      accessibilityState={{ selected: suyo }}
+                      accessibilityLabel={`Plan ${NOMBRE_DEL_PLAN[plan]} para ${p.nombre}`}
+                      disabled={suyo || cambiando !== null}
+                      onPress={() => void ponerPlan(p, plan)}
+                      style={({ pressed }) => [
+                        e.rol, e.plan, suyo ? e.planSuyo : null,
+                        pressed && !suyo ? { backgroundColor: color.elemento } : null,
+                        cambiando === p.id ? { opacity: 0.5 } : null,
+                      ]}>
+                      <Text style={[e.rolTexto, suyo ? e.planTextoSuyo : null]}>
+                        {NOMBRE_DEL_PLAN[plan]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           }
         />
@@ -263,6 +310,11 @@ function Registro({
         Cambiar un rol cambia la aplicación que esa persona abre la próxima vez.
         Tu propio rol no se toca desde acá: pídeselo a otra persona de
         administración.
+        {"\n\n"}
+        El plan de una institución se deja puesto acá, según lo que se haya
+        contratado. El plan Personal de alguien que lo pagó por Google Play lo
+        pone el servidor solo, cuando Play avisa: no hace falta tocarlo, y
+        bajárselo desde acá no le devuelve el dinero.
       </Text>
     </>
   );
@@ -271,6 +323,11 @@ function Registro({
 const ROLES = ["estudiante", "profesor", "administrador"] as const;
 
 const e = StyleSheet.create({
+  mandos: { gap: 6, alignItems: "flex-end" },
+  plan: { borderStyle: "dashed" },
+  planSuyo: { backgroundColor: tenue(color.ok), borderColor: color.ok, borderStyle: "solid" },
+  planTextoSuyo: { color: color.ok, fontWeight: "600" },
+
   buscador: { paddingHorizontal: espacio.l, paddingTop: espacio.m, gap: espacio.s },
   roles: { flexDirection: "row", gap: 4 },
   rol: {

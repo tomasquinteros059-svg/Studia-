@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { revisarIngreso } from "../dominio/registro-demo.ts";
+import type { Plan } from "../dominio/planes.ts";
 
 export type RolDemo = "estudiante" | "profesor" | "administrador";
 
@@ -29,6 +30,11 @@ export type PerfilDemo = {
    * arme por su cuenta. Es el caso de quien baja la aplicación sin más.
    */
   institucion: boolean;
+  /**
+   * En qué plan está. Quien pertenece a una institución hereda el de ella;
+   * quien llega por su cuenta parte en gratis, como en el servidor.
+   */
+  plan: Plan;
   titulo: string;
   descripcion: string;
 };
@@ -41,6 +47,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     rol: "estudiante",
     dicta: [],
     institucion: true,
+    plan: "institucion",
     titulo: "Estudiante",
     descripcion:
       "Segundo año. Cursa seis ramos. Ve su horario, su material, sus tareas y sus notas, y tiene el tutor y el lector.",
@@ -53,6 +60,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     papel: "profesor",
     dicta: ["cal"],
     institucion: true,
+    plan: "institucion",
     titulo: "Profesora",
     descripcion:
       "Dicta Cálculo I. Carga material, publica tareas, corrige entregas y es la única que puede publicar notas.",
@@ -65,6 +73,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     papel: "ayudante",
     dicta: ["cal"],
     institucion: true,
+    plan: "institucion",
     titulo: "Ayudante",
     descripcion:
       "Ayuda en Cálculo I. Corrige, carga material y responde el foro. No puede publicar notas: eso es del profesor.",
@@ -76,6 +85,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     rol: "administrador",
     dicta: [],
     institucion: true,
+    plan: "institucion",
     titulo: "Administración",
     descripcion:
       "El colegio. Define qué ramos existen, quién los dicta, quién está inscrito y en qué sala y a qué hora.",
@@ -87,6 +97,7 @@ export const PERFILES_DEMO: PerfilDemo[] = [
     rol: "estudiante",
     dicta: [],
     institucion: false,
+    plan: "gratis",
     titulo: "Por tu cuenta",
     descripcion:
       "Bajó la aplicación sin institución. Empieza con todo vacío: arma sus propios ramos, carga sus textos y los escucha con el lector.",
@@ -164,6 +175,7 @@ export function registrarse(correo: string, nombre: string): PerfilDemo {
     rol: "estudiante",
     dicta: [],
     institucion: false,
+    plan: "gratis",
     titulo: "Por tu cuenta",
     descripcion: r.institucion
       ? `Entraste con tu correo de ${r.institucion}.`

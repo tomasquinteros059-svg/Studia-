@@ -13,7 +13,7 @@ import type { EntregaDeCurso, NotaDeCurso } from "../dominio/curso.ts";
 import type { AvanceDeAlumno } from "../dominio/asistente-demo.ts";
 import { codigoDe, introDe, normalizar } from "../dominio/ramo-propio.ts";
 import { comoFalla } from "../dominio/fallas.ts";
-import { planValido } from "../dominio/planes.ts";
+import { planValido, type Plan } from "../dominio/planes.ts";
 import type { Tramo } from "../dominio/escucha.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
@@ -762,6 +762,19 @@ export async function registros(): Promise<Registro[]> {
 export async function cambiarRol(personaId: string, rol: Registro["rol"]): Promise<void> {
   const { error } = await supabase.rpc("cambiar_rol", { p_persona: personaId, p_rol: rol });
   reventar("No pude cambiar el rol", error);
+}
+
+/**
+ * Deja a alguien en un plan. Solo la administración.
+ *
+ * Es el camino de las instituciones: el contrato se conversa, se factura y se
+ * firma afuera, y acá alguien deja puesto lo que se acordó. El camino de las
+ * personas es otro —Google Play cobra y avisa al servidor— y no pasa por
+ * esta función.
+ */
+export async function cambiarPlan(personaId: string, plan: Plan): Promise<void> {
+  const { error } = await supabase.rpc("cambiar_plan", { p_persona: personaId, p_plan: plan });
+  reventar("No pude cambiar el plan", error);
 }
 
 export async function crearRamoPropio(nombre: string, color: string): Promise<Asignatura> {

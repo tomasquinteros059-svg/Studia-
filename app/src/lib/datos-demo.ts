@@ -16,6 +16,7 @@ import {
 } from "./quiz-demo.ts";
 import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
 import type { Tramo } from "../dominio/escucha.ts";
+import type { Plan } from "../dominio/planes.ts";
 import type { QuienDicta } from "../dominio/horario.ts";
 import type {
   Apunte, ApunteEnLista, Asignatura, BloqueHorario, BloquePlan, TramoOido, Capitulo, Clase, EvaluacionConNota,
@@ -406,6 +407,7 @@ export async function registros(): Promise<Registro[]> {
     nombre: p.nombre,
     correo: p.correo,
     rol: p.rol,
+    plan: p.plan,
     // Escalonados, para que la lista se vea como una lista de verdad.
     creado_en: new Date(Date.now() - (i + 1) * 86_400_000 * 9).toISOString(),
   }));
@@ -826,6 +828,16 @@ export async function quienDicta(): Promise<QuienDicta[]> {
     })));
 }
 
+/** Igual que en el servidor: solo la administración, y no sobre sí misma. */
+export async function cambiarPlan(personaId: string, plan: Plan): Promise<void> {
+  await respirar();
+  const yo = perfilActual();
+  if (yo?.rol !== "administrador") throw new Error("Solo la administración cambia el plan.");
+  const persona = PERFILES_DEMO.find((p) => p.id === personaId);
+  if (!persona) throw new Error("Esa persona ya no está registrada.");
+  persona.plan = plan;
+}
+
 // Si en `consultas-supabase.ts` aparece una consulta nueva, esto deja de
 // compilar hasta que exista también acá.
 const _cobertura: Omit<typeof Real, "default"> = {
@@ -839,7 +851,7 @@ const _cobertura: Omit<typeof Real, "default"> = {
   cursoDe, entregasDe, entregasDeVarias, notasDe, notasDeVarias,
   avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
-  moduloParaMaterial, cargarCatalogo, registros, cambiarRol,
+  moduloParaMaterial, cargarCatalogo, registros, cambiarRol, cambiarPlan,
   misSesiones, crearSesion, marcarSesion, borrarSesion,
   crearEvaluacion, cambiarPeso,
   planDe, planificar, borrarDelPlan,
