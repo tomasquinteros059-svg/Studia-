@@ -20,7 +20,13 @@ end $$;
 insert into auth.users (id, email, raw_user_meta_data)
 values (:'SECRE', 'secretaria.academica@u.cl', '{"nombre":"Secretaría Académica"}'::jsonb)
 on conflict do nothing;
-update public.perfiles set rol = 'administrador' where id = :'SECRE';
+-- Con su institución puesta: la nómina es de una, y quien la carga tiene que
+-- pertenecer a ella. Un administrador suelto no carga nada, y eso se prueba
+-- en instituciones.sql.
+update public.perfiles
+   set rol = 'administrador',
+       institucion_id = 'c0000000-0000-4000-8000-000000000001'
+ where id = :'SECRE';
 
 -- ── Cargar la nómina ────────────────────────────────────────────────────
 

@@ -18,6 +18,7 @@ import type { Tramo } from "../dominio/escucha.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
 import { comoHora, type Colegio, type FilaDeNomina } from "../dominio/planilla.ts";
+import type { Contrato, PlanDeCupo } from "../dominio/instituciones.ts";
 import type { QuienDicta } from "../dominio/horario.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
@@ -783,14 +784,28 @@ export async function cambiarRol(personaId: string, rol: Registro["rol"]): Promi
 }
 
 /**
- * Deja a alguien en un plan. Solo la administración.
+ * El contrato de mi institución: cuántos cupos se firmaron y cuántos se usan.
  *
- * Es el camino de las instituciones: el contrato se conversa, se factura y se
- * firma afuera, y acá alguien deja puesto lo que se acordó. El camino de las
- * personas es otro —Google Play cobra y avisa al servidor— y no pasa por
- * esta función.
+ * Devuelve `null` para quien no administra ninguna —la función de la base
+ * comprueba las dos cosas adentro y no devuelve fila—, y esa es la respuesta
+ * correcta: la pantalla no tiene contrato que mostrar.
  */
-export async function cambiarPlan(personaId: string, plan: Plan): Promise<void> {
+export async function miInstitucion(): Promise<Contrato | null> {
+  const { data, error } = await supabase.rpc("mi_institucion_detalle");
+  reventar("No pude cargar el contrato de la institución", error);
+  const filas = (data ?? []) as Contrato[];
+  return filas[0] ?? null;
+}
+
+/**
+ * Da o quita el cupo de la institución a una persona de ella.
+ *
+ * Solo esos dos valores, y a propósito. El plan Personal viene de Google Play
+ * —Play cobra y avisa al servidor— y esta función no lo pone ni lo saca: la
+ * base rechaza las dos cosas. Los cupos tampoco son infinitos: si no queda
+ * ninguno del contrato, esto falla y el mensaje lo dice.
+ */
+export async function cambiarPlan(personaId: string, plan: PlanDeCupo): Promise<void> {
   const { error } = await supabase.rpc("cambiar_plan", { p_persona: personaId, p_plan: plan });
   reventar("No pude cambiar el plan", error);
 }

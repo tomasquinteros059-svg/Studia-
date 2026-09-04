@@ -17,6 +17,7 @@ import {
 import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
 import type { Tramo } from "../dominio/escucha.ts";
 import type { Plan } from "../dominio/planes.ts";
+import type { Contrato, PlanDeCupo } from "../dominio/instituciones.ts";
 import type { ResultadoNomina } from "./consultas-supabase.ts";
 import type { QuienDicta } from "../dominio/horario.ts";
 import type {
@@ -830,12 +831,44 @@ export async function quienDicta(): Promise<QuienDicta[]> {
 }
 
 /** Igual que en el servidor: solo la administración, y no sobre sí misma. */
-export async function cambiarPlan(personaId: string, plan: Plan): Promise<void> {
+/**
+ * El contrato, en la demostración.
+ *
+ * Los cupos ocupados se cuentan de los perfiles de ejemplo y no son un número
+ * escrito a mano: así, dar y quitar cupos en la demostración mueve la cuenta
+ * como la movería de verdad, y el encabezado del panel no miente.
+ */
+export async function miInstitucion(): Promise<Contrato | null> {
+  await respirar();
+  if (perfilActual()?.rol !== "administrador") return null;
+  return {
+    id: "institucion-demo",
+    nombre: "Colegio de demostración",
+    cupos: 8,
+    ocupados: PERFILES_DEMO.filter((p) => p.plan === "institucion").length,
+    esperando: 0,
+    vence_en: null,
+  };
+}
+
+/** El cupo de la institución, en la demostración. Con las mismas guardias. */
+export async function cambiarPlan(personaId: string, plan: PlanDeCupo): Promise<void> {
   await respirar();
   const yo = perfilActual();
   if (yo?.rol !== "administrador") throw new Error("Solo la administración cambia el plan.");
   const persona = PERFILES_DEMO.find((p) => p.id === personaId);
   if (!persona) throw new Error("Esa persona ya no está registrada.");
+  if (persona.plan === "personal") {
+    throw new Error(
+      "Esa persona paga su plan por Google Play. Quitárselo desde acá no le devuelve el dinero.",
+    );
+  }
+  const contrato = await miInstitucion();
+  if (plan === "institucion" && contrato && contrato.ocupados >= contrato.cupos) {
+    throw new Error(
+      "No quedan cupos en el contrato. Quítale el cupo a alguien que ya no esté, o amplía el contrato.",
+    );
+  }
   persona.plan = plan;
 }
 
@@ -868,6 +901,7 @@ const _cobertura: Omit<typeof Real, "default"> = {
   avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
   moduloParaMaterial, cargarCatalogo, cargarNomina, registros, cambiarRol, cambiarPlan,
+  miInstitucion,
   misSesiones, crearSesion, marcarSesion, borrarSesion,
   crearEvaluacion, cambiarPeso,
   planDe, planificar, borrarDelPlan,

@@ -21,11 +21,17 @@ import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
 const DOCS = "docs";
-// Dos recorridos. El de la tienda muestra la aplicación con datos, que es lo
+// Tres recorridos. El de la tienda muestra la aplicación con datos, que es lo
 // que hay que enseñar en Play. El de «desde cero» muestra lo que ve alguien
-// que acaba de crear su cuenta, que es lo que va a ver todo el que llegue.
+// que acaba de crear su cuenta, que es lo que va a ver todo el que llegue. El
+// del colegio muestra el panel de la administración de una institución: no va
+// a Play —no lo abre un alumno— pero es lo que se enseña en una reunión de
+// venta, y es la pantalla que más cambia cuando cambia el contrato.
 const DESDE_CERO = process.argv.includes("--desde-cero");
-const SALIDA = DESDE_CERO ? "capturas/desde-cero" : "capturas";
+const COLEGIO = process.argv.includes("--colegio");
+const SALIDA = DESDE_CERO ? "capturas/desde-cero"
+  : COLEGIO ? "capturas/colegio"
+  : "capturas";
 const CHROMIUM = process.env.CHROMIUM
   ?? ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
       "/usr/bin/chromium", "/usr/bin/chromium-browser",
@@ -144,6 +150,37 @@ if (DESDE_CERO) {
   servidor.close();
   console.log(`\n${hechas.length} capturas en ${SALIDA}/ · 1080×1920`);
   console.log("Es la aplicación recién creada: sin ramos, sin tareas, sin nada.");
+  process.exit(0);
+}
+
+if (COLEGIO) {
+  // La secretaría académica: la cuenta que administra la institución.
+  await tocarTexto("Entrar");
+  await escribirEn("Correo", "secretaria@studia.cl");
+  if (!await tocarEtiqueta("Entrar como Secretaría Académica")) {
+    console.error("No encontré el perfil de administración. ¿Cambió la pantalla de entrada?");
+    await nav.close(); servidor.close(); process.exit(1);
+  }
+  await esperar(2500);
+
+  // Ramos es la pestaña con la que abre; el encabezado con el contrato está
+  // arriba en las tres.
+  await foto("1-el-colegio");
+  for (const [pestana, archivo] of [["Horario", "2-horario"], ["Personas", "3-personas"]]) {
+    if (await tocarTexto(pestana)) { await esperar(1400); await foto(archivo); }
+  }
+
+  // Y la carga del semestre, que es por donde entra una institución nueva.
+  if (await tocarEtiqueta("Cargar el semestre")) {
+    await esperar(1200);
+    await foto("4-cargar-el-semestre");
+  }
+
+  await nav.close();
+  servidor.close();
+  console.log(`\n${hechas.length} capturas en ${SALIDA}/ · 1080×1920`);
+  console.log("Es el panel de la administración de una institución: sus ramos,");
+  console.log("su gente y su contrato. De otra institución no ve nada.");
   process.exit(0);
 }
 

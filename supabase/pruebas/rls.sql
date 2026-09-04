@@ -607,7 +607,12 @@ end $$;
 -- ======================== como la administración ========================
 -- La secretaría no dicta nada, y aun así tiene que poder contar el curso.
 reset role;
-update public.perfiles set rol = 'administrador'
+-- Y pertenece a la institución de la demostración: desde que las
+-- instituciones existen, un administrador suelto no administra nada. Es a
+-- propósito y se prueba más abajo.
+update public.perfiles
+   set rol = 'administrador',
+       institucion_id = 'c0000000-0000-4000-8000-000000000001'
  where id = 'e0000000-0000-4000-8000-000000000002';
 set role authenticated;
 set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
@@ -616,8 +621,12 @@ select pg_temp.afirmar('la administración ve todas las asignaturas',
   (select count(*) from asignaturas)::int, 6);
 select pg_temp.afirmar('la administración saca la lista de un curso que no dicta',
   (select count(*) from public.alumnos_de(pg_temp.id_de('MAT1610')))::int, 2);
-select pg_temp.afirmar('la administración sí lee los reportes de la IA',
-  (select count(*) from public.reportes)::int, 1);
+-- Los reportes de contenido de la IA dejaron de ser de la administración de
+-- una institución. Son del servicio entero y los revisa la operación de
+-- StudIA: una secretaría académica no puede ajustar el modelo, y en un
+-- reporte viaja lo que el alumno estaba conversando con el tutor.
+select pg_temp.afirmar('la administración ya no lee los reportes de la IA',
+  (select count(*) from public.reportes)::int, 0);
 
 -- Quién dicta cada ramo, que es con lo que el panel revisa los choques de
 -- horario. Ana dicta dos ramos e Ignacio ayuda en uno: tres filas.
@@ -885,10 +894,15 @@ set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
 select pg_temp.afirmar('por la tabla, la administración solo se ve a sí misma',
   (select count(*) from public.perfiles)::int, 1);
 
-select pg_temp.afirmar('por la función ve a las seis personas registradas',
-  (select count(*) from public.registros())::int, 6);
+-- Cuatro y no seis: son las de SU institución. Las otras dos cuentas de estas
+-- pruebas se crearon sueltas, sin pertenecer a ninguna, que es como entra
+-- cualquiera que se registre por su cuenta desde la tienda. Ver a esas
+-- personas —su nombre y su correo— es justo lo que una universidad no tiene
+-- por qué poder hacer.
+select pg_temp.afirmar('por la función ve a las cuatro personas de su institución',
+  (select count(*) from public.registros())::int, 4);
 select pg_temp.afirmar('y ve el correo, que es lo que identifica a cada una',
-  (select count(*) from public.registros() where correo like '%@%')::int, 6);
+  (select count(*) from public.registros() where correo like '%@%')::int, 4);
 
 -- ---------------------------------------------------------------- roles
 -- Un alumno no puede ascenderse, ni por la tabla ni por la función.
@@ -1372,12 +1386,34 @@ begin
   perform pg_temp.afirmar('no puedo anotar caídas a nombre de otro', paso, true);
 end $$;
 
--- La administración sí las lee: es para lo que están. Quien hace de
--- administración en estas pruebas es el segundo estudiante, al que más arriba
--- se le cambió el rol.
+-- Ni la administración de la institución las lee. Las caídas son del servicio
+-- entero, y la secretaría de una universidad no puede arreglar la aplicación.
 set pruebas.uid = 'e0000000-0000-4000-8000-000000000002';
-select pg_temp.afirmar('la administración las ve',
+select pg_temp.afirmar('la administración de un colegio tampoco las ve',
+  (select count(*) from public.errores)::int, 0);
+
+-- La operación de StudIA sí: es para lo que están. Es una marca aparte del
+-- rol, justamente porque quien opera el servicio también puede estar
+-- estudiando en alguna institución.
+reset role;
+insert into auth.users (id, email, raw_user_meta_data)
+values ('f0000000-0000-4000-8000-00000000000a', 'operacion@studia.cl',
+        '{"nombre":"Operación StudIA"}'::jsonb)
+on conflict do nothing;
+-- Sin sesión, que es como se corre la primera vez desde el editor SQL de
+-- Supabase: ahí `auth.uid()` viene nulo y quien escribe tiene la clave de
+-- servicio. Con sesión hay que ser operador, y eso se prueba enseguida.
+set pruebas.uid = '';
+select public.hacer_operador('operacion@studia.cl');
+
+set role authenticated;
+set pruebas.uid = 'f0000000-0000-4000-8000-00000000000a';
+select pg_temp.afirmar('la operación de StudIA las ve',
   (select count(*) from public.errores)::int, 1);
+select pg_temp.afirmar('y lee los reportes de contenido',
+  (select count(*) from public.reportes)::int, 1);
+select pg_temp.afirmar('sin ser administración de ninguna institución',
+  (select rol from public.perfiles where id = auth.uid()), 'estudiante');
 
 reset role;
 

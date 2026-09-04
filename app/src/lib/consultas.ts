@@ -66,7 +66,9 @@ export const cargarCatalogo = fuente.cargarCatalogo;
 export const cargarNomina = fuente.cargarNomina;
 export const registros = fuente.registros;
 export const cambiarRol = fuente.cambiarRol;
-/* El plan de una persona: el camino de las instituciones, por contrato. */
+/* El contrato de la institución: cuántos cupos se firmaron y cuántos se usan. */
+export const miInstitucion = fuente.miInstitucion;
+/* Dar o quitar uno de esos cupos. El plan Personal lo pone Google Play. */
 export const cambiarPlan = fuente.cambiarPlan;
 export const moduloParaMaterial = fuente.moduloParaMaterial;
 export const crearMaterial = fuente.crearMaterial;

@@ -40,6 +40,7 @@ correr "$DIR/supabase/pruebas/rls.sql"
 correr "$DIR/supabase/pruebas/lotes.sql"
 correr "$DIR/supabase/pruebas/almacen.sql"
 correr "$DIR/supabase/pruebas/matriculas.sql"
+correr "$DIR/supabase/pruebas/instituciones.sql"
 correr "$DIR/supabase/pruebas/borrado.sql"
 
 # Y con la base ya armada, cruzar contra ella cada consulta de la aplicación.

@@ -7,24 +7,21 @@ import {
   tenue, tipo,
 } from "../../ui/tema.ts";
 import {
-  cambiarPlan, cambiarRol, cargarCatalogo, cargarNomina, cursoDe, miHorario, misAsignaturas,
-  quienDicta, registros,
+  cambiarPlan, cambiarRol, cargarCatalogo, cargarNomina, cursoDe, miHorario, miInstitucion,
+  misAsignaturas, quienDicta, registros,
 } from "../../lib/consultas.ts";
 import { NOMBRE_DEL_ROL, buscar, cuentaPorRol } from "../../dominio/personas.ts";
-import type { Plan, Registro as RegistroDePersona } from "../../lib/tipos.ts";
+import {
+  comoVaElContrato, hayQueMirarElContrato, porQueNoHayCupo, sePuedeDarCupo,
+  sePuedeQuitarCupo, type Contrato,
+} from "../../dominio/instituciones.ts";
+import type { Registro as RegistroDePersona } from "../../lib/tipos.ts";
 import CargarCatalogo from "./CargarCatalogo.tsx";
 import { usarCarga } from "../../lib/usarCarga.ts";
 import {
   choquesDeHorario, porHora, type BloqueDeClase,
 } from "../../dominio/horario.ts";
 import { comoSeDice } from "../../dominio/fallas.ts";
-
-const PLANES_POSIBLES: Plan[] = ["gratis", "personal", "institucion"];
-const NOMBRE_DEL_PLAN: Record<Plan, string> = {
-  gratis: "Gratis",
-  personal: "Personal",
-  institucion: "Institución",
-};
 
 const SECCIONES = ["Ramos", "Horario", "Personas"] as const;
 type Seccion = (typeof SECCIONES)[number];
@@ -40,12 +37,12 @@ export default function InicioAdmin() {
   const [cargandoCatalogo, setCargando] = useState(false);
 
   const traer = useCallback(async () => {
-    const [asignaturas, horario, registro, dictados] = await Promise.all([
-      misAsignaturas(), miHorario(), registros(), quienDicta(),
+    const [asignaturas, horario, registro, dictados, contrato] = await Promise.all([
+      misAsignaturas(), miHorario(), registros(), quienDicta(), miInstitucion(),
     ]);
     const cursos = await Promise.all(asignaturas.map((a) => cursoDe(a.id)));
     return {
-      asignaturas, horario, registro, dictados,
+      asignaturas, horario, registro, dictados, contrato,
       inscritos: cursos.reduce((n, c) => n + c.length, 0),
     };
   }, []);
@@ -83,6 +80,17 @@ export default function InicioAdmin() {
           <Text style={tipo.detalle}>
             {datos.asignaturas.length} ramos · {datos.horario.length} bloques · {datos.inscritos} inscripciones
           </Text>
+          {/* El contrato en una línea. Lo primero que dice es lo que hay que
+              arreglar —cupos que faltan, contrato vencido— porque es lo único
+              sobre lo que se puede hacer algo hoy. */}
+          {datos.contrato ? (
+            <Text style={[
+              tipo.detalle,
+              hayQueMirarElContrato(datos.contrato) ? e.contratoUrgente : null,
+            ]}>
+              {comoVaElContrato(datos.contrato)}
+            </Text>
+          ) : null}
         </View>
         {/* Un semestre no se arma ramo por ramo: se pega la planilla. */}
         <Pressable accessibilityRole="button" accessibilityLabel="Cargar el semestre"
@@ -170,6 +178,7 @@ export default function InicioAdmin() {
         {seccion === "Personas" ? (
           <Registro
             gente={datos.registro}
+            contrato={datos.contrato}
             recargar={recargar}
           />
         ) : null}
@@ -187,9 +196,11 @@ export default function InicioAdmin() {
  * permiso para todo el mundo. Para cualquier otro rol esta lista llega vacía.
  */
 function Registro({
-  gente, recargar,
+  gente, contrato, recargar,
 }: {
   gente: RegistroDePersona[];
+  /** Nulo si esta cuenta no administra ninguna institución. */
+  contrato: Contrato | null;
   recargar: () => void;
 }) {
   const [texto, setTexto] = useState("");
@@ -213,13 +224,34 @@ function Registro({
     }
   };
 
-  const ponerPlan = async (persona: RegistroDePersona, plan: Plan) => {
+  /**
+   * Dar o quitar el cupo de la institución.
+   *
+   * El botón no se apaga cuando no se puede: se toca y se dice por qué. Un
+   * botón gris no explica si el contrato se venció, si se acabaron los cupos
+   * o si esa persona ya paga por Google Play, y las tres cosas se arreglan de
+   * maneras distintas. La base comprueba lo mismo; esto es para no llegar
+   * hasta allá para enterarse.
+   */
+  const moverCupo = async (persona: RegistroDePersona) => {
+    if (!contrato) return;
+    const dar = persona.plan !== "institucion";
+
+    if (dar && !sePuedeDarCupo(contrato, persona.plan)) {
+      Alert.alert("No pude dar el cupo", porQueNoHayCupo(contrato, persona.plan));
+      return;
+    }
+    if (!dar && !sePuedeQuitarCupo(persona.plan)) {
+      Alert.alert("No pude quitar el cupo", porQueNoHayCupo(contrato, persona.plan));
+      return;
+    }
+
     setCambiando(persona.id);
     try {
-      await cambiarPlan(persona.id, plan);
+      await cambiarPlan(persona.id, dar ? "institucion" : "gratis");
       recargar();
     } catch (err) {
-      Alert.alert("No pude cambiar el plan", comoSeDice(err));
+      Alert.alert("No pude cambiar el cupo", comoSeDice(err));
     } finally {
       setCambiando(null);
     }
@@ -252,72 +284,89 @@ function Registro({
       {vistos.length === 0 ? (
         <Text style={e.pie}>Nadie calza con «{texto.trim()}».</Text>
       ) : vistos.map((p) => (
-        <Fila key={p.id}
-          izquierda={<Icono nombre="persona" tono={color.textoSuave} />}
-          titulo={p.nombre}
-          detalle={`${p.correo} · desde ${fechaCorta(p.creado_en)}`}
-          derecha={
-            <View style={e.mandos}>
-              <View style={e.roles}>
-                {ROLES.map((rol) => {
-                  const suyo = p.rol === rol;
-                  return (
-                    <Pressable key={rol} accessibilityRole="button"
-                      accessibilityState={{ selected: suyo }}
-                      accessibilityLabel={`${NOMBRE_DEL_ROL[rol]} para ${p.nombre}`}
-                      disabled={suyo || cambiando !== null}
-                      onPress={() => void cambiar(p, rol)}
-                      style={({ pressed }) => [
-                        e.rol, suyo ? e.rolSuyo : null,
-                        pressed && !suyo ? { backgroundColor: color.elemento } : null,
-                        cambiando === p.id ? { opacity: 0.5 } : null,
-                      ]}>
-                      <Text style={[e.rolTexto, suyo ? e.rolTextoSuyo : null]}>
-                        {NOMBRE_DEL_ROL[rol]}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {/* El plan. Es el camino de las instituciones: lo que se
-                  contrató se deja puesto acá. El de las personas lo pone
-                  Google Play, no esta pantalla. */}
-              <View style={e.roles}>
-                {PLANES_POSIBLES.map((plan) => {
-                  const suyo = p.plan === plan;
-                  return (
-                    <Pressable key={plan} accessibilityRole="button"
-                      accessibilityState={{ selected: suyo }}
-                      accessibilityLabel={`Plan ${NOMBRE_DEL_PLAN[plan]} para ${p.nombre}`}
-                      disabled={suyo || cambiando !== null}
-                      onPress={() => void ponerPlan(p, plan)}
-                      style={({ pressed }) => [
-                        e.rol, e.plan, suyo ? e.planSuyo : null,
-                        pressed && !suyo ? { backgroundColor: color.elemento } : null,
-                        cambiando === p.id ? { opacity: 0.5 } : null,
-                      ]}>
-                      <Text style={[e.rolTexto, suyo ? e.planTextoSuyo : null]}>
-                        {NOMBRE_DEL_PLAN[plan]}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+        // Los mandos van DEBAJO del nombre y no al costado. Al costado
+        // apretaban el nombre y el correo hasta una letra por línea: son
+        // seis pastillas y en un teléfono no caben junto al texto.
+        <View key={p.id}>
+          <Fila
+            izquierda={<Icono nombre="persona" tono={color.textoSuave} />}
+            titulo={p.nombre}
+            detalle={`${p.correo} · desde ${fechaCorta(p.creado_en)}`}
+          />
+          <View style={e.mandos}>
+            <View style={e.roles}>
+              {ROLES.map((rol) => {
+                const suyo = p.rol === rol;
+                return (
+                  <Pressable key={rol} accessibilityRole="button"
+                    accessibilityState={{ selected: suyo }}
+                    accessibilityLabel={`${NOMBRE_DEL_ROL[rol]} para ${p.nombre}`}
+                    disabled={suyo || cambiando !== null}
+                    onPress={() => void cambiar(p, rol)}
+                    style={({ pressed }) => [
+                      e.rol, suyo ? e.rolSuyo : null,
+                      pressed && !suyo ? { backgroundColor: color.elemento } : null,
+                      cambiando === p.id ? { opacity: 0.5 } : null,
+                    ]}>
+                    <Text style={[e.rolTexto, suyo ? e.rolTextoSuyo : null]}>
+                      {NOMBRE_DEL_ROL[rol]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          }
-        />
+
+            {/* El cupo de la institución. Uno solo, y es un interruptor:
+                lo que se contrató es una cantidad, no un menú de planes.
+                Quien paga por Google Play aparece marcado y no se toca. */}
+            {contrato ? (
+              <View style={e.roles}>
+                <Pressable accessibilityRole="button"
+                  accessibilityState={{ selected: p.plan === "institucion" }}
+                  accessibilityLabel={
+                    p.plan === "personal"
+                      ? `${p.nombre} paga el plan Personal por Google Play`
+                      : p.plan === "institucion"
+                        ? `Quitarle el cupo de la institución a ${p.nombre}`
+                        : `Darle un cupo de la institución a ${p.nombre}`
+                  }
+                  disabled={cambiando !== null}
+                  onPress={() => void moverCupo(p)}
+                  style={({ pressed }) => [
+                    e.rol, e.plan,
+                    p.plan === "institucion" ? e.planSuyo : null,
+                    p.plan === "personal" ? e.planPagado : null,
+                    pressed ? { backgroundColor: color.elemento } : null,
+                    cambiando === p.id ? { opacity: 0.5 } : null,
+                  ]}>
+                  <Text style={[
+                    e.rolTexto,
+                    p.plan === "institucion" ? e.planTextoSuyo : null,
+                    p.plan === "personal" ? e.planTextoPagado : null,
+                  ]}>
+                    {p.plan === "personal" ? "Personal" : "Cupo"}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        </View>
       ))}
 
       <Text style={e.pie}>
-        Cambiar un rol cambia la aplicación que esa persona abre la próxima vez.
-        Tu propio rol no se toca desde acá: pídeselo a otra persona de
-        administración.
+        Acá está la gente de tu institución y nadie más. Cambiar un rol cambia
+        la aplicación que esa persona abre la próxima vez. Tu propio rol no se
+        toca desde acá: pídeselo a otra persona de administración.
         {"\n\n"}
-        El plan de una institución se deja puesto acá, según lo que se haya
-        contratado. El plan Personal de alguien que lo pagó por Google Play lo
-        pone el servidor solo, cuando Play avisa: no hace falta tocarlo, y
-        bajárselo desde acá no le devuelve el dinero.
+        <Text style={e.fuerte}>Cupo</Text> es uno de los que contrataste. Se
+        entrega solo mientras queden: cuando se acaban, la gente de la nómina
+        entra igual, con sus ramos, pero en el plan gratis. Quitárselo a alguien
+        que ya no está en la institución devuelve el cupo a la bolsa.
+        {"\n\n"}
+        A quien dice <Text style={e.fuerte}>Personal</Text> no hay que darle
+        nada: pagó su plan en Google Play y ya tiene todo. Ese plan lo pone el
+        servidor cuando Play avisa, y desde acá no se saca —no le devolvería el
+        dinero a nadie—.
       </Text>
     </>
   );
@@ -326,10 +375,19 @@ function Registro({
 const ROLES = ["estudiante", "profesor", "administrador"] as const;
 
 const e = StyleSheet.create({
-  mandos: { gap: 6, alignItems: "flex-end" },
+  // Bajo el nombre, no al costado: seis pastillas junto al texto dejaban el
+  // nombre en una letra por línea.
+  mandos: {
+    flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center",
+    backgroundColor: color.papel,
+    paddingHorizontal: espacio.m, paddingBottom: 14, paddingTop: 2,
+  },
   plan: { borderStyle: "dashed" },
   planSuyo: { backgroundColor: tenue(color.ok), borderColor: color.ok, borderStyle: "solid" },
   planTextoSuyo: { color: color.ok, fontWeight: "600" },
+  planPagado: { backgroundColor: tenue(color.marca), borderColor: color.marca, borderStyle: "solid" },
+  planTextoPagado: { color: color.marca, fontWeight: "600" },
+  contratoUrgente: { color: color.ambar, fontWeight: "600" },
 
   buscador: { paddingHorizontal: espacio.l, paddingTop: espacio.m, gap: espacio.s },
   roles: { flexDirection: "row", gap: 4 },

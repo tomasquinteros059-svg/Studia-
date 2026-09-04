@@ -26,8 +26,10 @@ end $$;
 \set A1   'e0000000-0000-4000-8000-000000000001'
 \set A2   'e0000000-0000-4000-8000-000000000002'
 
-insert into public.asignaturas (id, codigo, nombre, profesor, color, creditos, intro_tutor)
-values (:'RAMO', 'LOTE101', 'Ramo de prueba', 'Quien sea', '#2F45D4', 5, 'hola');
+insert into public.asignaturas
+  (id, institucion_id, codigo, nombre, profesor, color, creditos, intro_tutor)
+values (:'RAMO', 'c0000000-0000-4000-8000-000000000001',
+        'LOTE101', 'Ramo de prueba', 'Quien sea', '#2F45D4', 5, 'hola');
 
 insert into public.inscripciones (asignatura_id, estudiante_id)
 values (:'RAMO', :'A1'), (:'RAMO', :'A2');

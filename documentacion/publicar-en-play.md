@@ -247,7 +247,10 @@ declararlo, la aplicación entra en el **programa de Familias**, que exige:
 genera contenido con IA tiene que traer adentro una forma de reportar contenido
 ofensivo. StudIA la tiene desde esta versión — la banderita al pie de cada
 respuesta del tutor, del asistente, de los quices, de las fichas y del resumen.
-Los reportes los lee la administración del establecimiento.
+Los reportes los lee la operación de StudIA, no el establecimiento: un
+reporte trae adentro lo que el alumno estaba conversando con el tutor, y
+quien puede hacer algo con él —ajustar el modelo, cambiar la instrucción—
+somos nosotros.
 
 ---
 

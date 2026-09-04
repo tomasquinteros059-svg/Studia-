@@ -67,46 +67,62 @@ insert into auth.users (
   '{"nombre":"Ignacio Soto","rol":"profesor"}'::jsonb
 ) on conflict (id) do nothing;
 
+-- --------------------------------------------------------- institución
+-- El colegio de la demostración. Desde que las instituciones existen, un ramo
+-- del colegio pertenece a una y las personas también: sin esto los datos de
+-- ejemplo no entrarían, y con razón.
+insert into public.instituciones (id, nombre, cupos)
+values ('c0000000-0000-4000-8000-000000000001', 'Colegio de demostración', 500)
+on conflict (id) do nothing;
+
+-- Toda la gente de ejemplo pertenece a ese colegio. El plan no se toca acá a
+-- propósito: pertenecer y tener el cupo puesto son dos cosas distintas, y el
+-- estado interesante para desarrollar es justamente el del contrato firmado
+-- con los cupos todavía sin repartir.
+update public.perfiles
+   set institucion_id = 'c0000000-0000-4000-8000-000000000001'
+ where institucion_id is null;
+
 -- ----------------------------------------------------------- asignaturas
 insert into public.asignaturas
-  (codigo, nombre, profesor, ayudante, color, creditos, descripcion, requisitos, bibliografia, intro_tutor)
+  (institucion_id, codigo, nombre, profesor, ayudante, color, creditos, descripcion, requisitos, bibliografia, intro_tutor)
 values
-  ('MAT1610', 'Cálculo I', 'Ana Ríos', 'Ignacio Soto', '#208AEF', 10,
+  ('c0000000-0000-4000-8000-000000000001', 'MAT1610', 'Cálculo I', 'Ana Ríos', 'Ignacio Soto', '#208AEF', 10,
    'Cálculo diferencial en una variable: límites, continuidad, derivada y sus aplicaciones. El curso privilegia el planteamiento por sobre el cálculo mecánico.',
    'Álgebra y geometría de enseñanza media',
    array['Stewart, J. — Cálculo de una variable, 8ª ed.', 'Spivak, M. — Calculus'],
    'Cuéntame en qué problema de cálculo estás. ¿Qué te piden encontrar y qué datos tienes?'),
 
-  ('MAT1203', 'Álgebra Lineal', 'Diego Fuentes', 'Camila Reyes', '#7A4FD6', 10,
+  ('c0000000-0000-4000-8000-000000000001', 'MAT1203', 'Álgebra Lineal', 'Diego Fuentes', 'Camila Reyes', '#7A4FD6', 10,
    'Sistemas de ecuaciones, espacios vectoriales y transformaciones lineales, con énfasis en la interpretación geométrica de los resultados.',
    'Álgebra de enseñanza media',
    array['Grossman, S. — Álgebra lineal', 'Lay, D. — Álgebra lineal y sus aplicaciones'],
    '¿En qué andas? Antes de operar: ¿qué esperas de la solución del sistema, única, infinitas o ninguna?'),
 
-  ('FIS1503', 'Física I', 'Carla Núñez', 'Pedro Lagos', '#C9701C', 10,
+  ('c0000000-0000-4000-8000-000000000001', 'FIS1503', 'Física I', 'Carla Núñez', 'Pedro Lagos', '#C9701C', 10,
    'Mecánica clásica: cinemática, dinámica de la partícula, trabajo y energía. Todo problema parte por el diagrama de cuerpo libre.',
    'Cálculo I (puede cursarse en paralelo)',
    array['Serway, R. — Física para ciencias e ingeniería', 'Young & Freedman — Física universitaria'],
    'Partamos por el diagrama de cuerpo libre. ¿Qué fuerzas actúan sobre el cuerpo?'),
 
-  ('ICS2123', 'Investigación de Operaciones', 'Rodrigo Salas', 'Fernanda Díaz', '#1E8E5A', 10,
+  ('c0000000-0000-4000-8000-000000000001', 'ICS2123', 'Investigación de Operaciones', 'Rodrigo Salas', 'Fernanda Díaz', '#1E8E5A', 10,
    'Modelamiento de problemas de decisión mediante programación lineal, método simplex y análisis de dualidad. Se evalúa el modelo, no la herramienta.',
    'Álgebra Lineal',
    array['Hillier & Lieberman — Introducción a la investigación de operaciones', 'Winston, W. — Investigación de operaciones'],
    'Modelemos juntos. ¿Cuáles serían tus variables de decisión, en palabras?'),
 
-  ('EAE1110', 'Microeconomía', 'Paula Vergara', 'Joaquín Herrera', '#D93B6B', 8,
+  ('c0000000-0000-4000-8000-000000000001', 'EAE1110', 'Microeconomía', 'Paula Vergara', 'Joaquín Herrera', '#D93B6B', 8,
    'Comportamiento de consumidores y productores, equilibrio de mercado y elasticidad, siempre a partir de casos concretos.',
    'Sin requisitos',
    array['Varian, H. — Microeconomía intermedia', 'Pindyck & Rubinfeld — Microeconomía'],
    'Vamos con un ejemplo concreto. ¿Qué cambia en el mercado y por qué crees que se mueve?'),
 
-  ('IIC1103', 'Programación', 'Matías Leiva', 'Valentina Ruiz', '#0C447C', 10,
+  ('c0000000-0000-4000-8000-000000000001', 'IIC1103', 'Programación', 'Matías Leiva', 'Valentina Ruiz', '#0C447C', 10,
    'Fundamentos de programación en Python: control de flujo, estructuras de datos y recursión. Antes de escribir código, describir el algoritmo en palabras.',
    'Sin requisitos',
    array['Downey, A. — Think Python, 2ª ed.', 'Documentación oficial de Python 3'],
    'Descríbeme el algoritmo en palabras. ¿Cuál sería el primer paso antes de escribir código?')
-on conflict (codigo) where creador_id is null do nothing;
+on conflict (institucion_id, codigo) where creador_id is null do nothing;
 
 insert into public.inscripciones (estudiante_id, asignatura_id)
 select 'e0000000-0000-4000-8000-000000000001', id from public.asignaturas

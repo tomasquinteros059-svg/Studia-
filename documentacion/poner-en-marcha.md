@@ -115,7 +115,12 @@ todavía no existe no se puede convertir en nada. La pantalla lo hace en ese
 orden sola.
 
 Una planilla mal armada no baja de rol a quien ya es administración: si eso
-pasara, la institución quedaría sin nadie que pueda arreglarlo.
+pasara, la institución quedaría sin nadie que pueda arreglarlo. Y una planilla
+con el correo de alguien que ya pertenece a otra institución no se lo lleva.
+
+La nómina puede tener más filas que cupos contratados —eso no es un error—,
+pero el encabezado del panel avisa cuántos faltan antes de que esa gente se
+registre y quede en el plan gratis sin que nadie se entere.
 
 ---
 
@@ -225,37 +230,92 @@ Para compilar: pestaña **Actions → «APK para probar» → Run workflow**.
 
 ---
 
-## 6 · Crear la primera cuenta de administración
+## 6 · Abrir la primera institución
 
 Es el paso que nadie adivina, porque tiene un problema del huevo y la gallina:
-cambiar el rol de alguien es cosa de la administración, y al principio no hay
-ninguna.
+todo en StudIA pertenece a una institución, y al principio no hay ninguna.
+
+Hay dos papeles distintos y conviene no confundirlos:
+
+| Quién | Qué ve | Cómo se marca |
+|---|---|---|
+| **Operación de StudIA** (nosotros) | las caídas de la aplicación y los reportes de contenido de todo el servicio | `public.hacer_operador` |
+| **Administración de una institución** (su secretaría académica) | sus ramos, su horario, su gente y su contrato — y nada de otra institución | rol `administrador` + pertenecer a esa institución |
+
+No es un rol más porque quien opera el servicio también puede estar estudiando
+o dictando en alguna parte: un rol que hay que dejar de ser para poder estudiar
+es un rol mal puesto.
+
+### 6.1 · Marcarte como operación
 
 1. Crea tu cuenta desde la app, normal, con tu correo.
 2. En Supabase → **SQL Editor**, corre:
 
 ```sql
-update public.perfiles
-   set rol = 'administrador'
- where id = (select id from auth.users where email = 'tu@correo.cl');
+select public.hacer_operador('tu@correo.cl');
 ```
 
-Desde el editor sí se puede: el disparador que impide cambiarse el rol solo
-bloquea al cliente. Desde ahí en adelante, esa cuenta puede darle rol a las
-demás sin volver a tocar SQL.
+Desde el editor sí se puede: la función deja pasar cuando no hay sesión —ahí
+quien escribe tiene la clave de servicio y ya podía hacer cualquier cosa— y con
+sesión exige ser operador. Es la única vez que hace falta tocar SQL.
 
-**Para los planes pagados**, lo mismo pero con la función:
+### 6.2 · Abrir la institución que contrató
+
+Una línea, con el nombre, cuántas personas cubre el contrato y el correo de
+quien va a administrarlo del lado de ellos:
 
 ```sql
-select public.cambiar_plan(
-  (select id from auth.users where email = 'alumna@universidad.cl'),
-  'institucion');
+select public.crear_institucion('Universidad de Chile', 4000,
+                                'secretaria.academica@uchile.cl');
 ```
 
-Los tres planes son `gratis`, `personal` e `institucion`. Los dos últimos son
-los que guardan las cosas en el teléfono para estudiar sin señal. **A los
-alumnos de una universidad con convenio hay que ponerlos en `institucion` al
-inscribirlos**, o quedan en gratis sin la función que su institución pagó.
+Eso deja la institución abierta y a esa persona **esperando en la nómina**. El
+día que se registre con ese correo, entra con el panel armado: no hay que
+volver a tocar SQL ni pedirle a nadie que le cambie el rol.
+
+Si el contrato tiene fecha de término, va como cuarto argumento:
+
+```sql
+select public.crear_institucion('Colegio San Marcos', 400, 'secre@sanmarcos.cl',
+                                '2027-03-01'::timestamptz);
+```
+
+Vencido el contrato **no se entregan cupos nuevos**, y a quien ya tenía el suyo
+no se le quita de golpe. Renovarlo es correr un `update` sobre `vence_en`.
+
+### 6.3 · Los cupos
+
+El plan ya no se pone persona por persona: **se contratan N cupos y la nómina
+los ocupa.** Cada persona de la institución que se registra toma uno, si queda.
+Si no queda, entra igual —con sus ramos y su rol— pero en el plan gratis, y el
+encabezado del panel lo dice antes de que eso pase: «faltan 12 para la gente de
+la nómina que aún no entra».
+
+La administración de la institución da y quita cupos desde **El colegio →
+Personas**, con el botón **Cupo**. Quitárselo a alguien que ya no está devuelve
+el cupo a la bolsa.
+
+Lo que ese botón **no** hace es tocar el plan Personal: ese lo pone Google Play
+cuando alguien lo paga, y bajárselo desde el panel no le devolvería el dinero.
+
+### 6.4 · Lo que una institución no puede ver de otra
+
+Vale la pena saberlo antes de vender la segunda, porque es lo que se promete en
+una reunión:
+
+- El registro de personas —el único lugar de StudIA donde se lee el correo de
+  alguien más— trae **solo** a la gente de su institución.
+- Sus ramos, su horario, sus inscripciones y su nómina, también solo los suyos.
+  Dos universidades pueden tener las dos un ramo `MAT1610` y no son el mismo.
+- No puede ascender ni cambiarle el plan a nadie de otra institución.
+- No puede quedarse con alguien que ya pertenece a otra: si escribe ese correo
+  en su planilla, no pasa nada.
+- Las caídas de la aplicación y los reportes de contenido de la IA **no** los ve
+  ninguna institución. Son del servicio y los revisamos nosotros.
+
+Todo eso está probado en `supabase/pruebas/instituciones.sql`, que arma dos
+instituciones en la misma base y afirma una por una cada cosa que la segunda no
+puede hacer.
 
 ---
 

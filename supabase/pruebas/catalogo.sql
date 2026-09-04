@@ -90,7 +90,11 @@ select json_build_object(
       select p.policyname, p.cmd,
              coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '') || ' ' ||
              coalesce((
-               select string_agg(f.prosrc, ' ')
+               -- Ordenado por nombre a propósito: sin esto el catálogo sale
+               -- distinto entre dos bases idénticas —Postgres no promete un
+               -- orden— y comparar las dos rutas de migración da diferencias
+               -- que no existen.
+               select string_agg(f.prosrc, ' ' order by f.proname)
                from pg_proc f
                join pg_namespace fn on fn.oid = f.pronamespace
                where fn.nspname = 'public'

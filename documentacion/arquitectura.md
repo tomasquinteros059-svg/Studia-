@@ -379,6 +379,63 @@ Quien manda sobre cada dato es distinto, y el diseño lo sigue:
 | El docente | Módulos, material, lecturas, tareas, evaluaciones, notas, clases, foro de **su** ramo | Es contenido, y cambia durante el semestre. |
 | El alumno | Entregas, apuntes, avance, preguntas al tutor | Nadie escribe por él. |
 
+## La institución es el borde
+
+«El colegio» de la tabla de arriba es una fila de `instituciones`, y esa es la
+frontera que sostiene todo lo demás cuando hay más de un cliente.
+
+Durante un tiempo no lo fue. `es_administrador()` preguntaba «¿tiene rol
+administrador?» y nada más, así que el día que la segunda universidad
+contratara, su secretaría académica habría visto la nómina de la primera
+—nombres y correos— sin necesidad de ningún truco. La única razón por la que
+eso no pasó es que todavía no había una segunda.
+
+Cómo quedó:
+
+- **Una persona pertenece a una institución.** Es una columna en `perfiles`, no
+  una tabla de por medio: quien estudie en dos universidades a la vez va a
+  necesitar dos cuentas. Es aceptable hoy —el caso es raro— y la alternativa
+  obligaría a que cada consulta de la aplicación supiera en cuál de las dos
+  está parada la persona en este momento.
+- **Cada política de administración lleva la segunda condición.** No solo «es
+  administración», sino «y esta fila es de su institución». Las tablas que
+  cuelgan de una asignatura la preguntan por `es_de_mi_institucion()`.
+- **Las funciones con guardia también.** `registros()`, `cambiar_rol`,
+  `cambiar_plan`, `dictados_del_colegio()`, `cargar_catalogo` y
+  `cargar_matriculas` comprueban las dos cosas adentro, donde ninguna política
+  las puede saltar por ser `security definer`.
+- **`institucion_id = mi_institucion()` con las dos en nulo es falso**, y eso
+  importa: si fuera verdadero, un administrador sin institución se llevaría de
+  una sola vez a todas las cuentas personales del servicio.
+- **El código de un ramo es único dentro de la institución**, no en toda la
+  base. `MAT1610` es un código tan común que las dos primeras universidades
+  habrían chocado.
+
+Y hay un papel que **no** es de ninguna institución: la operación de StudIA.
+Las caídas de la aplicación y los reportes de contenido de la IA son del
+servicio entero, y una secretaría académica no puede hacer nada con ellos —no
+puede arreglar la aplicación ni ajustar el modelo— pero sí leería lo que un
+alumno de otra universidad estaba conversando con el tutor. Va como columna
+`perfiles.operador` y no como un cuarto rol, porque el rol decide qué
+aplicación abre la persona y quien opera el servicio también puede estar
+estudiando en alguna parte.
+
+### El plan es del contrato, no de la persona
+
+Antes el plan se ponía persona por persona desde el panel. El problema no era
+de pantalla: nada decía cuántos se habían contratado, así que nadie podía
+saber si se estaban entregando de más.
+
+Ahora la institución tiene `cupos` y la nómina los ocupa. Quien se registra
+toma uno si queda; si no queda, entra igual —con su rol y sus ramos— pero en el
+plan gratis, y el encabezado del panel lo dice **antes** de que eso pase:
+«faltan 12 para la gente de la nómina que aún no entra». Media matrícula es
+mejor que un error que nadie ve.
+
+El plan `personal` es el otro camino —Google Play cobra y avisa— y el panel de
+una institución no lo toca ni para ponerlo ni para sacarlo: quitárselo a
+alguien no le devolvería el dinero.
+
 **El camino normal del colegio no es una pantalla: es una planilla.** Nadie va
 a tipear un semestre en un formulario, y lo que el colegio ya tiene está en
 Excel. Por eso la carga entra por `datos/` y `npm run importar`: seis CSV, una
