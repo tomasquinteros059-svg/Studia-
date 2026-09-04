@@ -6,7 +6,7 @@
 
 import type * as Real from "./consultas-supabase.ts";
 import { TEXTOS_DEMO } from "./textos-demo.ts";
-import { comoHora, type Colegio } from "../dominio/planilla.ts";
+import { comoHora, type Colegio, type FilaDeNomina } from "../dominio/planilla.ts";
 import { PERFILES_DEMO, perfilActual } from "./perfiles-demo.ts";
 import {
   RAMOS_PROPIOS, horarioPropio, lecturaPropiaDe, modulosPropiosDe,
@@ -17,6 +17,7 @@ import {
 import { fichasDemo, repasarFichaDemo } from "./fichas-demo.ts";
 import type { Tramo } from "../dominio/escucha.ts";
 import type { Plan } from "../dominio/planes.ts";
+import type { ResultadoNomina } from "./consultas-supabase.ts";
 import type { QuienDicta } from "../dominio/horario.ts";
 import type {
   Apunte, ApunteEnLista, Asignatura, BloqueHorario, BloquePlan, TramoOido, Capitulo, Clase, EvaluacionConNota,
@@ -838,6 +839,21 @@ export async function cambiarPlan(personaId: string, plan: Plan): Promise<void> 
   persona.plan = plan;
 }
 
+/**
+ * En la demostración no hay a quién matricular: no existe auth ni cuentas que
+ * esperen. Se comprueba el permiso y se cuenta, que es lo que la pantalla
+ * necesita mostrar.
+ */
+export async function cargarNomina(filas: FilaDeNomina[]): Promise<ResultadoNomina> {
+  await respirar();
+  if (perfilActual()?.rol !== "administrador") {
+    throw new Error("Solo la administración carga la nómina.");
+  }
+  const correos = new Set(filas.map((f) => f.correo));
+  const yaEstan = PERFILES_DEMO.filter((p) => correos.has(p.correo.toLowerCase())).length;
+  return { filas: filas.length, aplicadas: yaEstan, esperando: correos.size - yaEstan };
+}
+
 // Si en `consultas-supabase.ts` aparece una consulta nueva, esto deja de
 // compilar hasta que exista también acá.
 const _cobertura: Omit<typeof Real, "default"> = {
@@ -851,7 +867,7 @@ const _cobertura: Omit<typeof Real, "default"> = {
   cursoDe, entregasDe, entregasDeVarias, notasDe, notasDeVarias,
   avanceDe, corregir, ponerNota, publicarNotas,
   crearRamoPropio, borrarRamoPropio, crearModulo, crearMaterial, crearHorarioPropio,
-  moduloParaMaterial, cargarCatalogo, registros, cambiarRol, cambiarPlan,
+  moduloParaMaterial, cargarCatalogo, cargarNomina, registros, cambiarRol, cambiarPlan,
   misSesiones, crearSesion, marcarSesion, borrarSesion,
   crearEvaluacion, cambiarPeso,
   planDe, planificar, borrarDelPlan,

@@ -62,6 +62,8 @@ export const crearHorarioPropio = fuente.crearHorarioPropio;
 export const borrarRamoPropio = fuente.borrarRamoPropio;
 export const crearModulo = fuente.crearModulo;
 export const cargarCatalogo = fuente.cargarCatalogo;
+/* La nómina de la institución: su gente, con sus ramos, antes de que se registren. */
+export const cargarNomina = fuente.cargarNomina;
 export const registros = fuente.registros;
 export const cambiarRol = fuente.cambiarRol;
 /* El plan de una persona: el camino de las instituciones, por contrato. */

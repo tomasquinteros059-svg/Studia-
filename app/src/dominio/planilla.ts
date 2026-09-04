@@ -137,6 +137,46 @@ export type Planillas = {
   lecturas?: string[];
 };
 
+/** Una fila de la nómina, tal como la recibe el servidor. */
+export type FilaDeNomina = {
+  correo: string;
+  rol: string;
+  /** El ramo. Nulo para quien va en la nómina sin estar en ninguno. */
+  codigo: string | null;
+  papel: string | null;
+};
+
+/**
+ * La nómina que se manda al servidor, armada con las tres planillas de gente.
+ *
+ * Va aparte de los ramos y el horario porque es de otra naturaleza: los ramos
+ * se crean de una vez, y la gente casi nunca tiene cuenta todavía. Cada fila
+ * queda esperando a nombre de un correo, y se convierte en cuenta el día que
+ * esa persona se registra.
+ *
+ * Todos van con su fila sin ramo, además de las que tengan: alguien de
+ * secretaría no está inscrito en nada y aun así pertenece a la institución,
+ * que es lo que le da el plan.
+ */
+export function nominaDe(colegio: Pick<Colegio, "personas" | "dictados" | "inscripciones">): FilaDeNomina[] {
+  const filas = new Map<string, FilaDeNomina>();
+  const poner = (f: FilaDeNomina) => {
+    filas.set(`${f.correo}|${f.codigo ?? ""}|${f.papel ?? ""}`, f);
+  };
+
+  for (const p of colegio.personas) {
+    poner({ correo: p.correo.toLowerCase(), rol: p.rol, codigo: null, papel: null });
+  }
+  for (const i of colegio.inscripciones) {
+    poner({ correo: i.correo.toLowerCase(), rol: "estudiante", codigo: i.codigo.toUpperCase(), papel: null });
+  }
+  for (const d of colegio.dictados) {
+    poner({ correo: d.correo.toLowerCase(), rol: "profesor", codigo: d.codigo.toUpperCase(), papel: d.papel });
+  }
+
+  return [...filas.values()];
+}
+
 // ── La revisión ─────────────────────────────────────────────────────────
 
 class Bitacora {

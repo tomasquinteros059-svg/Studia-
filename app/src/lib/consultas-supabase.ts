@@ -17,7 +17,7 @@ import { planValido, type Plan } from "../dominio/planes.ts";
 import type { Tramo } from "../dominio/escucha.ts";
 import { COLORES_DE_RAMO } from "../dominio/ramos.ts";
 import { colorDeLaCarga, type RamoEscrito } from "../dominio/horario-escrito.ts";
-import { comoHora, type Colegio } from "../dominio/planilla.ts";
+import { comoHora, type Colegio, type FilaDeNomina } from "../dominio/planilla.ts";
 import type { QuienDicta } from "../dominio/horario.ts";
 
 function reventar(contexto: string, error: { message: string } | null): void {
@@ -723,6 +723,24 @@ export async function publicarNotas(evaluacionId: string): Promise<void> {
  * Quién puede llamarla lo siguen decidiendo las políticas de las tablas: la
  * función es `security invoker`, no una puerta de atrás.
  */
+/** Lo que devuelve cargar la nómina, para poder decirlo en pantalla. */
+export type ResultadoNomina = { filas: number; aplicadas: number; esperando: number };
+
+/**
+ * Deja cargada la nómina de la institución.
+ *
+ * Va aparte del catálogo porque es de otra naturaleza. Los ramos se crean de
+ * una vez; la gente casi nunca tiene cuenta todavía, así que cada fila queda
+ * esperando a nombre de un correo y se convierte en cuenta el día que esa
+ * persona se registra. A quien ya estaba registrado se le aplica al tiro.
+ */
+export async function cargarNomina(filas: FilaDeNomina[]): Promise<ResultadoNomina> {
+  const { data, error } = await supabase.rpc("cargar_matriculas", { p_filas: filas });
+  reventar("No pude cargar la nómina", error);
+  const r = data as Partial<ResultadoNomina> | null;
+  return { filas: r?.filas ?? 0, aplicadas: r?.aplicadas ?? 0, esperando: r?.esperando ?? 0 };
+}
+
 export async function cargarCatalogo(
   colegio: Pick<Colegio, "asignaturas" | "horario">,
 ): Promise<{ ramos: number; bloques: number }> {

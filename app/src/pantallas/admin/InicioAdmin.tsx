@@ -7,7 +7,7 @@ import {
   tenue, tipo,
 } from "../../ui/tema.ts";
 import {
-  cambiarPlan, cambiarRol, cargarCatalogo, cursoDe, miHorario, misAsignaturas,
+  cambiarPlan, cambiarRol, cargarCatalogo, cargarNomina, cursoDe, miHorario, misAsignaturas,
   quienDicta, registros,
 } from "../../lib/consultas.ts";
 import { NOMBRE_DEL_ROL, buscar, cuentaPorRol } from "../../dominio/personas.ts";
@@ -97,8 +97,11 @@ export default function InicioAdmin() {
         abierto={cargandoCatalogo}
         cerrar={() => setCargando(false)}
         yaCargados={datos.asignaturas}
-        cargar={async (colegio) => {
-          await cargarCatalogo(colegio);
+        cargar={async (colegio, nomina) => {
+          // Los ramos primero: una inscripción a un ramo que todavía no
+          // existe no se puede convertir en nada.
+          if (colegio.asignaturas.length > 0) await cargarCatalogo(colegio);
+          if (nomina.length > 0) await cargarNomina(nomina);
           recargar();
         }}
       />

@@ -1,8 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  comoHora, leerCsv, leerDia, leerHora, resumenDeCarga, revisar, type Planillas,
-} from "./planilla.ts";
+  comoHora, leerCsv, leerDia, leerHora, resumenDeCarga, revisar, type Planillas, nominaDe } from "./planilla.ts";
 
 // ── El CSV ──────────────────────────────────────────────────────────────
 
@@ -269,4 +268,70 @@ test("cuenta los bloques de horario que trae la planilla", () => {
 test("un colegio vacío no rompe el resumen", () => {
   const r = resumenDeCarga(colegioCon([]), []);
   assert.deepEqual(r, { nuevos: [], actualizados: [], bloques: 0, intactos: [] });
+});
+
+// ── La nómina de la institución ─────────────────────────────────────────
+//
+// Lo que se manda al servidor cuando una universidad entrega su planilla. La
+// gente casi nunca tiene cuenta todavía: cada fila queda esperando a nombre
+// de un correo.
+
+test("todos van en la nómina, tengan ramo o no", () => {
+  const nomina = nominaDe({
+    personas: [
+      { correo: "alumna@u.cl", nombre: "Alumna", rol: "estudiante" },
+      { correo: "secre@u.cl", nombre: "Secretaría", rol: "administrador" },
+    ],
+    inscripciones: [{ correo: "alumna@u.cl", codigo: "MAT1610" }],
+    dictados: [],
+  });
+
+  // La secretaría no está inscrita en nada y aun así pertenece: es lo que le
+  // da el plan de la institución.
+  assert.ok(nomina.some((f) => f.correo === "secre@u.cl" && f.codigo === null));
+  assert.equal(nomina.filter((f) => f.correo === "alumna@u.cl").length, 2);
+});
+
+test("el correo viaja en minúsculas y el código en mayúsculas", () => {
+  // La planilla trae «Juan.Perez@U.CL» y la persona se registra en
+  // minúsculas. Sin normalizar, no se encuentran nunca.
+  const nomina = nominaDe({
+    personas: [{ correo: "Juan.Perez@U.CL", nombre: "Juan", rol: "estudiante" }],
+    inscripciones: [{ correo: "JUAN.PEREZ@u.cl", codigo: "mat1610" }],
+    dictados: [],
+  });
+
+  assert.ok(nomina.every((f) => f.correo === "juan.perez@u.cl"));
+  assert.ok(nomina.some((f) => f.codigo === "MAT1610"));
+});
+
+test("quien dicta va con su papel", () => {
+  const nomina = nominaDe({
+    personas: [{ correo: "ana@u.cl", nombre: "Ana", rol: "profesor" }],
+    inscripciones: [],
+    dictados: [
+      { correo: "ana@u.cl", codigo: "MAT1610", papel: "profesor" },
+      { correo: "ana@u.cl", codigo: "MAT1203", papel: "ayudante" },
+    ],
+  });
+
+  const suyas = nomina.filter((f) => f.codigo !== null);
+  assert.equal(suyas.length, 2);
+  assert.deepEqual(suyas.map((f) => f.papel).sort(), ["ayudante", "profesor"]);
+});
+
+test("una fila repetida no se manda dos veces", () => {
+  const nomina = nominaDe({
+    personas: [{ correo: "a@u.cl", nombre: "A", rol: "estudiante" }],
+    inscripciones: [
+      { correo: "a@u.cl", codigo: "MAT1610" },
+      { correo: "A@U.CL", codigo: "mat1610" },
+    ],
+    dictados: [],
+  });
+  assert.equal(nomina.length, 2);
+});
+
+test("sin nadie en las planillas la nómina va vacía", () => {
+  assert.deepEqual(nominaDe({ personas: [], inscripciones: [], dictados: [] }), []);
 });

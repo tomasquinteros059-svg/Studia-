@@ -6,6 +6,7 @@ jest.mock("../../lib/consultas.ts", () => ({
   miHorario: jest.fn(),
   cursoDe: jest.fn(),
   cargarCatalogo: jest.fn(),
+  cargarNomina: jest.fn(),
   registros: jest.fn(),
   quienDicta: jest.fn(),
   cambiarRol: jest.fn(),
@@ -37,6 +38,7 @@ const conDatos = () => {
   mock.quienDicta.mockResolvedValue([] as never);
   mock.cursoDe.mockResolvedValue([] as never);
   mock.cargarCatalogo.mockResolvedValue({ ramos: 2, bloques: 2 } as never);
+  mock.cargarNomina.mockResolvedValue({ filas: 0, aplicadas: 0, esperando: 0 } as never);
   mock.registros.mockResolvedValue([] as never);
 };
 
@@ -136,5 +138,96 @@ NO-EXISTE,lunes,08:30,10:00,B-104,Cátedra`,
     expect(t.getByText(/horario\.csv · línea 2/)).toBeTruthy();
     expect(t.getByText(/El ramo NO-EXISTE no está en asignaturas\.csv/)).toBeTruthy();
     expect(mock.cargarCatalogo).not.toHaveBeenCalled();
+  });
+});
+
+// ── La nómina de la institución ─────────────────────────────────────────
+//
+// Es lo que hace que contratar StudIA sirva de algo el primer día: la
+// universidad entrega su planilla, y sus alumnos entran a una aplicación que
+// ya sabe quiénes son. Casi nadie de esa lista tiene cuenta cuando se carga,
+// así que lo que se manda son matrículas a nombre de un correo.
+
+const PERSONAS = `correo,nombre,rol
+ana.rios@u.cl,Ana Ríos,profesor
+juan.perez@u.cl,Juan Pérez,estudiante`;
+
+const DICTADOS = `correo,codigo,papel
+ana.rios@u.cl,MAT1610,profesor`;
+
+const INSCRIPCIONES = `correo,codigo
+juan.perez@u.cl,MAT1610`;
+
+describe("cargar la nómina de la institución", () => {
+  test("las tres planillas de gente viajan como matrículas", async () => {
+    conDatos();
+    const t = await abrirCarga();
+
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Planilla de ramos"), RAMOS);
+      fireEvent.changeText(t.getByLabelText("Planilla de horario"), HORARIO);
+      fireEvent.changeText(t.getByLabelText("Planilla de personas"), PERSONAS);
+      fireEvent.changeText(t.getByLabelText("Planilla de quién dicta"), DICTADOS);
+      fireEvent.changeText(t.getByLabelText("Planilla de inscripciones"), INSCRIPCIONES);
+    });
+    await act(async () => { fireEvent.press(t.getByText("Aplicar la carga")); });
+
+    await waitFor(() => expect(mock.cargarNomina).toHaveBeenCalled());
+    const filas = mock.cargarNomina.mock.calls[0]![0] as {
+      correo: string; rol: string; codigo: string | null; papel: string | null;
+    }[];
+
+    // Las dos personas, más su ramo cada una.
+    expect(filas).toContainEqual({ correo: "ana.rios@u.cl", rol: "profesor", codigo: null, papel: null });
+    expect(filas).toContainEqual({ correo: "ana.rios@u.cl", rol: "profesor", codigo: "MAT1610", papel: "profesor" });
+    expect(filas).toContainEqual({ correo: "juan.perez@u.cl", rol: "estudiante", codigo: "MAT1610", papel: null });
+  });
+
+  test("los ramos se cargan antes que la nómina", async () => {
+    // Una inscripción a un ramo que todavía no existe no se puede convertir
+    // en nada.
+    conDatos();
+    const t = await abrirCarga();
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Planilla de ramos"), RAMOS);
+      fireEvent.changeText(t.getByLabelText("Planilla de personas"), PERSONAS);
+      fireEvent.changeText(t.getByLabelText("Planilla de inscripciones"), INSCRIPCIONES);
+    });
+    await act(async () => { fireEvent.press(t.getByText("Aplicar la carga")); });
+
+    await waitFor(() => expect(mock.cargarNomina).toHaveBeenCalled());
+    const orden = mock.cargarCatalogo.mock.invocationCallOrder[0]!;
+    expect(orden).toBeLessThan(mock.cargarNomina.mock.invocationCallOrder[0]!);
+  });
+
+  test("se puede cargar solo la nómina, sin tocar los ramos", async () => {
+    // Un semestre ya cargado al que llega gente nueva a mitad de camino.
+    conDatos();
+    const t = await abrirCarga();
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Planilla de personas"), PERSONAS);
+    });
+    await act(async () => { fireEvent.press(t.getByText("Aplicar la carga")); });
+
+    await waitFor(() => expect(mock.cargarNomina).toHaveBeenCalled());
+    expect(mock.cargarCatalogo).not.toHaveBeenCalled();
+  });
+
+  test("dice cuánta gente entra antes de aplicar", async () => {
+    conDatos();
+    const t = await abrirCarga();
+    await act(async () => {
+      fireEvent.changeText(t.getByLabelText("Planilla de ramos"), RAMOS);
+      fireEvent.changeText(t.getByLabelText("Planilla de personas"), PERSONAS);
+      fireEvent.changeText(t.getByLabelText("Planilla de inscripciones"), INSCRIPCIONES);
+    });
+    expect(t.getByText("personas en la nómina")).toBeTruthy();
+    expect(t.getByText("inscripciones")).toBeTruthy();
+  });
+
+  test("explica que no hace falta que tengan cuenta todavía", async () => {
+    conDatos();
+    const t = await abrirCarga();
+    expect(t.getByText(/queda esperando a nombre de su correo/)).toBeTruthy();
   });
 });

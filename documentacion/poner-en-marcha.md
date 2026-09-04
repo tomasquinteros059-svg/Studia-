@@ -88,6 +88,37 @@ desde un computador no intente repetirlas.
 
 ---
 
+## 2.5 · La nómina de una institución
+
+Cuando una universidad o un colegio contrata StudIA, lo que entrega es una
+planilla. Eso se carga desde la aplicación, con una cuenta de administración:
+**El colegio → Cargar**.
+
+Son cinco planillas y ninguna es obligatoria:
+
+| Planilla | Qué lleva |
+|---|---|
+| `asignaturas.csv` | los ramos |
+| `horario.csv` | los bloques de cada ramo |
+| `personas.csv` | correo, nombre y rol de cada quien |
+| `dictados.csv` | quién dicta qué, y con qué papel |
+| `inscripciones.csv` | quién está en qué ramo |
+
+Lo que hay que entender de las tres últimas: **casi nadie de esa lista va a
+tener cuenta cuando se carga, y no hace falta que la tenga.** Cada fila queda
+esperando a nombre de un correo. El día que esa persona se registra con ese
+mismo correo, entra con su rol, su plan de institución y sus ramos ya puestos.
+A quien ya se había registrado se le aplica en el momento de cargar.
+
+Los ramos se cargan antes que la gente, porque una inscripción a un ramo que
+todavía no existe no se puede convertir en nada. La pantalla lo hace en ese
+orden sola.
+
+Una planilla mal armada no baja de rol a quien ya es administración: si eso
+pasara, la institución quedaría sin nadie que pueda arreglarlo.
+
+---
+
 ## 3 · Desplegar las funciones del servidor
 
 Son ocho y ninguna sobra:

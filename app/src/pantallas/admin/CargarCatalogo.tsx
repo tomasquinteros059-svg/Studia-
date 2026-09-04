@@ -6,7 +6,8 @@ import {
   FILETE, cifras, color, espacio, radio, tenue, tipo,
 } from "../../ui/tema.ts";
 import {
-  resumenDeCarga, revisar, type Colegio, type Problema,
+  nominaDe, resumenDeCarga, revisar,
+  type Colegio, type FilaDeNomina, type Problema,
 } from "../../dominio/planilla.ts";
 
 const EJEMPLO_ASIGNATURAS = `codigo,nombre,profesor,ayudante,color,creditos,descripcion,requisitos,bibliografia,intro_tutor
@@ -14,6 +15,16 @@ MAT1610,Cálculo I,Ana Ríos,Ignacio Soto,#2563C9,10,,,,¿En qué parte de Cálc
 
 const EJEMPLO_HORARIO = `codigo,dia,hora_inicio,hora_fin,sala,tipo
 MAT1610,lunes,08:30,10:00,B-104,Cátedra`;
+
+const EJEMPLO_PERSONAS = `correo,nombre,rol
+ana.rios@u.cl,Ana Ríos,profesor
+juan.perez@u.cl,Juan Pérez,estudiante`;
+
+const EJEMPLO_DICTADOS = `correo,codigo,papel
+ana.rios@u.cl,MAT1610,profesor`;
+
+const EJEMPLO_INSCRIPCIONES = `correo,codigo
+juan.perez@u.cl,MAT1610`;
 
 /**
  * Cargar el semestre entero desde el navegador.
@@ -35,35 +46,49 @@ export default function CargarCatalogo({
 }: {
   abierto: boolean;
   cerrar: () => void;
-  cargar: (colegio: Pick<Colegio, "asignaturas" | "horario">) => Promise<void>;
+  cargar: (
+    colegio: Pick<Colegio, "asignaturas" | "horario">,
+    nomina: FilaDeNomina[],
+  ) => Promise<void>;
   /** Lo que ya está en la base, para decir qué entra y qué se actualiza. */
   yaCargados: readonly { codigo: string }[];
 }) {
   const [asignaturas, setAsignaturas] = useState("");
   const [horario, setHorario] = useState("");
+  const [personas, setPersonas] = useState("");
+  const [dictados, setDictados] = useState("");
+  const [inscripciones, setInscripciones] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [falla, setFalla] = useState<string | null>(null);
 
-  const hayAlgo = asignaturas.trim().length > 0;
+  const hayAlgo = asignaturas.trim().length > 0 || personas.trim().length > 0;
 
   const { colegio, problemas } = useMemo(
-    () => revisar({ asignaturas, horario }),
-    [asignaturas, horario],
+    () => revisar({ asignaturas, horario, personas, dictados, inscripciones }),
+    [asignaturas, horario, personas, dictados, inscripciones],
   );
+
+  // La nómina: quién es cada quien y en qué está. Va aparte de los ramos
+  // porque casi nadie de esa lista tiene cuenta todavía.
+  const nomina = useMemo(() => nominaDe(colegio), [colegio]);
   const resumen = useMemo(
     () => resumenDeCarga(colegio, yaCargados),
     [colegio, yaCargados],
   );
 
-  const sePuede = hayAlgo && problemas.length === 0
-    && colegio.asignaturas.length > 0 && !ocupado;
+  const sePuede = hayAlgo && problemas.length === 0 && !ocupado
+    && (colegio.asignaturas.length > 0 || nomina.length > 0);
 
   const aplicar = async () => {
     setOcupado(true);
     setFalla(null);
     try {
-      await cargar({ asignaturas: colegio.asignaturas, horario: colegio.horario });
+      await cargar(
+        { asignaturas: colegio.asignaturas, horario: colegio.horario },
+        nomina,
+      );
       setAsignaturas(""); setHorario("");
+      setPersonas(""); setDictados(""); setInscripciones("");
       cerrar();
     } catch (err) {
       setFalla(err instanceof globalThis.Error ? err.message : "No pude cargar el catálogo.");
@@ -95,6 +120,38 @@ export default function CargarCatalogo({
         accessibilityLabel="Planilla de horario"
       />
 
+      <Text style={e.aparte}>La gente</Text>
+      <Text style={e.bajadaChica}>
+        Casi nadie de esta lista va a tener cuenta todavía, y no hace falta que
+        la tenga: cada fila queda esperando a nombre de su correo. El día que
+        esa persona se registra con ese mismo correo, entra con su rol, su plan
+        y sus ramos ya puestos. A quien ya se registró se le aplica al tiro.
+      </Text>
+
+      <Text style={tipo.etiqueta}>Personas · personas.csv</Text>
+      <TextInput
+        style={e.planilla} value={personas} onChangeText={setPersonas}
+        multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false}
+        placeholder={EJEMPLO_PERSONAS} placeholderTextColor={color.textoTenue}
+        accessibilityLabel="Planilla de personas"
+      />
+
+      <Text style={tipo.etiqueta}>Quién dicta · dictados.csv</Text>
+      <TextInput
+        style={e.planilla} value={dictados} onChangeText={setDictados}
+        multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false}
+        placeholder={EJEMPLO_DICTADOS} placeholderTextColor={color.textoTenue}
+        accessibilityLabel="Planilla de quién dicta"
+      />
+
+      <Text style={tipo.etiqueta}>Inscripciones · inscripciones.csv</Text>
+      <TextInput
+        style={e.planilla} value={inscripciones} onChangeText={setInscripciones}
+        multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false}
+        placeholder={EJEMPLO_INSCRIPCIONES} placeholderTextColor={color.textoTenue}
+        accessibilityLabel="Planilla de inscripciones"
+      />
+
       {problemas.length > 0 ? <Problemas problemas={problemas} /> : null}
 
       {hayAlgo && problemas.length === 0 ? (
@@ -110,6 +167,16 @@ export default function CargarCatalogo({
               <Cuenta n={resumen.intactos.length} que="ramos que no se tocan"
                 nota={`no vienen en la planilla: ${resumen.intactos.slice(0, 6).join(", ")}${
                   resumen.intactos.length > 6 ? "…" : ""}`} />
+            ) : null}
+            {nomina.length > 0 ? (
+              <Cuenta n={colegio.personas.length} que="personas en la nómina"
+                nota="cada una entra con su rol y sus ramos al registrarse" />
+            ) : null}
+            {colegio.inscripciones.length > 0 ? (
+              <Cuenta n={colegio.inscripciones.length} que="inscripciones" />
+            ) : null}
+            {colegio.dictados.length > 0 ? (
+              <Cuenta n={colegio.dictados.length} que="ramos con docente asignado" />
             ) : null}
           </Hoja>
         </>
@@ -176,6 +243,9 @@ function Cuenta({ n, que, nota }: { n: number; que: string; nota?: string }) {
 }
 
 const e = StyleSheet.create({
+  aparte: { ...tipo.titulo, marginTop: espacio.l },
+  bajadaChica: { ...tipo.detalle, color: color.textoSuave, lineHeight: 19, marginBottom: espacio.xs },
+
   bajada: { ...tipo.cuerpo, color: color.textoSuave, lineHeight: 22 },
   planilla: {
     minHeight: 130, padding: espacio.m, fontSize: 13.5, lineHeight: 21,
