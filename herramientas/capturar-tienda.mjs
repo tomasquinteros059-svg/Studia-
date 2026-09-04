@@ -21,7 +21,11 @@ import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
 const DOCS = "docs";
-const SALIDA = "capturas";
+// Dos recorridos. El de la tienda muestra la aplicación con datos, que es lo
+// que hay que enseñar en Play. El de «desde cero» muestra lo que ve alguien
+// que acaba de crear su cuenta, que es lo que va a ver todo el que llegue.
+const DESDE_CERO = process.argv.includes("--desde-cero");
+const SALIDA = DESDE_CERO ? "capturas/desde-cero" : "capturas";
 const CHROMIUM = process.env.CHROMIUM
   ?? ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
       "/usr/bin/chromium", "/usr/bin/chromium-browser",
@@ -115,6 +119,34 @@ async function foto(nombre) {
   console.log("  ·", nombre);
 }
 
+console.log("capturas:");
+
+if (DESDE_CERO) {
+  // Lo primero que ve alguien que llega, antes de tener cuenta.
+  await foto("1-portada");
+  await tocarTexto("Entrar");
+  await foto("2-entrar");
+
+  // Una cuenta nueva: un correo que nadie usó deja la aplicación en cero, que
+  // es exactamente lo que hay que mirar.
+  await escribirEn("Correo", "camila.rojas@liceo.cl");
+  await foto("3-correo-puesto");
+  await tocarTexto("Entrar");
+  await esperar(2500);
+
+  await foto("4-inicio");
+  for (const [pestana, archivo] of [["Horario", "5-horario"], ["Tareas", "6-tareas"],
+                                    ["Apuntes", "7-apuntes"], ["Tutor", "8-tutor"]]) {
+    if (await tocarTexto(pestana)) { await esperar(1400); await foto(archivo); }
+  }
+
+  await nav.close();
+  servidor.close();
+  console.log(`\n${hechas.length} capturas en ${SALIDA}/ · 1080×1920`);
+  console.log("Es la aplicación recién creada: sin ramos, sin tareas, sin nada.");
+  process.exit(0);
+}
+
 // Entrar como el estudiante de ejemplo, que es el que trae datos cargados.
 // Registrarse con un correo cualquiera deja la aplicación vacía, y la captura
 // de una app vacía es peor que ninguna captura.
@@ -126,7 +158,6 @@ if (!await tocarEtiqueta("Entrar como Eduardo")) {
 }
 await esperar(2500);
 
-console.log("capturas:");
 await foto("1-inicio");
 for (const [pestana, archivo] of [["Horario", "2-horario"], ["Tareas", "3-tareas"], ["Apuntes", "4-apuntes"]]) {
   if (await tocarTexto(pestana)) { await esperar(1400); await foto(archivo); }

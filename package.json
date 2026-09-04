@@ -23,6 +23,7 @@
     "icono": "python3 herramientas/icono.py",
     "comprobar-servidor": "node herramientas/comprobar-servidor.mjs",
     "capturas": "node herramientas/capturar-tienda.mjs",
+    "capturas:desde-cero": "node herramientas/capturar-tienda.mjs --desde-cero",
     "juntar-migraciones": "node herramientas/juntar-migraciones.mjs",
     "prueba:migraciones-juntas": "node herramientas/juntar-migraciones.mjs --revisar",
     "juntar-funciones": "node herramientas/juntar-funciones.mjs",
