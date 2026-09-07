@@ -1,0 +1,112 @@
+StudIA — historial del repositorio
+
+2026-08-24  Claude  Recopilar StudIA: prototipo y especificación
+2026-08-24  Claude  Añadir la capa LMS al prototipo: clases, horario, materia y tareas
+2026-08-24  Claude  Pintar el fondo siempre y añadir el guion de publicación
+2026-08-24  Claude  Añadir foro, notas y notificaciones al prototipo
+2026-08-24  Claude  Sacar las secciones ocultas del scroll horizontal a un menú
+2026-08-25  Claude  Montar el backend: esquema, políticas de acceso y el tutor
+2026-08-25  Claude  Construir la app en Expo sobre el backend
+2026-08-25  Claude  Completar las pantallas que faltaban y afinar la app
+2026-08-25  Claude  Pedir el micrófono al hablar, no al entrar a la clase
+2026-08-25  Claude  Comparar transportes de audio con el escenario real
+2026-08-25  Claude  Modo tablet: apuntes de clase con el tutor al lado
+2026-08-25  Claude  Añadir el tablero de apuntes al estilo Google Keep
+2026-08-25  Claude  Probar las pantallas ejecutándolas de verdad
+2026-08-25  Claude  Añadir modo demostración para que el APK sirva sin backend
+2026-08-25  Claude  Entregar tokens de sala para el audio en vivo
+2026-08-25  Claude  Arreglar el proyecto para que la compilación del APK no falle
+2026-08-25  Claude  Adaptar toda la app al ancho, no solo la pantalla de apuntes
+2026-08-25  Claude  Aislar expo-audio para que no pueda tumbar la app al arrancar
+2026-08-25  Claude  Documentar cómo levantar el servidor en la propia tablet ChromeOS
+2026-08-25  Claude  Habilitar la exportación web para revisar la app sin dispositivo
+2026-08-26  Claude  Agregar el lector inmersivo: escuchar el material y anotar al lado
+2026-08-26  Claude  Leer los signos como entonación y no como palabras
+2026-08-26  Claude  Armar el APK desde GitHub, sin depender de los servidores de Expo
+2026-08-26  Claude  Dar de alta a los docentes: cuentas, dictados y permisos de escritura
+2026-08-26  Claude  Dejar el APK como descarga directa, no dentro de un zip
+2026-08-26  Claude  Abrir la carga del colegio por planilla, con validación antes de escribir
+2026-08-27  Claude  Abrir la app a los cuatro perfiles, con las pantallas del docente
+2026-08-27  Claude  Bajar el APK de 84 MB compilando una arquitectura y no cuatro
+2026-08-27  Claude  Dar al docente y a la administración su propio asistente
+2026-08-27  Claude  Sacar del paquete diecinueve fuentes de íconos que nadie dibuja
+2026-08-27  Claude  Enderezar la capa de datos del docente, que estaba a medio camino
+2026-08-27  Claude  Ponerle tope de uso al asistente, que no tenía
+2026-08-27  Claude  Abrir la app a quien llega por su cuenta, y empezar por el correo
+2026-08-27  Claude  Darle un espacio propio a quien llega sin institución
+2026-08-27  Claude  El equipo de tres por rubro, que es de lo que se trata ahora
+2026-08-27  Claude  Guardar reuniones, y que sean de quien las grabó
+2026-08-27  Claude  Cambiar la aplicación entera a reuniones profesionales
+2026-08-28  Claude  La sala: uno graba, los demás reciben el acta
+2026-08-28  Claude  Arreglar la corrección del código, que rompía los que traían un 8
+2026-08-28  Claude  Agendar la reunión, porque el micrófono no se puede prender solo
+2026-08-28  Claude  Arreglar el borde que se comía la interfaz, y darle un aspecto propio
+2026-08-28  Claude  Arreglar la compilación del APK, que reventaba en la tercera pasada
+2026-08-28  Claude  Volver a StudIA
+2026-08-28  Claude  Rehacer el aspecto de la app alrededor del color del ramo
+2026-08-28  Claude  Hacer que se pueda saber qué versión está instalada
+2026-08-28  Claude  Cargar el semestre entero escribiéndolo, en vez de ramo por ramo
+2026-08-28  Claude  Subir a 1.2.0, que es la que trae la carga del horario
+2026-08-29  Claude  Poder compilar Acta aparte, para tenerla instalada junto a StudIA
+2026-08-29  Claude  Probar por qué la publicación de Acta devuelve 403 (temporal)
+2026-08-29  Claude  Entrar a la reunión en línea desde Acta, y arreglar su publicación
+2026-08-29  Claude  Sacar Acta de esta rama, que ahora vive en la suya
+2026-08-29  Claude  Ofrecer las tres maneras de empezar desde el inicio, no solo crear un ramo
+2026-08-29  Claude  Numerar la compilación sola, para que el APK nuevo se instale encima
+2026-08-29  Claude  Cargar el semestre desde el navegador, no desde una terminal
+2026-08-29  Claude  Darle portada a StudIA, y entrar con la cuenta que ya se tiene
+2026-08-29  Claude  Panel de administración del registro, y ninguna entrada sin correo
+2026-08-29  Claude  La portada, rehecha con vocabulario de cuaderno
+2026-08-30  Claude  El planificador: la semana entera, con lo que pone uno
+2026-08-30  Claude  Los quices de repaso, con preguntas del material del propio ramo
+2026-08-30  Claude  La aplicación entera pasa a ser un cuaderno
+2026-08-30  Claude  El tutor, con la conversación del diseño y sugerencias que salen de tu ramo
+2026-08-30  Claude  Fichas de repaso con repetición espaciada, y la cabecera del ramo
+2026-08-30  Claude  Los precios en la portada, en la moneda de quien mira
+2026-08-30  Claude  Arreglar que sin ningún ramo no se pudiera escribir un apunte
+2026-08-30  Claude  Poder guardar el tutor para escribir con toda la pantalla
+2026-08-30  Claude  Publicar la web en GitHub Pages, con enlace propio
+2026-08-30  Claude  Mostrar el quiz en la portada, que era lo único que no se veía
+2026-08-30  Claude  Escribir a mano en los apuntes, con el lápiz de la tablet
+2026-08-31  Claude  Modo escucha: la clase presencial, oída por el curso
+2026-08-31  Claude  Sacar el apunte de debajo de la barra del sistema, y armar quiz desde Tareas
+2026-08-31  Claude  El escritorio del profesor: grabar, registro, material y plan del mes
+2026-08-31  Claude  Comprobar que el APK trae lo que dice traer, antes de entregarlo
+2026-08-31  Claude  Ignorar el __pycache__ que deja la auditoría del paquete
+2026-08-31  Tomás Quinteros  Proteger la propiedad intelectual: licencia, textos legales y atribuciones
+2026-09-01  Tomás Quinteros  Conectar el APK al servidor, y poder entrar a la cuenta y volver a ella
+2026-09-01  Tomás Quinteros  Borrar la cuenta desde la app, y que borre lo que promete
+2026-09-01  Tomás Quinteros  Un ícono propio, y que el arranque no destelle en negro
+2026-09-01  Tomás Quinteros  Guardar archivos de verdad, y que solo los abra quien corresponde
+2026-09-01  Tomás Quinteros  Rearmar el sitio con lo nuevo
+2026-09-01  Tomás Quinteros  Poner al día lo que la documentación decía que faltaba
+2026-09-01  Tomás Quinteros  Que el almacenamiento sirva para algo: entregar y cargar material
+2026-09-01  Tomás Quinteros  Que quien corrige pueda leer lo que se entregó
+2026-09-01  Tomás Quinteros  Enterarse cuando la app se cae
+2026-09-01  Tomás Quinteros  Avisos que lleguen al teléfono, sin volverse ruido
+2026-09-01  Tomás Quinteros  Que quedarse sin señal no rompa nada ni pierda nada
+2026-09-01  Tomás Quinteros  Repasar la app con ojos de quien no la conoce
+2026-09-01  Tomás Quinteros  Estudiar sin conexión, en los dos planes pagados
+2026-09-01  Tomás Quinteros  El panel docente pedía de a una lo que puede pedir junto
+2026-09-01  Tomás Quinteros  La guía de puesta en marcha, y un comando que la comprueba
+2026-09-01  Tomás Quinteros  Revisar el código nuevo buscando por dónde se rompe
+2026-09-01  Tomás Quinteros  Dejar iOS listo para el día que alguien lo compile
+2026-09-01  Claude  Las migraciones juntas, para pegarlas sin consola
+2026-09-01  Claude  Las ocho funciones, cada una en un archivo que se basta solo
+2026-09-01  Claude  Cruzar cada consulta contra el esquema, y dos permisos que estaban mal
+2026-09-01  Claude  juntar-migraciones --desde, para una base que ya está armada
+2026-09-01  Claude  Cruzar también el almacenamiento
+2026-09-01  Claude  Compilar las funciones con Deno, que es quien las corre
+2026-09-01  Claude  El asistente del docente nunca llamaba a su función
+2026-09-02  Claude  Las claves del proyecto, con los dos juegos de nombres
+2026-09-02  Claude  Tres comprobaciones más antes de armar el APK
+2026-09-02  Claude  Reportar una respuesta de la IA, desde donde apareció
+2026-09-02  Claude  El .aab firmado, y todo lo que pide Play escrito en un lugar
+2026-09-02  Claude  Las capturas de la ficha, sacadas solas de la versión web
+2026-09-03  Claude  Que ningún dato de ejemplo llegue a un colegio de verdad
+2026-09-03  Claude  Cómo se ve el primer día, con una cuenta recién creada
+2026-09-04  Claude  Los precios fuera del teléfono, y el plan de la institución en el panel
+2026-09-04  Claude  El recorrido de una cuenta recién creada, también en capturas
+2026-09-04  Claude  La nómina de una institución, cargada antes de que nadie se registre
+2026-09-04  Claude  El sitio, reconstruido con la carga de la nómina
+2026-09-04  Claude  La institución, como cosa de primera clase

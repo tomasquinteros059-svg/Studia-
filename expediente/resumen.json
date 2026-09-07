@@ -1,0 +1,112 @@
+{
+  "version": "1.4.0",
+  "huellaDeLaObra": "092ebd74b04a20c71722a686b37a03a1d2ec9ab1981a250bcdf831f5aca3251a",
+  "commits": 110,
+  "primerCommit": "2026-08-24",
+  "ultimoCommit": "2026-09-04",
+  "autores": {
+    "Claude": 92,
+    "Tomás Quinteros": 18
+  },
+  "archivos": 348,
+  "lineas": 60950,
+  "bytes": 2597418,
+  "paginas": 1146,
+  "terceros": 26,
+  "arbolDeDependencias": {
+    "total": 775,
+    "porLicencia": {
+      "MIT": 664,
+      "ISC": 37,
+      "BSD-3-Clause": 22,
+      "Python-2.0": 1,
+      "Apache-2.0": 14,
+      "Unlicense": 2,
+      "CC-BY-4.0": 1,
+      "BSD-2-Clause": 18,
+      "(MIT OR Apache-2.0)": 1,
+      "BlueOak-1.0.0": 6,
+      "0BSD": 2,
+      "MPL-2.0": 3,
+      "CC0-1.0": 1,
+      "(BSD-3-Clause OR GPL-2.0)": 1,
+      "(MIT OR CC0-1.0)": 2
+    },
+    "aRevisar": [
+      "lightningcss-linux-x64-gnu@1.33.0 → MPL-2.0",
+      "lightningcss-linux-x64-musl@1.33.0 → MPL-2.0",
+      "lightningcss@1.33.0 → MPL-2.0",
+      "node-forge@1.4.0 → (BSD-3-Clause OR GPL-2.0)"
+    ]
+  },
+  "porCarpeta": {
+    ".github/": {
+      "archivos": 1,
+      "lineas": 350
+    },
+    "(raíz)": {
+      "archivos": 5,
+      "lineas": 406
+    },
+    "app/(otros)": {
+      "archivos": 9,
+      "lineas": 529
+    },
+    "app/assets": {
+      "archivos": 5,
+      "lineas": 0
+    },
+    "app/modules": {
+      "archivos": 5,
+      "lineas": 405
+    },
+    "app/pruebas": {
+      "archivos": 2,
+      "lineas": 230
+    },
+    "app/src": {
+      "archivos": 206,
+      "lineas": 35376
+    },
+    "datos/": {
+      "archivos": 10,
+      "lineas": 206
+    },
+    "documentacion/": {
+      "archivos": 5,
+      "lineas": 1894
+    },
+    "herramientas/": {
+      "archivos": 18,
+      "lineas": 2831
+    },
+    "legal/": {
+      "archivos": 2,
+      "lineas": 202
+    },
+    "prototipo/": {
+      "archivos": 2,
+      "lineas": 2099
+    },
+    "supabase/(otros)": {
+      "archivos": 3,
+      "lineas": 4492
+    },
+    "supabase/funciones-de-una-vez": {
+      "archivos": 8,
+      "lineas": 2846
+    },
+    "supabase/functions": {
+      "archivos": 22,
+      "lineas": 2840
+    },
+    "supabase/migrations": {
+      "archivos": 34,
+      "lineas": 3660
+    },
+    "supabase/pruebas": {
+      "archivos": 11,
+      "lineas": 2584
+    }
+  }
+}

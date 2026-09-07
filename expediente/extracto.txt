@@ -1,0 +1,2755 @@
+StudIA — listado de código fuente
+Huella SHA-256 de la obra: 092ebd74b04a20c71722a686b37a03a1d2ec9ab1981a250bcdf831f5aca3251a
+Generado: 2026-09-07
+
+Cada archivo va precedido de su ruta y su huella. Las líneas van numeradas
+dentro de cada archivo, para poder citarlas.
+
+==============================================================================
+
+------------------------------------------------------------------------------
+ARCHIVO: .github/workflows/apk.yml
+SHA-256: 907391f31e36f8bac127b778cec246a410456aba026a6d16cfb2938bb5d0c940
+------------------------------------------------------------------------------
+
+    1 | # Construye un APK instalable sin depender de los servidores de Expo.
+    2 | #
+    3 | # El contenedor donde se desarrolla no puede salir a expo.dev, así que no hay
+    4 | # EAS ni Expo Go. Acá el APK se arma con el SDK de Android que ya trae el
+    5 | # runner: `expo prebuild` genera el proyecto nativo y Gradle lo compila. No
+    6 | # hace falta cuenta de Expo, ni token, ni ningún secreto.
+    7 | #
+    8 | # Cómo usarlo: pestaña Actions → "APK para probar" → Run workflow. Al terminar,
+    9 | # el APK queda colgado del run, en Artifacts.
+   10 | 
+   11 | name: APK para probar
+   12 | 
+   13 | on:
+   14 |   workflow_dispatch:
+   15 |   push:
+   16 |     tags: ["v*"]
+   17 | 
+   18 | # Para poder publicar la versión con el APK colgado.
+   19 | permissions:
+   20 |   contents: write
+   21 | 
+   22 | jobs:
+   23 |   apk:
+   24 |     runs-on: ubuntu-latest
+   25 |     timeout-minutes: 45
+   26 | 
+   27 |     # Contra qué servidor se compila.
+   28 |     #
+   29 |     # `expo export` y `assembleRelease` empaquetan el JavaScript, y ahí es donde
+   30 |     # estas dos variables quedan dentro del APK. Si no están, `lib/config.ts`
+   31 |     # pone la app en modo demostración: datos de ejemplo en el teléfono, sin
+   32 |     # cuentas y sin nada que se guarde en ninguna parte.
+   33 |     #
+   34 |     # Van al nivel del trabajo y no de un paso porque hacen falta en los cinco
+   35 |     # que empaquetan: la auditoría del paquete y las tres compilaciones.
+   36 |     #
+   37 |     # Se cargan en Settings → Secrets and variables → Actions:
+   38 |     #   SUPABASE_URL        https://xxxxxxxx.supabase.co
+   39 |     #   SUPABASE_ANON_KEY   la clave anónima del proyecto
+   40 |     # La anónima es pública por diseño —va dentro del APK, que cualquiera puede
+   41 |     # abrir—; lo que protege los datos son las políticas de acceso de la base.
+   42 |     env:
+   43 |       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+   44 |       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+   45 |       # La clave con que se sube a Google Play. Va acá arriba y no en el paso
+   46 |       # porque `secrets` no se puede mirar desde un `if:` y `env` sí, y el
+   47 |       # .aab solo tiene sentido armarlo cuando la clave está.
+   48 |       #   ANDROID_KEYSTORE_BASE64    el archivo .jks en base64
+   49 |       #   ANDROID_KEYSTORE_PASSWORD  la clave del archivo
+   50 |       #   ANDROID_KEY_ALIAS          el alias de la clave de adentro
+   51 |       #   ANDROID_KEY_PASSWORD       la clave de esa clave
+   52 |       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+   53 | 
+   54 |     steps:
+   55 |       # Con la profundidad de siempre —un solo commit— `git rev-list --count`
+   56 |       # devolvería 1, y numerar la compilación con 1 la dejaría por debajo de
+   57 |       # la que ya está instalada: Android rechazaría la actualización.
+   58 |       - uses: actions/checkout@v4
+   59 |         with:
+   60 |           fetch-depth: 0
+   61 | 
+   62 |       - uses: actions/setup-node@v4
+   63 |         with:
+   64 |           node-version: "22"
+   65 |           cache: npm
+   66 |           cache-dependency-path: app/package-lock.json
+   67 | 
+   68 |       # React Native pide JDK 17.
+   69 |       - uses: actions/setup-java@v4
+   70 |         with:
+   71 |           distribution: temurin
+   72 |           java-version: "17"
+   73 | 
+   74 |       - name: Instalar dependencias
+   75 |         run: npm ci --prefix app
+   76 | 
+   77 |       # Que un APK roto no llegue nunca a la tablet.
+   78 |       - name: Pruebas
+   79 |         run: |
+   80 |           npm run prueba
+   81 |           npm run prueba:ui
+   82 |           npm run tipos
+   83 |           # Que los textos legales del repositorio y el listado de licencias no
+   84 |           # queden atrás del código: una dependencia agregada sin regenerar el
+   85 |           # listado deja el APK incumpliendo una licencia sin que nada avise.
+   86 |           npm run prueba:legales
+   87 |           npm run prueba:licencias
+   88 |           # Que las funciones del servidor sean TypeScript válido, y que los
+   89 |           # dos archivos generados —las migraciones juntas y las funciones
+   90 |           # pegables— no hayan quedado atrás de lo que sí se editó. Son los
+   91 |           # que se copian a mano en el panel de Supabase: si quedan viejos,
+   92 |           # el servidor y el APK dejan de ser la misma versión y nada avisa.
+   93 |           npm run prueba:sintaxis
+   94 |           # Que ningún dato de ejemplo pueda llegar a un colegio de verdad.
+   95 |           npm run prueba:sin-ejemplos
+   96 |           npm run prueba:migraciones-juntas
+   97 |           npm run prueba:funciones-juntas
+   98 | 
+   99 |       # Que el APK traiga de verdad lo que dice traer.
+  100 |       #
+  101 |       # Las pruebas de arriba comprueban que el código funcione; esto comprueba
+  102 |       # que el código haya entrado al paquete. No es lo mismo, y la diferencia
+  103 |       # se notó: hubo APK «arregladas» que llegaron sin el arreglo y no había
+  104 |       # cómo saberlo sin instalarlas.
+  105 |       - name: Comprobar que el paquete trae todas las funciones
+  106 |         run: npm run prueba:paquete-android
+  107 | 
+  108 |       - name: Generar el proyecto Android
+  109 |         working-directory: app
+  110 |         run: npx expo prebuild --platform android --no-install
+  111 |         env:
+  112 |           EXPO_NO_TELEMETRY: "1"
+  113 | 
+  114 |       # El proyecto nativo se regenera acá en cada compilación, y sale firmando
+  115 |       # el release con el keystore de depuración. Para la tablet da lo mismo;
+  116 |       # Google Play lo rechaza. Esto deja la firma condicionada a que exista la
+  117 |       # clave de subida, y se cae si la plantilla de Expo cambió de forma —que
+  118 |       # es la manera en que esto se rompería sin que nadie lo note—.
+  119 |       - name: Preparar la firma de subida
+  120 |         run: node herramientas/firmar-android.mjs app/android/app/build.gradle
+  121 | 
+  122 |       # `assembleRelease` empaqueta el JavaScript adentro del APK. Un build de
+  123 |       # depuración no sirve: esperaría un servidor de desarrollo en la red y
+  124 |       # fallaría al abrirlo, que es exactamente lo que hay que evitar.
+  125 |       # Se compila dos veces a propósito. Por omisión el APK trae las cuatro
+  126 |       # arquitecturas de Android en el mismo archivo, y las bibliotecas
+  127 |       # nativas se llevan ahí la mayor parte de los 84 MB: un aparato usa una
+  128 |       # sola y carga las otras tres de puro peso muerto. El primero trae solo
+  129 |       # arm64, que es lo que usa cualquier tablet o teléfono de los últimos
+  130 |       # años. El segundo las trae todas y queda como red de seguridad para un
+  131 |       # aparato viejo o un Chromebook con procesador Intel.
+  132 |       # Entre una compilación y otra hay que dejar el proyecto limpio, y
+  133 |       # `gradlew clean` no sirve para eso: su tarea de C++ borra el código
+  134 |       # generado de las dependencias y deja la caché de CMake apuntando a
+  135 |       # carpetas que ya no existen. La segunda vez que se ejecuta revienta con
+  136 |       # "add_subdirectory given source ... which is not an existing directory".
+  137 |       # Borrar las carpetas a mano no tiene ese problema: no queda ninguna
+  138 |       # caché que pueda quedar desincronizada.
+  139 |       - name: Preparar el limpiador entre compilaciones
+  140 |         working-directory: app/android
+  141 |         run: |
+  142 |           cat > limpiar.sh <<'FIN'
+  143 |           #!/usr/bin/env bash
+  144 |           set -euo pipefail
+  145 |           rm -rf app/build app/.cxx build
+  146 |           find ../node_modules -maxdepth 4 -type d -name .cxx -exec rm -rf {} + 2>/dev/null || true
+  147 |           FIN
+  148 |           chmod +x limpiar.sh
+  149 | 
+  150 |       # El nombre del archivo lleva la versión y el commit. Con un nombre fijo,
+  151 |       # el teléfono guarda el nuevo como "StudIA(1).apk" y deja el viejo primero
+  152 |       # en la lista de Descargas: tocar el equivocado instala la versión
+  153 |       # anterior y nada avisa de nada. Con esto, los dos archivos se distinguen
+  154 |       # de un vistazo y ninguna caché puede servir uno por otro.
+  155 |       # Android solo instala un APK encima de otro si el `versionCode` subió.
+  156 |       # Mantenerlo a mano es cuestión de tiempo hasta que alguien lo olvide y
+  157 |       # la actualización quede rechazada con un "no se pudo instalar" que no
+  158 |       # explica nada. Sale de la cantidad de commits: sube solo, y sube igual
+  159 |       # aunque se compile dos veces el mismo día.
+  160 |       #
+  161 |       # La firma no hace falta cuidarla: el keystore de depuración que trae la
+  162 |       # plantilla de Expo es siempre el mismo archivo, así que dos APK armados
+  163 |       # acá quedan firmados igual y uno se pone encima del otro.
+  164 |       - name: Numerar la compilación
+  165 |         id: nombre
+  166 |         run: |
+  167 |           version=$(node -p "require('./app/app.json').expo.version")
+  168 |           codigo=$(git rev-list --count HEAD)
+  169 | 
+  170 |           # Si el historial llegara recortado, la cuenta saldría en 1 o 2 y el
+  171 |           # APK no se podría instalar encima del que ya está. Vale más que la
+  172 |           # compilación se detenga acá, donde se ve el motivo, que entregar un
+  173 |           # archivo que el teléfono rechaza sin decir por qué.
+  174 |           if [ "$codigo" -lt 10 ]; then
+  175 |             echo "::error::La cuenta de commits salió en $codigo. El historial llegó incompleto."
+  176 |             exit 1
+  177 |           fi
+  178 | 
+  179 |           # Va en tres lugares y no es duplicación: `android.versionCode` es lo
+  180 |           # que Android mira para dejar instalar encima, `ios.buildNumber` es
+  181 |           # lo mismo para la App Store —que rechaza una subida cuyo número no
+  182 |           # sea mayor que el anterior— y `extra.compilacion` es lo que la app
+  183 |           # puede leer para mostrarlo, porque los bloques `android` e `ios` no
+  184 |           # llegan a la configuración en todas las plataformas.
+  185 |           #
+  186 |           # iOS se numera acá aunque este flujo no lo compile: el día que
+  187 |           # alguien lo compile desde un Mac, lo va a hacer con este app.json, y
+  188 |           # descubrir el número en el momento del rechazo es tarde.
+  189 |           node -e '
+  190 |             const fs = require("fs");
+  191 |             const ruta = "app/app.json";
+  192 |             const c = JSON.parse(fs.readFileSync(ruta, "utf8"));
+  193 |             const codigo = Number(process.argv[1]);
+  194 |             c.expo.android.versionCode = codigo;
+  195 |             c.expo.ios = { ...c.expo.ios, buildNumber: String(codigo) };
+  196 |             c.expo.extra = { ...c.expo.extra, compilacion: codigo };
+  197 |             fs.writeFileSync(ruta, JSON.stringify(c, null, 2) + "\n");
+  198 |           ' "$codigo"
+  199 |           # Un APK sin servidor y uno conectado se ven igual por fuera y hacen
+  200 |           # cosas distintas: en el primero nada de lo que hagas se guarda. Que
+  201 |           # se distingan por el nombre del archivo, antes de instalarlo.
+  202 |           if [ -n "${EXPO_PUBLIC_SUPABASE_URL}" ] && [ -n "${EXPO_PUBLIC_SUPABASE_ANON_KEY}" ]; then
+  203 |             modo="conectada"
+  204 |             marca=""
+  205 |           else
+  206 |             modo="demostración"
+  207 |             marca="-demo"
+  208 |             echo "::warning::Sin SUPABASE_URL ni SUPABASE_ANON_KEY: el APK sale en modo demostración."
+  209 |           fi
+  210 | 
+  211 |           echo "Versión $version · compilación $codigo · $modo"
+  212 |           echo "modo=$modo" >> "$GITHUB_OUTPUT"
+  213 |           echo "sufijo=$version-$codigo-${GITHUB_SHA::7}$marca" >> "$GITHUB_OUTPUT"
+  214 | 
+  215 |       - name: Compilar el APK para arm64
+  216 |         working-directory: app/android
+  217 |         run: |
+  218 |           chmod +x gradlew
+  219 |           ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+  220 |           mkdir -p ../../entrega
+  221 |           cp app/build/outputs/apk/release/*.apk "../../entrega/StudIA-${{ steps.nombre.outputs.sufijo }}.apk"
+  222 | 
+  223 |       # Con R8: encoge el código Java, que es el segundo bulto del paquete
+  224 |       # después de las bibliotecas nativas. Va aparte y no reemplaza al de
+  225 |       # arriba porque R8 rompe código que usa reflexión, y desde el entorno de
+  226 |       # desarrollo no hay forma de abrir el APK resultante para comprobarlo.
+  227 |       # Si este falla al arrancar, el de arriba sigue estando.
+  228 |       - name: Compilar el APK liviano
+  229 |         working-directory: app/android
+  230 |         run: |
+  231 |           ./limpiar.sh
+  232 |           ./gradlew assembleRelease --no-daemon \
+  233 |             -PreactNativeArchitectures=arm64-v8a \
+  234 |             -Pandroid.enableMinifyInReleaseBuilds=true \
+  235 |             -Pandroid.enableShrinkResourcesInReleaseBuilds=true
+  236 |           cp app/build/outputs/apk/release/*.apk "../../entrega/StudIA-liviano-${{ steps.nombre.outputs.sufijo }}.apk"
+  237 | 
+  238 |       - name: Compilar el APK universal
+  239 |         working-directory: app/android
+  240 |         run: |
+  241 |           ./limpiar.sh
+  242 |           ./gradlew assembleRelease --no-daemon
+  243 |           cp app/build/outputs/apk/release/*.apk "../../entrega/StudIA-universal-${{ steps.nombre.outputs.sufijo }}.apk"
+  244 | 
+  245 |       # ── Google Play ─────────────────────────────────────────────────────
+  246 |       #
+  247 |       # Va después de los APK a propósito. Las propiedades de la firma se
+  248 |       # escriben recién acá, así que los tres APK de arriba salen con la clave
+  249 |       # de depuración: esa es la que permite instalarlos encima del que ya está
+  250 |       # en la tablet sin desinstalar nada. Si salieran firmados con la de
+  251 |       # subida, cada actualización obligaría a desinstalar primero.
+  252 |       #
+  253 |       # Play no acepta APK para una aplicación nueva: pide un .aab.
+  254 |       - name: Armar el .aab para Google Play
+  255 |         if: env.ANDROID_KEYSTORE_BASE64 != ''
+  256 |         working-directory: app/android
+  257 |         env:
+  258 |           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+  259 |           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+  260 |           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+  261 |         run: |
+  262 |           ./limpiar.sh
+  263 |           # El archivo queda junto a build.gradle: `storeFile file(...)` resuelve
+  264 |           # desde ahí.
+  265 |           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/subida.keystore
+  266 |           # Por gradle.properties y no por -P: así las claves no quedan escritas
+  267 |           # en la línea de comando, que se ve entera en el registro.
+  268 |           {
+  269 |             echo "STUDIA_KEYSTORE=subida.keystore"
+  270 |             echo "STUDIA_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+  271 |             echo "STUDIA_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+  272 |             echo "STUDIA_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+  273 |           } >> gradle.properties
+  274 |           ./gradlew bundleRelease --no-daemon
+  275 |           cp app/build/outputs/bundle/release/*.aab \
+  276 |             "../../entrega/StudIA-${{ steps.nombre.outputs.sufijo }}.aab"
+  277 | 
+  278 |       # Un .aab firmado con la clave equivocada se ve igual que uno bueno, y el
+  279 |       # error aparece recién al subirlo, con un mensaje que no dice que el
+  280 |       # problema sea la firma.
+  281 |       - name: Comprobar con qué clave quedó firmado
+  282 |         if: env.ANDROID_KEYSTORE_BASE64 != ''
+  283 |         run: |
+  284 |           firma=$(keytool -printcert -jarfile entrega/*.aab 2>/dev/null | grep -m1 "Propietario\|Owner")
+  285 |           echo "$firma"
+  286 |           if echo "$firma" | grep -qi "Android Debug"; then
+  287 |             echo "::error::El .aab salió firmado con la clave de depuración. Play lo rechazaría."
+  288 |             exit 1
+  289 |           fi
+  290 |           if [ -z "$firma" ]; then
+  291 |             echo "::error::El .aab no trae firma."
+  292 |             exit 1
+  293 |           fi
+  294 | 
+  295 |       - name: Sin clave de subida no hay .aab
+  296 |         if: env.ANDROID_KEYSTORE_BASE64 == ''
+  297 |         run: |
+  298 |           echo "::warning::Sin ANDROID_KEYSTORE_BASE64 no se arma el .aab. Los APK sirven para probar, no para publicar en Google Play."
+  299 | 
+  300 |       - name: Cuánto pesa cada uno
+  301 |         run: ls -lh entrega/
+  302 | 
+  303 |       - uses: actions/upload-artifact@v4
+  304 |         with:
+  305 |           name: studia-apk
+  306 |           path: |
+  307 |             entrega/*.apk
+  308 |             entrega/*.aab
+  309 |           if-no-files-found: error
+  310 |           retention-days: 30
+  311 | 
+  312 |       # El artefacto de arriba se baja como .zip, y descomprimir en una tablet
+  313 |       # es una molestia. La versión deja el .apk como descarga directa: se
+  314 |       # toca el enlace y Android lo instala. La etiqueta es siempre la misma,
+  315 |       # así que el enlace no cambia de una compilación a otra.
+  316 |       - name: Publicarlo como descarga directa
+  317 |         env:
+  318 |           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  319 |         run: |
+  320 |           sufijo="${{ steps.nombre.outputs.sufijo }}"
+  321 |           gh release delete ultimo-apk --yes --cleanup-tag 2>/dev/null || true
+  322 |           gh release create ultimo-apk entrega/*.apk \
+  323 |             --title "StudIA $sufijo" \
+  324 |             --notes "Compilado desde \`${{ github.ref_name }}\` (${{ github.sha }}).
+  325 | 
+  326 |           **StudIA-$sufijo.apk** es el que sirve: trae solo arm64, que es lo que usa
+  327 |           cualquier tablet o teléfono de los últimos años.
+  328 | 
+  329 |           **StudIA-liviano-$sufijo.apk** es el mismo, encogido con R8. Pesa bastante
+  330 |           menos, pero no está probado: si no arranca, usa el de arriba.
+  331 | 
+  332 |           **StudIA-universal-$sufijo.apk** trae las cuatro arquitecturas y pesa el
+  333 |           triple. Solo hace falta si el otro dice que no se puede instalar, cosa que
+  334 |           pasa en aparatos viejos o en un Chromebook con procesador Intel.
+  335 | 
+  336 |           Se instala tocándolo y aceptando instalar desde esta fuente.
+  337 | 
+  338 |           Esta compilación es **${{ steps.nombre.outputs.modo }}**. Si el nombre del
+  339 |           archivo termina en \`-demo\`, la app trae datos de ejemplo que viven en el
+  340 |           teléfono: no hay cuentas, nada se guarda en un servidor y dos aparatos no
+  341 |           ven lo mismo. Sirve para recorrer las pantallas, no para usarla de verdad.
+  342 | 
+  343 |           El nombre del archivo lleva la versión, el número de compilación y el commit,
+  344 |           así que no se puede confundir con una descarga anterior. La app dice lo mismo
+  345 |           adentro: sale abajo en la pantalla de perfil y en la de elegir perfil.
+  346 | 
+  347 |           Se instala encima de la anterior sin desinstalar nada: mismo paquete, misma
+  348 |           firma y un número de compilación que sube en cada build." \
+  349 |             --target "${{ github.sha }}"
+  350 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: LICENCIA.md
+SHA-256: ae92f5b8817f843ce7b3b9686dcea0058ff5f5d161e1a6e391152446ee50263e
+------------------------------------------------------------------------------
+
+    1 | # Licencia de StudIA
+    2 | 
+    3 | **Copyright © 2026 Tomás Quinteros. Todos los derechos reservados.**
+    4 | 
+    5 | StudIA es software propietario. Este archivo dice qué se puede hacer con él y
+    6 | qué no. Si algo no está permitido aquí, no está permitido.
+    7 | 
+    8 | ## Qué cubre
+    9 | 
+   10 | Todo lo que hay en este repositorio y en la aplicación que sale de él:
+   11 | 
+   12 | - el código fuente, en cualquier lenguaje, y los archivos de configuración;
+   13 | - el esquema de la base de datos, las políticas de acceso y las migraciones;
+   14 | - el diseño de las pantallas, el sistema visual, los íconos y la disposición;
+   15 | - los textos de la aplicación, del sitio y de la documentación;
+   16 | - las instrucciones que reciben los modelos de lenguaje —el comportamiento del
+   17 |   tutor que guía en vez de resolver es parte de la obra, no un detalle técnico—;
+   18 | - el nombre **StudIA**, su logotipo y su identidad visual.
+   19 | 
+   20 | Queda protegido como obra por la Ley N.º 17.336 sobre Propiedad Intelectual de
+   21 | Chile y por los tratados internacionales aplicables. La protección nace con la
+   22 | obra: no depende de ningún registro, y la ausencia de un registro no la debilita.
+   23 | 
+   24 | ## Qué está permitido
+   25 | 
+   26 | 1. **Leer este repositorio**, si tienes acceso a él, para evaluarlo o para
+   27 |    entender cómo funciona.
+   28 | 2. **Usar la aplicación** como estudiante, docente o establecimiento, en los
+   29 |    términos de [`legal/terminos.md`](legal/terminos.md).
+   30 | 3. **Contribuir**, si el titular te lo pidió por escrito. Lo que aportes queda
+   31 |    cubierto por esta misma licencia.
+   32 | 
+   33 | Nada más. En particular, tener acceso al repositorio no da ningún derecho sobre
+   34 | el código.
+   35 | 
+   36 | ## Qué está prohibido sin permiso escrito del titular
+   37 | 
+   38 | - Copiar, reproducir o publicar el código o cualquier parte de él.
+   39 | - Modificarlo, adaptarlo o hacer obras derivadas.
+   40 | - Distribuirlo, venderlo, arrendarlo, sublicenciarlo o cederlo.
+   41 | - Usarlo con fines comerciales, propios o de terceros.
+   42 | - Compilar y distribuir la aplicación, o publicarla en cualquier tienda.
+   43 | - Descompilar el APK, extraer el paquete de JavaScript o hacer ingeniería
+   44 |   inversa, salvo en la medida en que la ley lo permita sin poder renunciarse.
+   45 | - **Usar este código, sus textos o el contenido de sus usuarios para entrenar,
+   46 |   ajustar o evaluar modelos de inteligencia artificial**, ni incorporarlo a un
+   47 |   conjunto de datos con ese fin.
+   48 | - Usar el nombre StudIA, su logotipo o una imitación confundible.
+   49 | 
+   50 | ## Contenido de quienes usan la aplicación
+   51 | 
+   52 | Los apuntes, las preguntas, las grabaciones y las notas que una persona escribe
+   53 | en StudIA son de esa persona. El titular no reclama propiedad sobre ellos. Lo
+   54 | que dice esta licencia es del software, no de lo que se guarda con él.
+   55 | 
+   56 | Cómo se tratan esos datos está en
+   57 | [`legal/privacidad.md`](legal/privacidad.md).
+   58 | 
+   59 | ## Software de terceros
+   60 | 
+   61 | StudIA usa bibliotecas de código abierto, cada una con su propia licencia. Esas
+   62 | licencias mandan sobre su propio código y esta no las reemplaza. El listado está
+   63 | en la aplicación, en **Perfil → Licencias de terceros**, y se genera con
+   64 | `npm run licencias`.
+   65 | 
+   66 | ## Sin garantía
+   67 | 
+   68 | El software se entrega «tal cual», sin garantía de ninguna clase, expresa o
+   69 | implícita. El titular no responde por daños derivados de su uso, en la medida en
+   70 | que la ley lo permita.
+   71 | 
+   72 | ## Permisos y contacto
+   73 | 
+   74 | Para cualquier uso no contemplado aquí —una licencia comercial, un piloto en un
+   75 | establecimiento, una integración— hay que pedir permiso por escrito:
+   76 | 
+   77 | **Tomás Quinteros** · equinterosm33@gmail.com
+   78 | 
+   79 | Que no haya respuesta no equivale a un permiso.
+   80 | 
+   81 | ---
+   82 | 
+   83 | Vigente desde el 31 de agosto de 2026.
+   84 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: LICENSE
+SHA-256: c6104f0d2cd697c792da0ebe40c8cffe8add5e76904da46a409dd92f96f46554
+------------------------------------------------------------------------------
+
+    1 | StudIA — Proprietary Software License
+    2 | Copyright (c) 2026 Tomás Quinteros. All rights reserved.
+    3 | 
+    4 | This software is NOT open source. No permission is granted to use, copy,
+    5 | modify, merge, publish, distribute, sublicense, or sell copies of this
+    6 | software or any portion of it, nor to create derivative works from it, nor
+    7 | to use it to train, fine-tune or evaluate machine-learning models, without
+    8 | the prior written permission of the copyright holder.
+    9 | 
+   10 | Access to this repository does not grant any license to its contents.
+   11 | 
+   12 | Third-party open-source components retain their own licenses, which govern
+   13 | those components and are not superseded by this notice. The list is shipped
+   14 | with the application under Profile - Third-party licenses.
+   15 | 
+   16 | THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   17 | IMPLIED. THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES OR
+   18 | OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
+   19 | 
+   20 | The authoritative text of this license is LICENCIA.md, in Spanish.
+   21 | Permission requests: equinterosm33@gmail.com
+   22 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: PROPIEDAD.md
+SHA-256: 0e6d64deb1dc1774af5a6ebf1da1c27ee240e42095dca651220e9595b0ea70ef
+------------------------------------------------------------------------------
+
+    1 | # La propiedad de StudIA
+    2 | 
+    3 | Qué está protegido, con qué, y qué falta hacer. Este archivo no es un
+    4 | documento legal: es el mapa para saber dónde está cada cosa y qué queda
+    5 | pendiente. El documento que manda es [`LICENCIA.md`](LICENCIA.md).
+    6 | 
+    7 | **Titular: Tomás Quinteros.** Persona natural. Todo lo de acá está a su nombre
+    8 | mientras no exista una sociedad a la que cederle los derechos.
+    9 | 
+   10 | ## Las cuatro cosas que hay que proteger, y cómo
+   11 | 
+   12 | | Qué | Con qué se protege | Cómo está hoy |
+   13 | |---|---|---|
+   14 | | **El código y el diseño** | Derecho de autor (Ley 17.336) | Protegido desde que se escribió. Sin registro. |
+   15 | | **El nombre StudIA** | Marca comercial (Ley 19.039) | **Sin registrar.** Es el hueco más grande. |
+   16 | | **Los datos de los usuarios** | Ley 19.628, y Ley 21.719 desde el 1-dic-2026 | Política escrita; falta el resto. |
+   17 | | **Lo que no se publica** | Secreto empresarial | Depende de que el repositorio esté privado. |
+   18 | 
+   19 | ### El derecho de autor no se pide: nace
+   20 | 
+   21 | El código, el diseño de las pantallas, los textos y las instrucciones del tutor
+   22 | están protegidos desde el momento en que se escribieron. No hace falta registrar
+   23 | nada y la falta de registro no debilita el derecho.
+   24 | 
+   25 | Lo que el registro da es **prueba de fecha**. Si mañana alguien afirma que lo
+   26 | escribió antes, hay que demostrar quién fue primero. Hoy esa prueba existe y es
+   27 | buena: el historial de git, con fecha y autor en cada commit desde el primero.
+   28 | No es tan fuerte como un registro, pero no es poco.
+   29 | 
+   30 | **Registrarlo** se hace en el Departamento de Derechos Intelectuales (DDI) del
+   31 | Servicio Nacional del Patrimonio Cultural. Es barato, se hace en línea, y se
+   32 | entrega el código fuente en un soporte. Conviene cuando haya una versión estable
+   33 | o antes de mostrarlo a un tercero que podría copiarlo.
+   34 | 
+   35 | ### La marca es lo urgente
+   36 | 
+   37 | «StudIA» no está registrada. Mientras no lo esté:
+   38 | 
+   39 | - cualquiera puede inscribirla antes y, si lo hace, **el que tendría que dejar
+   40 |   de usarla eres tú**, no él;
+   41 | - no se puede impedir que otra aplicación de estudio se llame parecido;
+   42 | - Play Store no exige la marca, pero una disputa de nombre puede bajar la app.
+   43 | 
+   44 | Se registra en INAPI (inapi.cl), en línea. Hay que elegir las clases de Niza:
+   45 | para esto van la **9** (programas computacionales), la **41** (servicios de
+   46 | educación y formación) y, si se va a vender como servicio, la **42** (software
+   47 | como servicio). Antes de pagar conviene buscar en el registro de INAPI si hay
+   48 | marcas parecidas en esas clases, porque una oposición cuesta más que el trámite.
+   49 | 
+   50 | Vale la pena hacerlo **antes** de publicar en Play Store, no después: publicar
+   51 | es lo que hace visible el nombre.
+   52 | 
+   53 | ### Los datos de los usuarios
+   54 | 
+   55 | StudIA trata datos de estudiantes, muchos menores de edad, y transcribe clases.
+   56 | La [política de privacidad](legal/privacidad.md) ya dice qué se guarda, para
+   57 | qué, con quién se comparte y por cuánto tiempo.
+   58 | 
+   59 | Lo que falta:
+   60 | 
+   61 | - Un **contrato de encargo de tratamiento** con cada colegio que la use. El
+   62 |   colegio es el responsable de los datos de sus alumnos; StudIA los trata por
+   63 |   encargo suyo, y eso se firma.
+   64 | - El **consentimiento de los apoderados**, que lo recoge el establecimiento.
+   65 | - Un **procedimiento escrito** para responder a quien pida ver o borrar sus
+   66 |   datos, con plazos.
+   67 | - Revisar todo esto **antes del 1 de diciembre de 2026**, cuando entra en
+   68 |   vigencia la Ley 21.719 y aparece una autoridad con facultad de multar.
+   69 | 
+   70 | ### El secreto
+   71 | 
+   72 | Lo que no está publicado no lo puede copiar nadie. Por eso importa que el
+   73 | repositorio esté privado: el código, el esquema de la base de datos y la
+   74 | especificación del producto son el activo, y estuvieron públicos.
+   75 | 
+   76 | Dentro del repositorio, `documentacion/` guarda la especificación y la
+   77 | arquitectura. Estuvieron en `docs/`, que es la carpeta que GitHub Pages publica
+   78 | entera: cualquiera que adivinara el nombre del archivo se llevaba el diseño
+   79 | completo del producto. Ahora `docs/` tiene solo el sitio.
+   80 | 
+   81 | ## Lo que ya está hecho en el código
+   82 | 
+   83 | - `LICENCIA.md` y `LICENSE` — licencia propietaria, todos los derechos reservados.
+   84 | - `legal/terminos.md` y `legal/privacidad.md` — generados desde
+   85 |   `app/src/dominio/legales.ts`, que es la única fuente. `npm run legales` los
+   86 |   reescribe y `npm run prueba:legales` avisa si quedaron atrás.
+   87 | - Pantalla **Legal** dentro de la app, con los tres documentos, alcanzable desde
+   88 |   el perfil del alumno y del profesor, y desde la portada antes de entrar.
+   89 | - Aviso de aceptación junto al botón de entrar, con los enlaces al texto
+   90 |   completo: el consentimiento se pide donde se entra, no escondido en un ajuste.
+   91 | - Aviso de copyright en el perfil, en el pie de la portada y en el `<head>` del
+   92 |   sitio.
+   93 | - `app/src/dominio/terceros.ts` — las 24 bibliotecas con su licencia y su aviso
+   94 |   de copyright, generado con `npm run licencias`. Viaja dentro del APK porque
+   95 |   MIT y BSD lo exigen.
+   96 | - `docs/robots.txt` — le niega el sitio a los rastreadores que arman conjuntos
+   97 |   de entrenamiento. Lo respetan solo si quieren, pero deja la negativa escrita.
+   98 | - `terminos.html` y `privacidad.html` en el sitio: Play Store exige una
+   99 |   dirección web pública para la política de privacidad.
+  100 | - **Borrar la cuenta** desde el perfil, con confirmación escrita, y
+  101 |   `borrar-cuenta.html` como la dirección pública que Play Store también exige.
+  102 |   Un disparador quita el nombre de lo publicado en el foro, que es lo que la
+  103 |   política promete y la cascada por sí sola no hacía.
+  104 | - Ícono propio, adaptativo y monocromo, y la pantalla de arranque en el papel
+  105 |   de la aplicación.
+  106 | 
+  107 | ## Lo que falta y no se puede hacer desde el código
+  108 | 
+  109 | | Qué | Dónde | Cuándo |
+  110 | |---|---|---|
+  111 | | Poner el repositorio en privado | GitHub → Settings → General → Danger Zone | Ahora |
+  112 | | Registrar la marca StudIA | inapi.cl, clases 9, 41 y 42 | Antes de publicar |
+  113 | | Registrar el software | DDI, Servicio Nacional del Patrimonio Cultural | Cuando haya versión estable |
+  114 | | Un correo de contacto del proyecto | En vez del correo personal en los textos legales | Antes de publicar |
+  115 | | Contrato de encargo con cada colegio | Con abogado | Antes del primer colegio |
+  116 | | Revisión legal de los dos textos | Con abogado | Antes de cobrar |
+  117 | | Llave de firma propia para el APK | Hoy se firma con la llave de depuración de Expo | Antes de Play Store |
+  118 | 
+  119 | Sobre lo último: hoy los APK se firman con la llave de depuración que trae la
+  120 | plantilla de Expo. Sirve para probar y **no sirve para publicar**, porque es una
+  121 | llave pública que cualquiera tiene: alguien podría firmar un APK falso que el
+  122 | teléfono aceptaría como actualización del tuyo. Play Store necesita una llave
+  123 | propia, guardada donde no se pierda —si se pierde, no se puede volver a
+  124 | actualizar la aplicación nunca más—.
+  125 | 
+  126 | ---
+  127 | 
+  128 | Última revisión: 31 de agosto de 2026.
+  129 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: README.md
+SHA-256: 10ab3b89288f85a50fc27b74351d70b8e8bb6447b9e5602f74df3f835129d7d1
+------------------------------------------------------------------------------
+
+    1 | # StudIA
+    2 | 
+    3 | > **Aprende pensando, no copiando.**
+    4 | > Tus clases, tu materia y tus tareas en un solo lugar. Y un tutor que te guía para que
+    5 | > descubras la respuesta.
+    6 | 
+    7 | Plataforma de estudio para universitarios de Ingeniería Civil Industrial: asignaturas,
+    8 | materia, horario, tareas y clases —en vivo por audio y grabadas— con un tutor de IA que,
+    9 | por diseño, **nunca resuelve el ejercicio**.
+   10 | 
+   11 | ## Contenido del repositorio
+   12 | 
+   13 | | Ruta | Qué es |
+   14 | |---|---|
+   15 | | [`app/`](app) | La aplicación en Expo (React Native) |
+   16 | | [`supabase/`](supabase) | Esquema, políticas de acceso, datos de ejemplo y la función del tutor |
+   17 | | [`documentacion/poner-en-marcha.md`](documentacion/poner-en-marcha.md) | **De un repositorio a una app que funciona: el orden exacto** |
+   18 | | [`documentacion/arquitectura.md`](documentacion/arquitectura.md) | Cómo levantarlo, cómo se verifica y qué está simplificado |
+   19 | | [`documentacion/instalar-en-tablet.md`](documentacion/instalar-en-tablet.md) | Compilar el APK y probarlo en una tablet Android |
+   20 | | [`documentacion/studia-spec.md`](documentacion/studia-spec.md) | Especificación de producto: navegación, pantallas, sistema visual y decisiones abiertas |
+   21 | | [`prototipo/index.html`](prototipo/index.html) | Prototipo interactivo — sigue siendo la referencia de diseño |
+   22 | | [`LICENCIA.md`](LICENCIA.md) | Qué se puede hacer con este código y qué no |
+   23 | | [`PROPIEDAD.md`](PROPIEDAD.md) | Qué protege qué, y los trámites que faltan |
+   24 | | [`legal/`](legal) | Términos de uso y política de privacidad (se generan) |
+   25 | 
+   26 | ## La otra aplicación de este repositorio
+   27 | 
+   28 | En la rama [`acta`](../../tree/acta) vive **Acta**, una aplicación de reuniones
+   29 | profesionales. No es una versión de StudIA ni un experimento paralelo: es lo
+   30 | que este mismo proyecto fue durante un tiempo, antes de volver a ser StudIA.
+   31 | Cuando volvió, Acta quedó viva solo en el historial, y esa rama la rescata.
+   32 | 
+   33 | Las dos comparten historia hasta `7b2f048` y de ahí en adelante son
+   34 | independientes: dos productos, dos identificadores de paquete
+   35 | (`cl.studia.app` y `cl.acta.app`), dos APK que se pueden tener instalados a
+   36 | la vez. No se mezclan.
+   37 | 
+   38 | ## Levantarlo
+   39 | 
+   40 | ```bash
+   41 | supabase start && supabase db reset
+   42 | supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+   43 | supabase functions serve tutor
+   44 | 
+   45 | cd app && cp .env.example .env && npm install && npm start
+   46 | ```
+   47 | 
+   48 | Cuenta de ejemplo: **eduardo@studia.cl / clave-demo**.
+   49 | Los detalles y lo que falta están en [`documentacion/arquitectura.md`](documentacion/arquitectura.md).
+   50 | 
+   51 | ## Verificación
+   52 | 
+   53 | ```bash
+   54 | npm run prueba:todo     # todo junto
+   55 | 
+   56 | npm run prueba          # 87 pruebas del dominio y de los núcleos del tutor
+   57 | npm run prueba:ui       # 56 pruebas que renderizan las pantallas de verdad
+   58 | npm run prueba:bd       # 35 aserciones de acceso contra un Postgres real
+   59 | npm run tipos           # tsc en modo estricto
+   60 | ```
+   61 | 
+   62 | ## Ver el prototipo (referencia de diseño)
+   63 | 
+   64 | Abre `prototipo/index.html` en el navegador, o sirve la carpeta:
+   65 | 
+   66 | ```bash
+   67 | python3 -m http.server 8000
+   68 | # http://localhost:8000/prototipo/
+   69 | ```
+   70 | 
+   71 | **Recorrido sugerido**
+   72 | 
+   73 | 1. *Comenzar* → *Iniciar sesión*
+   74 | 2. Entra a la clase **en vivo** desde el banner rojo: silencia y activa el micrófono, pide la palabra
+   75 | 3. Vuelve con el chevron: caes en **Cálculo I** → recorre *Materia*, *Clases*, *Tareas*, *Horario*
+   76 | 4. Abre una **clase grabada** y usa el reproductor y los capítulos
+   77 | 5. Toca los **tres puntitos (⋮)** de la asignatura: ahí están Notas, Programa, Compañeros y Archivos
+   78 | 6. Toca la **campana**: cada notificación te deja en el lugar exacto
+   79 | 7. *Ver notas* → entra a **Investigación de Operaciones**: vas con 4,2 y te dice cuánto necesitas
+   80 | 8. En una asignatura, entra al **Foro** y responde un hilo
+   81 | 9. En **Tareas**, abre una y toca *Pedir guía al tutor*
+   82 | 10. Escríbele **"dame la respuesta"** y observa qué hace
+   83 | 
+   84 | ## Qué hay dentro
+   85 | 
+   86 | - **Inicio** — clase en vivo, bloques de hoy, próximas entregas y las seis asignaturas
+   87 | - **Asignatura** — nueve secciones tras los tres puntitos: materia, clases, tareas, foro, notas, horario, programa, compañeros y archivos
+   88 | - **Clase en vivo** — audio con ecualizador, participantes, micrófono, pedir la palabra
+   89 | - **Clase grabada** — reproductor con velocidades y capítulos
+   90 | - **Horario** — semana Lun–Vie con salas, tipos de bloque y entregas del día
+   91 | - **Tareas** — pendientes, entregadas y todas, con criterios de evaluación
+   92 | - **Foro** — hilos por asignatura, avisos del profesor fijados, respuestas
+   93 | - **Notas** — escala 1,0–7,0, ponderación por evaluación y cuánto necesitas para aprobar
+   94 | - **Notificaciones** — clase en vivo, avisos, vencimientos y notas publicadas
+   95 | - **Tutor** — accesible desde cualquier pantalla, con el contexto de dónde venías
+   96 | 
+   97 | ## Stack previsto
+   98 | 
+   99 | - **App**: Expo (React Native)
+  100 | - **Backend**: Supabase (auth + datos)
+  101 | - **IA**: Claude, invocado desde una función segura en el servidor
+  102 | - **Audio en vivo**: por decidir — ver *Decisiones abiertas* en la especificación
+  103 | 
+  104 | ## Estado
+  105 | 
+  106 | La app tiene sus catorce pantallas y las nueve secciones por asignatura, sobre un
+  107 | backend verificado. Falta conectar el audio de las clases en vivo, subir los archivos
+  108 | de las grabaciones y las entregas, las notificaciones push y el panel docente — todo
+  109 | detallado en [`documentacion/arquitectura.md`](documentacion/arquitectura.md).
+  110 | 
+  111 | ## Propiedad
+  112 | 
+  113 | **Copyright © 2026 Tomás Quinteros. Todos los derechos reservados.**
+  114 | 
+  115 | StudIA es software propietario, no de código abierto. Tener acceso a este
+  116 | repositorio no da ningún derecho sobre su contenido: no se puede copiar,
+  117 | modificar, distribuir, compilar y publicar, ni usar para entrenar modelos.
+  118 | Las condiciones completas están en [`LICENCIA.md`](LICENCIA.md), y qué
+  119 | protege qué —y qué falta registrar— en [`PROPIEDAD.md`](PROPIEDAD.md).
+  120 | 
+  121 | Los textos que ve quien usa la aplicación son
+  122 | [`legal/terminos.md`](legal/terminos.md) y
+  123 | [`legal/privacidad.md`](legal/privacidad.md). No se editan a mano: salen de
+  124 | `app/src/dominio/legales.ts` con `npm run legales`, para que la pantalla y el
+  125 | repositorio no puedan decir cosas distintas.
+  126 | 
+  127 | Las bibliotecas de terceros conservan sus propias licencias; el listado se
+  128 | regenera con `npm run licencias` y viaja dentro del APK, en
+  129 | **Perfil → Licencias de terceros**.
+  130 | 
+  131 | Permisos y licencias comerciales: equinterosm33@gmail.com
+  132 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/.env.example
+SHA-256: ba633964221ba9ee8d3cf08eb052efec23cfb74fdb16e35bd659dccb5746a14c
+------------------------------------------------------------------------------
+
+    1 | # Copiar a .env y completar con los datos del proyecto de Supabase.
+    2 | # La clave anónima es pública por diseño: lo que protege los datos son las
+    3 | # políticas de acceso, no el secreto de esta clave.
+    4 | EXPO_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+    5 | EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+    6 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/.gitignore
+SHA-256: 68c85a094f411a8bd9c6c7f7b3d72e8de2764bcf5216a27320aaaa0f8167b2f7
+------------------------------------------------------------------------------
+
+    1 | # Los genera `expo prebuild` en la raíz de la aplicación, y no se versionan.
+    2 | #
+    3 | # Anclados con la barra del principio a propósito. Sin ella, `android/` casa
+    4 | # con cualquier carpeta de ese nombre a cualquier profundidad, y se lleva por
+    5 | # delante las fuentes de los módulos nativos propios —`modules/voz/android`—,
+    6 | # que sí hay que versionar: sin ellas la compilación no tiene qué compilar y
+    7 | # nada avisa.
+    8 | /android/
+    9 | /ios/
+   10 | 
+   11 | .paquete-prueba/
+   12 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/App.tsx
+SHA-256: eb65c5c9b1e7f5e9703068789bc4c389615504b12b698e65b22590a27df11fac
+------------------------------------------------------------------------------
+
+    1 | import { useEffect, useState } from "react";
+    2 | import * as Linking from "expo-linking";
+    3 | import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+    4 | import { NavigationContainer } from "@react-navigation/native";
+    5 | import { createNativeStackNavigator } from "@react-navigation/native-stack";
+    6 | import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+    7 | import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+    8 | import { StatusBar } from "expo-status-bar";
+    9 | import type { Session } from "@supabase/supabase-js";
+   10 | 
+   11 | import { supabase } from "./src/lib/supabase.ts";
+   12 | import { AVISO_DEMO, MODO_DEMO } from "./src/lib/config.ts";
+   13 | import { color } from "./src/ui/tema.ts";
+   14 | import {
+   15 |   OPCIONES_PESTANAS, OPCIONES_PILA, TEMA_NAVEGACION,
+   16 | } from "./src/ui/navegacion.ts";
+   17 | import type {
+   18 |   RutasPestanas, RutasPestanasDocente, RutasPila, RutasPilaDocente,
+   19 | } from "./src/lib/rutas.ts";
+   20 | 
+   21 | import Entrada from "./src/pantallas/Entrada.tsx";
+   22 | import Inicio from "./src/pantallas/Inicio.tsx";
+   23 | import Horario from "./src/pantallas/Horario.tsx";
+   24 | import Tareas from "./src/pantallas/Tareas.tsx";
+   25 | import Tutor from "./src/pantallas/Tutor.tsx";
+   26 | import Asignatura from "./src/pantallas/Asignatura.tsx";
+   27 | import Notas from "./src/pantallas/Notas.tsx";
+   28 | import Notificaciones from "./src/pantallas/Notificaciones.tsx";
+   29 | import Hilo from "./src/pantallas/Hilo.tsx";
+   30 | import NuevoHilo from "./src/pantallas/NuevoHilo.tsx";
+   31 | import Tarea from "./src/pantallas/Tarea.tsx";
+   32 | import Perfil from "./src/pantallas/Perfil.tsx";
+   33 | import ClaseEnVivo from "./src/pantallas/ClaseEnVivo.tsx";
+   34 | import Grabacion from "./src/pantallas/Grabacion.tsx";
+   35 | import Escucha from "./src/pantallas/Escucha.tsx";
+   36 | import Apunte from "./src/pantallas/Apunte.tsx";
+   37 | import Lectura from "./src/pantallas/Lectura.tsx";
+   38 | import Consejos from "./src/pantallas/Consejos.tsx";
+   39 | import Legal, { TITULO_LEGAL } from "./src/pantallas/Legal.tsx";
+   40 | import ClaveNueva, { EnlaceInservible } from "./src/pantallas/ClaveNueva.tsx";
+   41 | import { leerEnlace } from "./src/dominio/recuperacion.ts";
+   42 | import { abrirConEnlace } from "./src/lib/recuperacion.ts";
+   43 | import Quiz from "./src/pantallas/Quiz.tsx";
+   44 | import Fichas from "./src/pantallas/Fichas.tsx";
+   45 | import MisApuntes from "./src/pantallas/MisApuntes.tsx";
+   46 | import InicioDocente from "./src/pantallas/docente/InicioDocente.tsx";
+   47 | import RamoDocente from "./src/pantallas/docente/RamoDocente.tsx";
+   48 | import PerfilDocente from "./src/pantallas/docente/PerfilDocente.tsx";
+   49 | import Asistente from "./src/pantallas/docente/Asistente.tsx";
+   50 | import MaterialDocente from "./src/pantallas/docente/MaterialDocente.tsx";
+   51 | import InicioAdmin from "./src/pantallas/admin/InicioAdmin.tsx";
+   52 | import { usarQuienSoy } from "./src/lib/quien-soy.ts";
+   53 | import { Icono } from "./src/ui/Icono.tsx";
+   54 | import { Barrera } from "./src/ui/Barrera.tsx";
+   55 | import { anotarPantalla, engancharManejadores } from "./src/lib/errores.ts";
+   56 | import { prepararAvisos } from "./src/lib/avisos.ts";
+   57 | 
+   58 | const Pila = createNativeStackNavigator<RutasPila>();
+   59 | const Pestanas = createBottomTabNavigator<RutasPestanas>();
+   60 | const PilaDocente = createNativeStackNavigator<RutasPilaDocente>();
+   61 | const PestanasDocente = createBottomTabNavigator<RutasPestanasDocente>();
+   62 | 
+   63 | const ICONO_PESTANA = {
+   64 |   Inicio: "inicio", Horario: "horario", Tareas: "tareas",
+   65 |   Apuntes: "documento", Tutor: "tutor",
+   66 | } as const;
+   67 | 
+   68 | function Principal() {
+   69 |   return (
+   70 |     <Pestanas.Navigator
+   71 |       screenOptions={({ route }) => ({
+   72 |         ...OPCIONES_PESTANAS,
+   73 |         tabBarIcon: ({ color: tono, size }) => (
+   74 |           <Icono nombre={ICONO_PESTANA[route.name]} tamano={size} tono={tono} />
+   75 |         ),
+   76 |       })}
+   77 |     >
+   78 |       <Pestanas.Screen name="Inicio" component={Inicio} />
+   79 |       <Pestanas.Screen name="Horario" component={Horario} />
+   80 |       <Pestanas.Screen name="Tareas" component={Tareas} />
+   81 |       <Pestanas.Screen name="Apuntes" component={MisApuntes} options={{ title: "Apuntes" }} />
+   82 |       <Pestanas.Screen name="Tutor" component={Tutor} />
+   83 |     </Pestanas.Navigator>
+   84 |   );
+   85 | }
+   86 | 
+   87 | const ICONO_DOCENTE = {
+   88 |   Cursos: "documento", Material: "ejercicios", Asistente: "tutor",
+   89 |   Horario: "horario", Perfil: "persona",
+   90 | } as const;
+   91 | 
+   92 | /** Las pestañas de quien dicta. Otra aplicación sobre los mismos datos. */
+   93 | function PrincipalDocente() {
+   94 |   return (
+   95 |     <PestanasDocente.Navigator
+   96 |       screenOptions={({ route }) => ({
+   97 |         ...OPCIONES_PESTANAS,
+   98 |         tabBarIcon: ({ color: tono, size }) => (
+   99 |           <Icono nombre={ICONO_DOCENTE[route.name]} tamano={size} tono={tono} />
+  100 |         ),
+  101 |       })}
+  102 |     >
+  103 |       <PestanasDocente.Screen name="Cursos" component={InicioDocente} />
+  104 |       <PestanasDocente.Screen name="Material" component={MaterialDocente} />
+  105 |       <PestanasDocente.Screen name="Asistente" component={Asistente} />
+  106 |       <PestanasDocente.Screen name="Horario" component={Horario} />
+  107 |       <PestanasDocente.Screen name="Perfil" component={PerfilDocente} />
+  108 |     </PestanasDocente.Navigator>
+  109 |   );
+  110 | }
+  111 | 
+  112 | function AppDocente() {
+  113 |   return (
+  114 |     <PilaDocente.Navigator screenOptions={OPCIONES_PILA}>
+  115 |       <PilaDocente.Screen name="PrincipalDocente" component={PrincipalDocente}
+  116 |         options={{ headerShown: false }} />
+  117 |       <PilaDocente.Screen name="RamoDocente" component={RamoDocente} options={{ title: "Curso" }} />
+  118 |       <PilaDocente.Screen name="Escucha" component={Escucha} options={{ title: "Modo escucha" }} />
+  119 |       <PilaDocente.Screen name="Legal" component={Legal}
+  120 |         options={({ route }) => ({ title: TITULO_LEGAL[route.params?.que ?? "terminos"] })} />
+  121 |     </PilaDocente.Navigator>
+  122 |   );
+  123 | }
+  124 | 
+  125 | export default function App() {
+  126 |   const [sesion, setSesion] = useState<Session | null>(null);
+  127 |   const [listo, setListo] = useState(false);
+  128 |   // Qué se está haciendo con el enlace que abrió la aplicación, si es que
+  129 |   // alguno la abrió. Null es el caso normal: se entró tocando el ícono.
+  130 |   const [enlace, setEnlace] = useState<
+  131 |     { paso: "clave" } | { paso: "problema"; mensaje: string } | null
+  132 |   >(null);
+  133 |   // Quién eres sale de la base cuando hay servidor, y del perfil elegido
+  134 |   // cuando no. La app no distingue: solo mira el rol.
+  135 |   const { yo, listo: sePudoAveriguar } = usarQuienSoy();
+  136 | 
+  137 |   // Lo que revienta fuera de React —un setTimeout, una promesa sin catch— no
+  138 |   // pasa por la barrera, y son la mitad de las caídas. Se engancha una vez.
+  139 |   useEffect(() => {
+  140 |     engancharManejadores();
+  141 |     // Sin esto, un aviso que llega con la aplicación abierta no se ve en
+  142 |     // ninguna parte: el sistema da por hecho que la app ya lo mostró.
+  143 |     prepararAvisos();
+  144 |   }, []);
+  145 | 
+  146 |   useEffect(() => {
+  147 |     // En demostración no hay a quién preguntarle por la sesión: se entra directo.
+  148 |     if (MODO_DEMO) { setListo(true); return; }
+  149 | 
+  150 |     supabase.auth.getSession().then(({ data }) => {
+  151 |       setSesion(data.session);
+  152 |       setListo(true);
+  153 |     });
+  154 |     const { data: sub } = supabase.auth.onAuthStateChange((_evento, s) => setSesion(s));
+  155 |     return () => sub.subscription.unsubscribe();
+  156 |   }, []);
+  157 | 
+  158 |   // El enlace de «olvidé mi clave».
+  159 |   //
+  160 |   // Llega de dos formas y hay que atender las dos: si la aplicación estaba
+  161 |   // cerrada, el sistema la abre con la dirección adentro; si estaba abierta en
+  162 |   // segundo plano, llega como un aviso. Atender solo la segunda es el error
+  163 |   // fácil, y deja al que abre el correo con la app cerrada —o sea, a casi
+  164 |   // todos— mirando la portada sin entender por qué no pasó nada.
+  165 |   useEffect(() => {
+  166 |     if (MODO_DEMO) return;
+  167 |     let vivo = true;
+  168 | 
+  169 |     async function atender(url: string | null) {
+  170 |       const leido = leerEnlace(url);
+  171 |       if (leido.tipo === "otro") return;
+  172 |       if (leido.tipo === "problema") { if (vivo) setEnlace({ paso: "problema", mensaje: leido.mensaje }); return; }
+  173 | 
+  174 |       const problema = await abrirConEnlace(leido.acceso, leido.refresco);
+  175 |       if (!vivo) return;
+  176 |       setEnlace(problema ? { paso: "problema", mensaje: problema } : { paso: "clave" });
+  177 |     }
+  178 | 
+  179 |     void Linking.getInitialURL().then(atender);
+  180 |     const sub = Linking.addEventListener("url", ({ url }) => void atender(url));
+  181 |     return () => { vivo = false; sub.remove(); };
+  182 |   }, []);
+  183 | 
+  184 |   if (!listo || !sePudoAveriguar) {
+  185 |     return (
+  186 |       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.fondo }}>
+  187 |         <ActivityIndicator color={color.marca} />
+  188 |       </View>
+  189 |     );
+  190 |   }
+  191 | 
+  192 |   // Por encima de todo: quien viene del correo va a cambiar su clave, y
+  193 |   // dejarlo caer en la aplicación normal —la sesión ya está abierta— sería
+  194 |   // justo no hacer aquello para lo que pidió el enlace.
+  195 |   if (enlace) {
+  196 |     return (
+  197 |       <SafeAreaProvider>
+  198 |         <StatusBar style="dark" />
+  199 |         {enlace.paso === "clave"
+  200 |           ? <ClaveNueva listo={() => setEnlace(null)} />
+  201 |           : <EnlaceInservible mensaje={enlace.mensaje} listo={() => setEnlace(null)} />}
+  202 |       </SafeAreaProvider>
+  203 |     );
+  204 |   }
+  205 | 
+  206 |   return (
+  207 |     <Barrera>
+  208 |     <SafeAreaProvider>
+  209 |       <StatusBar style="dark" />
+  210 |       {MODO_DEMO ? (
+  211 |         <SafeAreaView edges={["top"]} style={cinta.fondo}>
+  212 |           <Text style={cinta.texto}>{AVISO_DEMO}</Text>
+  213 |         </SafeAreaView>
+  214 |       ) : null}
+  215 |       <NavigationContainer
+  216 |         theme={TEMA_NAVEGACION}
+  217 |         // Para que un reporte de caída diga en qué pantalla fue. Sin esto,
+  218 |         // «reventó» sin más no alcanza para ir a buscar nada.
+  219 |         onStateChange={(estado) => anotarPantalla(rutaVisible(estado))}
+  220 |       >
+  221 |         {/* Con servidor o sin él, se entra por la portada. */}
+  222 |         {(MODO_DEMO && !yo) || (!sesion && !MODO_DEMO) ? (
+  223 |           <Entrada />
+  224 |         ) : yo?.rol === "profesor" ? (
+  225 |           <AppDocente />
+  226 |         ) : yo?.rol === "administrador" ? (
+  227 |           <PilaDocente.Navigator screenOptions={OPCIONES_PILA}>
+  228 |             <PilaDocente.Screen name="PrincipalDocente" component={PrincipalAdmin}
+  229 |               options={{ headerShown: false }} />
+  230 |             {/* La administración usa el mismo perfil que quien dicta, y ese
+  231 |                 perfil lleva a los textos legales: sin esta pantalla acá, el
+  232 |                 enlace existe y no va a ninguna parte. */}
+  233 |             <PilaDocente.Screen name="Legal" component={Legal}
+  234 |               options={({ route }) => ({ title: TITULO_LEGAL[route.params?.que ?? "terminos"] })} />
+  235 |           </PilaDocente.Navigator>
+  236 |         ) : (
+  237 |           <Pila.Navigator screenOptions={OPCIONES_PILA}>
+  238 |             <Pila.Screen name="Principal" component={Principal} options={{ headerShown: false }} />
+  239 |             <Pila.Screen name="Asignatura" component={Asignatura} />
+  240 |             <Pila.Screen name="Notas" component={Notas} options={{ title: "Mis notas" }} />
+  241 |             <Pila.Screen name="Notificaciones" component={Notificaciones} />
+  242 |             <Pila.Screen name="Hilo" component={Hilo}
+  243 |               options={({ route }) => ({ title: route.params.titulo })} />
+  244 |             <Pila.Screen name="NuevoHilo" component={NuevoHilo} options={{ title: "Nuevo hilo" }} />
+  245 |             <Pila.Screen name="Tarea" component={Tarea} options={{ title: "Tarea" }} />
+  246 |             <Pila.Screen name="Perfil" component={Perfil} options={{ title: "Mi perfil" }} />
+  247 |             <Pila.Screen name="Apunte" component={Apunte} options={{ title: "Apuntes de clase" }} />
+  248 |             <Pila.Screen name="Lectura" component={Lectura} options={{ title: "Lectura" }} />
+  249 |             <Pila.Screen name="Consejos" component={Consejos} options={{ title: "Cómo vas estudiando" }} />
+  250 |             <Pila.Screen name="Legal" component={Legal}
+  251 |               options={({ route }) => ({ title: TITULO_LEGAL[route.params?.que ?? "terminos"] })} />
+  252 |             <Pila.Screen name="Quiz" component={Quiz} options={{ title: "Ponerme a prueba" }} />
+  253 |             <Pila.Screen name="Fichas" component={Fichas} options={{ title: "Fichas de repaso" }} />
+  254 |             <Pila.Screen name="Grabacion" component={Grabacion} options={{ title: "Clase grabada" }} />
+  255 |             <Pila.Screen name="Escucha" component={Escucha} options={{ title: "Modo escucha" }} />
+  256 |             <Pila.Screen name="ClaseEnVivo" component={ClaseEnVivo}
+  257 |               options={{ headerShown: false, presentation: "fullScreenModal" }} />
+  258 |           </Pila.Navigator>
+  259 |         )}
+  260 |       </NavigationContainer>
+  261 |     </SafeAreaProvider>
+  262 |     </Barrera>
+  263 |   );
+  264 | }
+  265 | 
+  266 | /**
+  267 |  * El nombre de la pantalla que se está viendo, atravesando los navegadores.
+  268 |  *
+  269 |  * Sin bajar hasta el fondo, todas las pantallas de las pestañas se llamarían
+  270 |  * «Principal», que es justo el nombre que no ayuda a encontrar nada.
+  271 |  */
+  272 | function rutaVisible(estado: { index?: number; routes?: unknown[] } | undefined): string | undefined {
+  273 |   let ruta = estado?.routes?.[estado?.index ?? 0] as
+  274 |     { name?: string; state?: { index?: number; routes?: unknown[] } } | undefined;
+  275 |   while (ruta?.state?.routes?.length) {
+  276 |     const dentro = ruta.state.routes[ruta.state.index ?? 0] as typeof ruta;
+  277 |     if (!dentro) break;
+  278 |     ruta = dentro;
+  279 |   }
+  280 |   return ruta?.name;
+  281 | }
+  282 | 
+  283 | const ICONO_ADMIN = {
+  284 |   // La administración no tiene pestaña de material: no dicta ramos.
+  285 |   Cursos: "horario", Material: "ejercicios", Asistente: "tutor",
+  286 |   Horario: "documento", Perfil: "persona",
+  287 | } as const;
+  288 | 
+  289 | /** Las pestañas del colegio. */
+  290 | function PrincipalAdmin() {
+  291 |   return (
+  292 |     <PestanasDocente.Navigator
+  293 |       screenOptions={({ route }) => ({
+  294 |         ...OPCIONES_PESTANAS,
+  295 |         tabBarIcon: ({ color: tono, size }) => (
+  296 |           <Icono nombre={ICONO_ADMIN[route.name]} tamano={size} tono={tono} />
+  297 |         ),
+  298 |       })}
+  299 |     >
+  300 |       <PestanasDocente.Screen name="Cursos" component={InicioAdmin} options={{ title: "Colegio" }} />
+  301 |       <PestanasDocente.Screen name="Asistente" component={Asistente} />
+  302 |       <PestanasDocente.Screen name="Perfil" component={PerfilDocente} />
+  303 |     </PestanasDocente.Navigator>
+  304 |   );
+  305 | }
+  306 | 
+  307 | const cinta = StyleSheet.create({
+  308 |   fondo: { backgroundColor: color.marcaOscura },
+  309 |   texto: {
+  310 |     color: "#fff", fontSize: 11.5, fontWeight: "600",
+  311 |     textAlign: "center", paddingVertical: 5, letterSpacing: 0.2,
+  312 |   },
+  313 | });
+  314 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/app.json
+SHA-256: 5bbbd81be0fe6a50e513afa5302985a0c7e01d55b6c6ae16fb6710e8ed1d444c
+------------------------------------------------------------------------------
+
+    1 | {
+    2 |   "expo": {
+    3 |     "name": "StudIA",
+    4 |     "slug": "studia",
+    5 |     "version": "1.4.0",
+    6 |     "orientation": "default",
+    7 |     "scheme": "studia",
+    8 |     "userInterfaceStyle": "light",
+    9 |     "newArchEnabled": true,
+   10 |     "ios": {
+   11 |       "supportsTablet": true,
+   12 |       "bundleIdentifier": "cl.studia.app",
+   13 |       "icon": "./assets/icono.png",
+   14 |       "buildNumber": "1",
+   15 |       "infoPlist": {
+   16 |         "ITSAppUsesNonExemptEncryption": false
+   17 |       }
+   18 |     },
+   19 |     "android": {
+   20 |       "package": "cl.studia.app",
+   21 |       "resizeableActivity": true,
+   22 |       "adaptiveIcon": {
+   23 |         "foregroundImage": "./assets/icono-adaptativo.png",
+   24 |         "monochromeImage": "./assets/icono-monocromo.png",
+   25 |         "backgroundColor": "#2F45D4"
+   26 |       }
+   27 |     },
+   28 |     "extra": {
+   29 |       "supabaseUrl": "",
+   30 |       "supabaseAnonKey": ""
+   31 |     },
+   32 |     "plugins": [
+   33 |       [
+   34 |         "expo-splash-screen",
+   35 |         {
+   36 |           "image": "./assets/arranque.png",
+   37 |           "imageWidth": 200,
+   38 |           "resizeMode": "contain",
+   39 |           "backgroundColor": "#FBFAF5"
+   40 |         }
+   41 |       ],
+   42 |       [
+   43 |         "expo-notifications",
+   44 |         {
+   45 |           "icon": "./assets/icono-monocromo.png",
+   46 |           "color": "#2F45D4"
+   47 |         }
+   48 |       ],
+   49 |       [
+   50 |         "expo-audio",
+   51 |         {
+   52 |           "microphonePermission": "StudIA usa el micrófono solo cuando pides la palabra en una clase en vivo.",
+   53 |           "enableBackgroundPlayback": true,
+   54 |           "enableBackgroundRecording": false
+   55 |         }
+   56 |       ]
+   57 |     ],
+   58 |     "web": {
+   59 |       "bundler": "metro",
+   60 |       "output": "single",
+   61 |       "favicon": "./assets/favicon.png"
+   62 |     },
+   63 |     "icon": "./assets/icono.png"
+   64 |   }
+   65 | }
+   66 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/babel.config.js
+SHA-256: 52db31902de488f2d5d368c3f449a449364d0d6d70450165c37fe7a1745838d8
+------------------------------------------------------------------------------
+
+    1 | module.exports = function (api) {
+    2 |   api.cache(true);
+    3 |   return { presets: ["babel-preset-expo"] };
+    4 | };
+    5 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/eas.json
+SHA-256: 526205e369a56291ed23761985ea4c198c5ec7e3a3125d9c73b69b61e188496c
+------------------------------------------------------------------------------
+
+    1 | {
+    2 |   "cli": {
+    3 |     "version": ">= 5.0.0",
+    4 |     "appVersionSource": "remote"
+    5 |   },
+    6 |   "build": {
+    7 |     "development": {
+    8 |       "developmentClient": true,
+    9 |       "distribution": "internal"
+   10 |     },
+   11 |     "preview": {
+   12 |       "distribution": "internal",
+   13 |       "android": {
+   14 |         "buildType": "apk"
+   15 |       }
+   16 |     },
+   17 |     "production": {
+   18 |       "android": {
+   19 |         "buildType": "app-bundle"
+   20 |       }
+   21 |     }
+   22 |   },
+   23 |   "submit": {
+   24 |     "production": {}
+   25 |   }
+   26 | }
+   27 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/index.ts
+SHA-256: a5ee9fdfb4ecbbf7e862f1c23a4d73ddd8e55f3037f80e406bc3a2be6d7d928c
+------------------------------------------------------------------------------
+
+    1 | import { registerRootComponent } from "expo";
+    2 | import App from "./App";
+    3 | 
+    4 | registerRootComponent(App);
+    5 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/modules/voz/android/build.gradle
+SHA-256: 70718b5ef5dcd054269a8e3ef734e00cd5a41a5bce43251e6dc5966387739157
+------------------------------------------------------------------------------
+
+    1 | apply plugin: "com.android.library"
+    2 | apply plugin: "org.jetbrains.kotlin.android"
+    3 | 
+    4 | group = "cl.studia.voz"
+    5 | version = "0.1.0"
+    6 | 
+    7 | android {
+    8 |   namespace "cl.studia.voz"
+    9 |   compileSdk rootProject.ext.compileSdkVersion
+   10 | 
+   11 |   defaultConfig {
+   12 |     minSdk rootProject.ext.minSdkVersion
+   13 |     targetSdk rootProject.ext.targetSdkVersion
+   14 |   }
+   15 | 
+   16 |   compileOptions {
+   17 |     sourceCompatibility JavaVersion.VERSION_17
+   18 |     targetCompatibility JavaVersion.VERSION_17
+   19 |   }
+   20 |   kotlinOptions { jvmTarget = "17" }
+   21 | }
+   22 | 
+   23 | dependencies {
+   24 |   implementation project(":expo-modules-core")
+   25 |   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+   26 | }
+   27 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/modules/voz/android/src/main/AndroidManifest.xml
+SHA-256: 57c4033522a210da02f8477cef85957ae63280d14846a9ddcade0062eb68555e
+------------------------------------------------------------------------------
+
+    1 | <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    2 |   <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    3 | 
+    4 |   <!--
+    5 |     Desde Android 11, consultar qué aplicación resuelve el reconocimiento de
+    6 |     voz requiere declararlo: sin esto, isRecognitionAvailable() responde que
+    7 |     no hay reconocedor aunque el teléfono lo tenga.
+    8 |   -->
+    9 |   <queries>
+   10 |     <intent>
+   11 |       <action android:name="android.speech.RecognitionService" />
+   12 |     </intent>
+   13 |   </queries>
+   14 | </manifest>
+   15 | 
+
+------------------------------------------------------------------------------
+ARCHIVO: app/modules/voz/android/src/main/java/cl/studia/voz/VozModule.kt
+SHA-256: 028cbbbe26c342b8ee993f2d31f5a873a136f0a112cc3203bd5c1a59ed106e98
+------------------------------------------------------------------------------
+
+    1 | package cl.studia.voz
+    2 | 
+    3 | import android.content.Intent
+    4 | import android.os.Bundle
+    5 | import android.os.Handler
+    6 | import android.os.Looper
+    7 | import android.speech.RecognitionListener
+    8 | import android.speech.RecognizerIntent
+    9 | import android.speech.SpeechRecognizer
+   10 | import expo.modules.kotlin.exception.CodedException
+   11 | import expo.modules.kotlin.modules.Module
+   12 | import expo.modules.kotlin.modules.ModuleDefinition
+   13 | 
+   14 | /**
+   15 |  * Reconocimiento de voz para el modo escucha.
+   16 |  *
+   17 |  * Envuelve el `SpeechRecognizer` de Android. Existe porque el paquete de la
+   18 |  * comunidad todavía no tiene versión para Expo 57, y porque de todos modos
+   19 |  * hace falta mucho menos: oír una clase y devolverla escrita.
+   20 |  *
+   21 |  * Transcribe en el propio teléfono y prefiere el reconocedor local. Eso no es
+   22 |  * un detalle de implementación: es lo que hace que el audio de una sala de
+   23 |  * clases con treinta menores de edad no viaje a ninguna parte. Lo que sale de
+   24 |  * acá es texto; el sonido no sale del aparato.
+   25 |  *
+   26 |  * Devuelve además la confianza de cada tramo, que es lo que después permite
+   27 |  * cruzar lo que oyeron varios teléfonos y quedarse con una sola versión de la
+   28 |  * clase.
+   29 |  *
+   30 |  * Lo que este módulo NO hace, y conviene que esté escrito acá y no solo en
+   31 |  * la documentación: no separa quién habló. El reconocedor de Android
+   32 |  * devuelve una sola corriente de texto, sin hablantes. Cualquier "Profesora /
+   33 |  * Alumno" que apareciera después lo habría inventado alguien, y poner en boca
+   34 |  * de un profesor algo que no se sabe que dijo es peor que no atribuir nada.
+   35 |  */
+   36 | class VozModule : Module() {
+   37 | 
+   38 |   private var reconocedor: SpeechRecognizer? = null
+   39 | 
+   40 |   /** Lo que pidió la pantalla. Distinto de que el reconocedor esté activo:
+   41 |    *  entre un corte y el reinicio, `escuchando` sigue en true y el
+   42 |    *  reconocedor está detenido. Es justo esa diferencia la que permite
+   43 |    *  reanudar sin avisarle a la interfaz de un final que no ocurrió. */
+   44 |   private var escuchando = false
+   45 |   private var idioma = "es-CL"
+   46 | 
+   47 |   private val enElHilo = Handler(Looper.getMainLooper())
+   48 | 
+   49 |   override fun definition() = ModuleDefinition {
+   50 |     Name("Voz")
+   51 | 
+   52 |     Events("alParcial", "alTexto", "alError", "alFin")
+   53 | 
+   54 |     /**
+   55 |      * Si este teléfono tiene un reconocedor instalado. En algunos equipos sin
+   56 |      * servicios de Google no hay ninguno, y entonces la pantalla ofrece pegar
+   57 |      * el texto en vez de un botón que no haría nada.
+   58 |      */
+   59 |     Function("hayReconocedor") {
+   60 |       val contexto = appContext.reactContext ?: return@Function false
+   61 |       SpeechRecognizer.isRecognitionAvailable(contexto)
+   62 |     }
+   63 | 
+   64 |     AsyncFunction("empezar") { codigoIdioma: String? ->
+   65 |       idioma = codigoIdioma ?: "es-CL"
+   66 |       enElHiloPrincipal {
+   67 |         val contexto = appContext.reactContext
+   68 |           ?: throw CodedException("SIN_CONTEXTO", "La aplicación no está lista.", null)
+   69 |         if (!SpeechRecognizer.isRecognitionAvailable(contexto)) {
+   70 |           throw CodedException(
+   71 |             "SIN_RECONOCEDOR",
+   72 |             "Este teléfono no trae reconocimiento de voz.",
+   73 |             null,
+   74 |           )
+   75 |         }
+   76 |         soltar()
+   77 |         val nuevo = SpeechRecognizer.createSpeechRecognizer(contexto)
+   78 |         nuevo.setRecognitionListener(Oyente())
+   79 |         reconocedor = nuevo
+   80 |         escuchando = true
+   81 |         arrancarSesion()
+   82 |       }
+   83 |     }
+
+==============================================================================
+[ Se omiten las páginas 26 a 1121 de 1146. El listado completo
+  está en codigo-fuente.txt, con huella SHA-256 092ebd74b04a20c71722a686b37a03a1d2ec9ab1981a250bcdf831f5aca3251a. ]
+==============================================================================
+
+ 2517 | -- ───────────────────────────────────────────────────────────────────
+ 2518 | 
+ 2519 | -- Un docente no podía ver qué dicta.
+ 2520 | --
+ 2521 | -- `20260826000300_administracion.sql` concede sobre `dictados` insert, update
+ 2522 | -- y delete, y se saltó select. La política "veo mis dictados" está escrita y es
+ 2523 | -- correcta, pero una política no sirve de nada sin el permiso de tabla: Postgres
+ 2524 | -- mira primero el grant, y sin él responde «permission denied for table
+ 2525 | -- dictados» antes de llegar a evaluar ninguna política.
+ 2526 | --
+ 2527 | -- Lo que se rompía: `misDictados()`, que es de donde sale si esta persona dicta
+ 2528 | -- algo. Sin eso la aplicación no muestra el panel docente y en su lugar aparece
+ 2529 | -- «No pude cargar tus ramos». Todo el lado del profesor, caído, para todos.
+ 2530 | --
+ 2531 | -- No apareció antes porque las pruebas de acceso entran como `postgres`, que se
+ 2532 | -- salta los permisos, y porque el resto del panel docente pregunta a través de
+ 2533 | -- `dicta()`, que es `security definer` y tampoco los necesita. Lo encontró
+ 2534 | -- herramientas/cruzar-consultas.mjs, cruzando cada consulta de la aplicación
+ 2535 | -- contra los permisos de verdad.
+ 2536 | 
+ 2537 | grant select on public.dictados to authenticated;
+ 2538 | 
+ 2539 | 
+ 2540 | -- ───────────────────────────────────────────────────────────────────
+ 2541 | -- 20260901000900 · perfil solo el nombre
+ 2542 | -- ───────────────────────────────────────────────────────────────────
+ 2543 | 
+ 2544 | -- Del perfil propio, el cliente solo cambia el nombre.
+ 2545 | --
+ 2546 | -- `20260825000200_rls.sql` concedía `insert, update` sobre `perfiles` entera.
+ 2547 | -- La lectura sí estaba afinada por columna desde el principio —id, nombre,
+ 2548 | -- creado_en, rol, plan— pero la escritura no, y quedaron alcanzables dos
+ 2549 | -- columnas que nadie debería poder tocar desde un teléfono:
+ 2550 | --
+ 2551 | --   · `correo`, que el cliente no puede leer pero sí podía escribir. El correo
+ 2552 | --     de verdad vive en auth.users; esta es la copia que `registros()` le
+ 2553 | --     muestra a la administración. Alguien podía dejar ahí el correo de otra
+ 2554 | --     persona y la lista de la administración lo habría mostrado como cierto.
+ 2555 | --
+ 2556 | --   · `id` y `creado_en`, que no se cambian nunca.
+ 2557 | --
+ 2558 | -- `rol` y `plan` ya estaban protegidos por el disparador `al_editar_perfil`,
+ 2559 | -- que sigue donde estaba: esto no lo reemplaza, lo acompaña. La diferencia es
+ 2560 | -- que ahora la base lo niega antes, por permisos, y no por una excepción.
+ 2561 | --
+ 2562 | -- `insert` se va entero: la fila la crea el disparador de alta, que es
+ 2563 | -- `security definer` y no usa los permisos de quien se registra.
+ 2564 | 
+ 2565 | revoke insert, update on public.perfiles from authenticated;
+ 2566 | grant  update (nombre) on public.perfiles to authenticated;
+ 2567 | 
+ 2568 | 
+ 2569 | -- ───────────────────────────────────────────────────────────────────
+ 2570 | -- 20260902000100 · reportes
+ 2571 | -- ───────────────────────────────────────────────────────────────────
+ 2572 | 
+ 2573 | -- Reportar una respuesta de la IA.
+ 2574 | --
+ 2575 | -- No es una idea nuestra: Google Play lo exige. Una aplicación que genera
+ 2576 | -- contenido con inteligencia artificial tiene que traer adentro una manera de
+ 2577 | -- avisar que algo salió ofensivo, sin que la persona tenga que salirse de la
+ 2578 | -- app a buscar un correo. Sin eso, la revisión la rechaza.
+ 2579 | --
+ 2580 | -- Y es razonable. El tutor le habla a menores en un colegio: la vía para decir
+ 2581 | -- «esto no debió responderme esto» tiene que estar donde ocurrió, en el
+ 2582 | -- momento, y no en una dirección de contacto que nadie va a buscar.
+ 2583 | 
+ 2584 | create table if not exists public.reportes (
+ 2585 |   id           uuid primary key default gen_random_uuid(),
+ 2586 |   persona_id   uuid not null references public.perfiles(id) on delete cascade,
+ 2587 |   -- Qué lo generó. No es un enum a propósito: agregar una pantalla nueva no
+ 2588 |   -- debería pedir una migración.
+ 2589 |   origen       text not null check (origen in ('tutor', 'asistente', 'quiz', 'fichas', 'resumen')),
+ 2590 |   -- El texto que se está reportando. Se guarda una copia y no una referencia:
+ 2591 |   -- lo que hay que poder mirar después es exactamente lo que esa persona vio,
+ 2592 |   -- y la conversación se puede borrar.
+ 2593 |   contenido    text not null check (length(contenido) between 1 and 4000),
+ 2594 |   motivo       text not null check (motivo in ('ofensivo', 'falso', 'peligroso', 'otro')),
+ 2595 |   -- Lo que quiera agregar, si quiere. Casi siempre viene vacío.
+ 2596 |   detalle      text check (detalle is null or length(detalle) <= 1000),
+ 2597 |   -- Para que la administración pueda ir marcando lo que ya miró.
+ 2598 |   revisado_en  timestamptz,
+ 2599 |   creado_en    timestamptz not null default now()
+ 2600 | );
+ 2601 | 
+ 2602 | create index if not exists reportes_sin_revisar
+ 2603 |   on public.reportes (creado_en desc) where revisado_en is null;
+ 2604 | 
+ 2605 | alter table public.reportes enable row level security;
+ 2606 | 
+ 2607 | -- Reportar lo puede hacer cualquiera, sobre lo suyo.
+ 2608 | create policy "reporto lo que me respondieron" on public.reportes
+ 2609 |   for insert to authenticated
+ 2610 |   with check (persona_id = auth.uid());
+ 2611 | 
+ 2612 | -- Leerlos es de la administración. Quien reporta no necesita volver a verlo:
+ 2613 | -- lo que necesita es que alguien lo mire.
+ 2614 | create policy "la administración lee los reportes" on public.reportes
+ 2615 |   for select to authenticated
+ 2616 |   using (public.es_administrador());
+ 2617 | 
+ 2618 | create policy "la administración los marca revisados" on public.reportes
+ 2619 |   for update to authenticated
+ 2620 |   using (public.es_administrador())
+ 2621 |   with check (public.es_administrador());
+ 2622 | 
+ 2623 | grant insert (persona_id, origen, contenido, motivo, detalle) on public.reportes to authenticated;
+ 2624 | grant select on public.reportes to authenticated;
+ 2625 | grant update (revisado_en) on public.reportes to authenticated;
+ 2626 | 
+ 2627 | comment on table public.reportes is
+ 2628 |   'Avisos de contenido generado por IA que alguien consideró ofensivo, falso o '
+ 2629 |   'peligroso. Requisito de Google Play para aplicaciones con IA generativa.';
+ 2630 | 
+ 2631 | 
+ 2632 | -- ───────────────────────────────────────────────────────────────────
+ 2633 | -- 20260902000200 · quien dicta
+ 2634 | -- ───────────────────────────────────────────────────────────────────
+ 2635 | 
+ 2636 | -- Quién dicta qué, para la administración.
+ 2637 | --
+ 2638 | -- El panel del colegio revisa que nadie quede citado en dos salas a la misma
+ 2639 | -- hora. Para eso necesita saber qué profesor tiene cada ramo, y hasta ahora lo
+ 2640 | -- sacaba de los perfiles de ejemplo del modo demostración: con el servidor
+ 2641 | -- conectado, la revisión se hacía contra profesores inventados y no contra los
+ 2642 | -- de verdad. Salía siempre limpia, y no porque el horario estuviera bien.
+ 2643 | --
+ 2644 | -- Va por función y no por consulta directa porque hace falta cruzar `dictados`
+ 2645 | -- con `perfiles`, y el nombre de otra persona no es legible desde el cliente:
+ 2646 | -- la política de `perfiles` deja ver el propio y nada más. Acá se cruza del
+ 2647 | -- lado del servidor, con el permiso comprobado adentro.
+ 2648 | 
+ 2649 | create or replace function public.dictados_del_colegio()
+ 2650 | returns table (persona uuid, quien text, codigo text, papel text)
+ 2651 | language sql
+ 2652 | stable
+ 2653 | security definer
+ 2654 | set search_path = public
+ 2655 | as $$
+ 2656 |   select d.docente_id, p.nombre, a.codigo, d.papel
+ 2657 |   from public.dictados d
+ 2658 |   join public.perfiles p on p.id = d.docente_id
+ 2659 |   join public.asignaturas a on a.id = d.asignatura_id
+ 2660 |   where public.es_administrador()
+ 2661 |   order by a.codigo, d.papel
+ 2662 | $$;
+ 2663 | 
+ 2664 | comment on function public.dictados_del_colegio() is
+ 2665 |   'Quién dicta cada ramo, con el nombre. Solo para la administración: el '
+ 2666 |   'where lo comprueba adentro, así que llamarla sin ese rol devuelve vacío.';
+ 2667 | 
+ 2668 | revoke execute on function public.dictados_del_colegio() from public;
+ 2669 | grant execute on function public.dictados_del_colegio() to authenticated;
+ 2670 | 
+ 2671 | 
+ 2672 | -- ───────────────────────────────────────────────────────────────────
+ 2673 | -- 20260902000300 · plan en el registro
+ 2674 | -- ───────────────────────────────────────────────────────────────────
+ 2675 | 
+ 2676 | -- El plan de cada persona, en el registro de la administración.
+ 2677 | --
+ 2678 | -- StudIA se vende de dos maneras y ninguna pasa por una pasarela propia. A las
+ 2679 | -- personas, por Google Play, que cobra y avisa al servidor. A las
+ 2680 | -- instituciones, por contrato: se conversa, se factura y se firma afuera, y
+ 2681 | -- alguien de la administración deja el plan puesto acá.
+ 2682 | --
+ 2683 | -- Para eso el registro tiene que mostrar en qué plan está cada quien. Hasta
+ 2684 | -- ahora mostraba el rol y no el plan, así que la administración no tenía cómo
+ 2685 | -- saber a quién ya le corresponde lo que se contrató.
+ 2686 | 
+ 2687 | -- Cambia el tipo de lo que devuelve, así que hay que soltarla antes:
+ 2688 | -- `create or replace` no puede cambiar la forma de la respuesta.
+ 2689 | drop function if exists public.registros();
+ 2690 | 
+ 2691 | create function public.registros()
+ 2692 | returns table (
+ 2693 |   id        uuid,
+ 2694 |   nombre    text,
+ 2695 |   correo    text,
+ 2696 |   rol       text,
+ 2697 |   plan      text,
+ 2698 |   creado_en timestamptz
+ 2699 | )
+ 2700 | language sql
+ 2701 | stable
+ 2702 | security definer
+ 2703 | set search_path = public
+ 2704 | as $$
+ 2705 |   select p.id, p.nombre, p.correo, p.rol, p.plan, p.creado_en
+ 2706 |     from public.perfiles p
+ 2707 |    -- Sin esto la función sería una puerta de atrás al correo de todos. Para
+ 2708 |    -- quien no es administración devuelve vacío, que es exactamente lo que ve
+ 2709 |    -- hoy: nada.
+ 2710 |    where public.es_administrador()
+ 2711 |    order by p.creado_en desc;
+ 2712 | $$;
+ 2713 | 
+ 2714 | comment on function public.registros() is
+ 2715 |   'El registro completo, solo para la administración. Para cualquier otra '
+ 2716 |   'persona devuelve vacío: el correo ajeno sigue sin ser legible.';
+ 2717 | 
+ 2718 | 
+ 2719 | -- ───────────────────────────────────────────────────────────────────
+ 2720 | -- 20260903000100 · matriculas
+ 2721 | -- ───────────────────────────────────────────────────────────────────
+ 2722 | 
+ 2723 | -- La nómina de la institución, cargada antes de que nadie se registre.
+ 2724 | --
+ 2725 | -- Cuando una universidad contrata StudIA, lo que entrega es una planilla: su
+ 2726 | -- gente, quién dicta qué y quién está inscrito en qué. Y casi nadie de esa
+ 2727 | -- lista tiene cuenta todavía.
+ 2728 | --
+ 2729 | -- Ese es el problema. `perfiles.id` apunta a `auth.users`: no se puede crear
+ 2730 | -- el perfil de alguien que no se ha registrado, y por lo tanto tampoco se lo
+ 2731 | -- puede inscribir en un ramo. Hasta ahora la carga desde el panel dejaba los
+ 2732 | -- ramos y el horario, y la nómina había que meterla por consola con la clave
+ 2733 | -- de servicio —o sea, no la hacía la secretaría académica, que es justamente
+ 2734 | -- quien tiene la planilla—.
+ 2735 | --
+ 2736 | -- Acá la nómina se guarda como matrícula pendiente, a nombre de un correo. El
+ 2737 | -- día que esa persona se registra con ese correo, su cuenta queda armada sola:
+ 2738 | -- con su rol, su plan y sus ramos. Y si ya estaba registrada, se le aplica en
+ 2739 | -- el momento de cargar.
+ 2740 | 
+ 2741 | create table if not exists public.matriculas (
+ 2742 |   id          uuid primary key default gen_random_uuid(),
+ 2743 |   -- Siempre en minúsculas: una planilla trae «Juan.Perez@U.CL» y la persona
+ 2744 |   -- se registra con «juan.perez@u.cl». Sin normalizar, no se encuentran.
+ 2745 |   correo      text not null check (correo = lower(correo) and correo like '%@%'),
+ 2746 |   rol         text not null check (rol in ('estudiante', 'profesor', 'administrador')),
+ 2747 |   -- El ramo. Nulo para quien solo va en la nómina —la secretaría, por
+ 2748 |   -- ejemplo— sin estar inscrito en nada.
+ 2749 |   codigo      text,
+ 2750 |   -- Solo para quien dicta.
+ 2751 |   papel       text check (papel is null or papel in ('profesor', 'ayudante')),
+ 2752 |   creada_en   timestamptz not null default now(),
+ 2753 |   -- Cuándo se convirtió en cuenta de verdad. Nulo mientras espera.
+ 2754 |   aplicada_en timestamptz,
+ 2755 | 
+ 2756 |   -- `nulls not distinct` porque casi todas las filas de una secretaría llevan
+ 2757 |   -- el código en nulo, y sin esto se podrían repetir sin que nada avise.
+ 2758 |   unique nulls not distinct (correo, codigo, papel)
+ 2759 | );
+ 2760 | 
+ 2761 | create index if not exists matriculas_por_correo on public.matriculas (correo);
+ 2762 | create index if not exists matriculas_pendientes
+ 2763 |   on public.matriculas (correo) where aplicada_en is null;
+ 2764 | 
+ 2765 | comment on table public.matriculas is
+ 2766 |   'La nómina que entrega una institución, a nombre de correos que todavía no '
+ 2767 |   'tienen cuenta. Se convierte en inscripciones y dictados cuando la persona '
+ 2768 |   'se registra.';
+ 2769 | 
+ 2770 | -- ── Convertir la matrícula en cuenta ────────────────────────────────────
+ 2771 | 
+ 2772 | create or replace function public.aplicar_matriculas(p_persona uuid)
+ 2773 | returns int
+ 2774 | language plpgsql
+ 2775 | security definer
+ 2776 | set search_path = public
+ 2777 | as $$
+ 2778 | declare
+ 2779 |   v_correo text;
+ 2780 |   v_rol    text;
+ 2781 |   v_actual text;
+ 2782 |   v_hechas int := 0;
+ 2783 | begin
+ 2784 |   select correo, rol into v_correo, v_actual from public.perfiles where id = p_persona;
+ 2785 |   if v_correo is null then return 0; end if;
+ 2786 | 
+ 2787 |   -- El rol más alto que le asigna la nómina. Una persona puede aparecer
+ 2788 |   -- muchas veces —una por ramo— y todas dicen lo mismo, pero si no, el que
+ 2789 |   -- manda es el que más puede.
+ 2790 |   select rol into v_rol
+ 2791 |     from public.matriculas
+ 2792 |    where correo = v_correo
+ 2793 |    order by case rol when 'administrador' then 3 when 'profesor' then 2 else 1 end desc
+ 2794 |    limit 1;
+ 2795 | 
+ 2796 |   if v_rol is null then return 0; end if;
+ 2797 | 
+ 2798 |   -- Quien ya es administración no se baja de rol por una planilla: un archivo
+ 2799 |   -- mal armado dejaría a la institución sin nadie que pueda arreglarlo.
+ 2800 |   update public.perfiles
+ 2801 |      set rol  = case when v_actual = 'administrador' then v_actual else v_rol end,
+ 2802 |          -- Pertenecer a una institución que contrató es el plan de ella.
+ 2803 |          plan = 'institucion'
+ 2804 |    where id = p_persona;
+ 2805 | 
+ 2806 |   -- Los ramos en que queda inscrita.
+ 2807 |   insert into public.inscripciones (estudiante_id, asignatura_id)
+ 2808 |   select p_persona, a.id
+ 2809 |     from public.matriculas m
+ 2810 |     join public.asignaturas a
+ 2811 |       on a.codigo = upper(m.codigo) and a.creador_id is null
+ 2812 |    where m.correo = v_correo and m.rol = 'estudiante' and m.codigo is not null
+ 2813 |   on conflict do nothing;
+ 2814 | 
+ 2815 |   get diagnostics v_hechas = row_count;
+ 2816 | 
+ 2817 |   -- Y los que dicta.
+ 2818 |   insert into public.dictados (docente_id, asignatura_id, papel)
+ 2819 |   select p_persona, a.id, coalesce(m.papel, 'profesor')
+ 2820 |     from public.matriculas m
+ 2821 |     join public.asignaturas a
+ 2822 |       on a.codigo = upper(m.codigo) and a.creador_id is null
+ 2823 |    where m.correo = v_correo and m.rol = 'profesor' and m.codigo is not null
+ 2824 |   on conflict do nothing;
+ 2825 | 
+ 2826 |   update public.matriculas
+ 2827 |      set aplicada_en = now()
+ 2828 |    where correo = v_correo and aplicada_en is null;
+ 2829 | 
+ 2830 |   return v_hechas;
+ 2831 | end;
+ 2832 | $$;
+ 2833 | 
+ 2834 | comment on function public.aplicar_matriculas(uuid) is
+ 2835 |   'Arma la cuenta de una persona con lo que la institución dejó cargado a su '
+ 2836 |   'correo: su rol, su plan y sus ramos. Idempotente.';
+ 2837 | 
+ 2838 | revoke execute on function public.aplicar_matriculas(uuid) from public;
+ 2839 | 
+ 2840 | -- Al registrarse. Va sobre `perfiles` y no sobre `auth.users` porque necesita
+ 2841 | -- que el perfil exista para poder actualizarlo.
+ 2842 | create or replace function public.al_crear_perfil_aplicar()
+ 2843 | returns trigger
+ 2844 | language plpgsql
+ 2845 | security definer
+ 2846 | set search_path = public
+ 2847 | as $$
+ 2848 | begin
+ 2849 |   perform public.aplicar_matriculas(new.id);
+ 2850 |   return new;
+ 2851 | end;
+ 2852 | $$;
+ 2853 | 
+ 2854 | drop trigger if exists perfil_aplica_matriculas on public.perfiles;
+ 2855 | create trigger perfil_aplica_matriculas
+ 2856 |   after insert on public.perfiles
+ 2857 |   for each row execute function public.al_crear_perfil_aplicar();
+ 2858 | 
+ 2859 | -- ── Cargar la nómina desde el panel ─────────────────────────────────────
+ 2860 | 
+ 2861 | create or replace function public.cargar_matriculas(p_filas jsonb)
+ 2862 | returns jsonb
+ 2863 | language plpgsql
+ 2864 | security definer
+ 2865 | set search_path = public
+ 2866 | as $$
+ 2867 | declare
+ 2868 |   v_puestas   int;
+ 2869 |   v_aplicadas int := 0;
+ 2870 |   v_persona   uuid;
+ 2871 | begin
+ 2872 |   if not public.es_administrador() then
+ 2873 |     raise exception 'Solo la administración carga la nómina.';
+ 2874 |   end if;
+ 2875 |   if jsonb_typeof(p_filas) <> 'array' then
+ 2876 |     raise exception 'La nómina tiene que venir como lista.';
+ 2877 |   end if;
+ 2878 | 
+ 2879 |   insert into public.matriculas (correo, rol, codigo, papel)
+ 2880 |   select lower(trim(x->>'correo')), x->>'rol',
+ 2881 |          nullif(upper(trim(x->>'codigo')), ''), nullif(x->>'papel', '')
+ 2882 |     from jsonb_array_elements(p_filas) x
+ 2883 |   on conflict (correo, codigo, papel) do update
+ 2884 |      set rol = excluded.rol, aplicada_en = null;
+ 2885 | 
+ 2886 |   get diagnostics v_puestas = row_count;
+ 2887 | 
+ 2888 |   -- A quien ya tenía cuenta se le aplica ahora: si un alumno se registró la
+ 2889 |   -- semana pasada, no tiene por qué esperar a nada.
+ 2890 |   for v_persona in
+ 2891 |     select p.id from public.perfiles p
+ 2892 |      where p.correo in (
+ 2893 |        select correo from public.matriculas where aplicada_en is null
+ 2894 |      )
+ 2895 |   loop
+ 2896 |     perform public.aplicar_matriculas(v_persona);
+ 2897 |     v_aplicadas := v_aplicadas + 1;
+ 2898 |   end loop;
+ 2899 | 
+ 2900 |   return jsonb_build_object(
+ 2901 |     'filas', v_puestas,
+ 2902 |     'aplicadas', v_aplicadas,
+ 2903 |     'esperando', (select count(*) from public.matriculas where aplicada_en is null)
+ 2904 |   );
+ 2905 | end;
+ 2906 | $$;
+ 2907 | 
+ 2908 | comment on function public.cargar_matriculas(jsonb) is
+ 2909 |   'Deja cargada la nómina de la institución. Lo que corresponde a alguien ya '
+ 2910 |   'registrado se aplica en el momento; el resto espera a que se registre.';
+ 2911 | 
+ 2912 | grant execute on function public.cargar_matriculas(jsonb) to authenticated;
+ 2913 | 
+ 2914 | -- ── Quién ve la nómina ──────────────────────────────────────────────────
+ 2915 | 
+ 2916 | alter table public.matriculas enable row level security;
+ 2917 | 
+ 2918 | create policy "la administración ve la nómina" on public.matriculas
+ 2919 |   for select to authenticated using (public.es_administrador());
+ 2920 | 
+ 2921 | grant select on public.matriculas to authenticated;
+ 2922 | 
+ 2923 | 
+ 2924 | -- ───────────────────────────────────────────────────────────────────
+ 2925 | -- 20260904000100 · instituciones
+ 2926 | -- ───────────────────────────────────────────────────────────────────
+ 2927 | 
+ 2928 | -- La institución, como cosa de primera clase.
+ 2929 | --
+ 2930 | -- Hasta acá el panel de administración era de un solo colegio: implícito, sin
+ 2931 | -- nombre y sin borde. `es_administrador()` preguntaba «¿tiene rol
+ 2932 | -- administrador?» y nada más, así que el día que la segunda universidad
+ 2933 | -- contratara, su secretaría académica habría visto —de verdad, sin trucos— la
+ 2934 | -- nómina completa de la primera: nombres, correos y ramos. Y habría podido
+ 2935 | -- ascender a administrador a cualquiera de esa lista.
+ 2936 | --
+ 2937 | -- Esta migración le pone borde a eso. Tres ideas:
+ 2938 | --
+ 2939 | --   1. Existe `instituciones`. Las personas, los ramos del colegio y la
+ 2940 | --      nómina pertenecen a una, y un administrador solo ve la suya.
+ 2941 | --   2. El plan deja de ponerse persona por persona: se contratan N cupos y
+ 2942 | --      la nómina los ocupa. Lo que se firmó está en una fila, no repartido
+ 2943 | --      en mil perfiles.
+ 2944 | --   3. Se separa la administración de una institución de la operación de
+ 2945 | --      StudIA. Son dos trabajos distintos: la secretaría de una universidad
+ 2946 | --      arma su semestre; nosotros miramos las caídas y los reportes de
+ 2947 | --      contenido de todo el servicio. Antes eran el mismo permiso.
+ 2948 | --
+ 2949 | -- Una decisión que conviene dejar dicha, porque después es cara de cambiar:
+ 2950 | -- una persona pertenece a UNA institución. Es una columna en `perfiles` y no
+ 2951 | -- una tabla de por medio. Quien estudie en dos universidades a la vez va a
+ 2952 | -- necesitar dos cuentas, y eso es aceptable hoy: el caso es raro, y la tabla
+ 2953 | -- de por medio obligaría a que cada consulta de la aplicación —el horario,
+ 2954 | -- las tareas, el tutor— supiera en cuál de las dos está parada la persona en
+ 2955 | -- este momento. Cuando aparezca el primer caso real se agrega la tabla; hasta
+ 2956 | -- entonces sería complejidad pagada por adelantado.
+ 2957 | 
+ 2958 | create table public.instituciones (
+ 2959 |   id        uuid primary key default gen_random_uuid(),
+ 2960 |   nombre    text not null check (length(trim(nombre)) > 0),
+ 2961 |   -- Cuántas personas cubre el contrato. Se ocupan a medida que su gente se
+ 2962 |   -- registra; la nómina puede tener más filas que cupos y eso no es un error,
+ 2963 |   -- es lo que hay que ver a tiempo.
+ 2964 |   cupos     integer not null check (cupos >= 0),
+ 2965 |   -- Nulo mientras no haya fecha de término. Vencido, los cupos dejan de
+ 2966 |   -- entregarse: quien ya lo tiene no lo pierde de golpe, pero nadie nuevo
+ 2967 |   -- entra hasta que se renueve.
+ 2968 |   vence_en  timestamptz,
+ 2969 |   creada_en timestamptz not null default now()
+ 2970 | );
+ 2971 | 
+ 2972 | comment on table public.instituciones is
+ 2973 |   'Cada universidad o colegio que contrató StudIA. Es el borde: un '
+ 2974 |   'administrador ve su institución y ninguna otra.';
+ 2975 | comment on column public.instituciones.cupos is
+ 2976 |   'Lo que se contrató. El plan de institución se entrega mientras queden.';
+ 2977 | 
+ 2978 | -- ── A quién pertenece cada cosa ──────────────────────────────────────────
+ 2979 | 
+ 2980 | alter table public.perfiles
+ 2981 |   -- `set null` y no `cascade`: si se borra el contrato, la gente no se borra.
+ 2982 |   -- Quedan como cuentas personales, con lo suyo intacto.
+ 2983 |   add column institucion_id uuid references public.instituciones (id) on delete set null,
+ 2984 |   -- Nosotros. Ver más abajo por qué no alcanzaba con un cuarto rol.
+ 2985 |   add column operador boolean not null default false;
+ 2986 | 
+ 2987 | alter table public.asignaturas
+ 2988 |   add column institucion_id uuid references public.instituciones (id) on delete cascade;
+ 2989 | 
+ 2990 | alter table public.matriculas
+ 2991 |   add column institucion_id uuid references public.instituciones (id) on delete cascade;
+ 2992 | 
+ 2993 | comment on column public.perfiles.institucion_id is
+ 2994 |   'La institución a la que pertenece. Nulo para quien entró por su cuenta.';
+ 2995 | comment on column public.perfiles.operador is
+ 2996 |   'Personal de StudIA. Ve las caídas y los reportes de contenido de todo el '
+ 2997 |   'servicio; no es el administrador de ninguna institución.';
+ 2998 | comment on column public.asignaturas.institucion_id is
+ 2999 |   'La institución dueña del ramo. Nulo en los ramos propios, que son de su '
+ 3000 |   'creador y de nadie más.';
+ 3001 | 
+ 3002 | create index perfiles_por_institucion on public.perfiles (institucion_id)
+ 3003 |   where institucion_id is not null;
+ 3004 | create index asignaturas_por_institucion on public.asignaturas (institucion_id)
+ 3005 |   where institucion_id is not null;
+ 3006 | create index matriculas_por_institucion on public.matriculas (institucion_id);
+ 3007 | 
+ 3008 | -- ── Lo que ya estaba ─────────────────────────────────────────────────────
+ 3009 | --
+ 3010 | -- Antes de esta migración había exactamente una institución: la implícita.
+ 3011 | -- Se le pone nombre y se le cuelga todo lo que existía. En una base recién
+ 3012 | -- creada no hay nada que colgar y este bloque no hace nada.
+ 3013 | 
+ 3014 | do $$
+ 3015 | declare
+ 3016 |   v_id uuid;
+ 3017 | begin
+ 3018 |   if exists (select 1 from public.asignaturas where creador_id is null)
+ 3019 |      or exists (select 1 from public.matriculas)
+ 3020 |   then
+ 3021 |     insert into public.instituciones (nombre, cupos)
+ 3022 |     values ('Institución inicial',
+ 3023 |             greatest((select count(*) from public.perfiles), 100))
+ 3024 |     returning id into v_id;
+ 3025 | 
+ 3026 |     update public.asignaturas set institucion_id = v_id where creador_id is null;
+ 3027 |     update public.matriculas   set institucion_id = v_id;
+ 3028 |     update public.perfiles     set institucion_id = v_id;
+ 3029 |   end if;
+ 3030 | end $$;
+ 3031 | 
+ 3032 | alter table public.matriculas alter column institucion_id set not null;
+ 3033 | 
+ 3034 | -- Un ramo es de alguien: de una institución o de la persona que lo creó.
+ 3035 | alter table public.asignaturas
+ 3036 |   add constraint asignatura_tiene_dueno
+ 3037 |   check (creador_id is not null or institucion_id is not null);
+ 3038 | 
+ 3039 | -- MAT1610 hay uno solo POR institución. Antes lo había uno solo en toda la
+ 3040 | -- base, y eso habría hecho chocar a la segunda universidad con la primera por
+ 3041 | -- un código de ramo tan común como «MAT1»
+ 3042 | drop index public.asignaturas_codigo_del_colegio;
+ 3043 | create unique index asignaturas_codigo_del_colegio
+ 3044 |   on public.asignaturas (institucion_id, codigo)
+ 3045 |   where creador_id is null;
+ 3046 | 
+ 3047 | comment on index public.asignaturas_codigo_del_colegio is
+ 3048 |   'El código es único dentro de la institución. Dos universidades pueden '
+ 3049 |   'tener MAT1610 y no son el mismo ramo.';
+ 3050 | 
+ 3051 | -- La nómina también: el mismo correo puede estar en dos nóminas.
+ 3052 | alter table public.matriculas drop constraint matriculas_correo_codigo_papel_key;
+ 3053 | alter table public.matriculas
+ 3054 |   add constraint matriculas_sin_repetir
+ 3055 |   unique nulls not distinct (institucion_id, correo, codigo, papel);
+ 3056 | 
+ 3057 | -- ── Quién soy ────────────────────────────────────────────────────────────
+ 3058 | 
+ 3059 | create or replace function public.mi_institucion()
+ 3060 | returns uuid
+ 3061 | language sql
+ 3062 | stable
+ 3063 | security definer
+ 3064 | set search_path = public
+ 3065 | as $$
+ 3066 |   select institucion_id from public.perfiles where id = auth.uid();
+ 3067 | $$;
+ 3068 | 
+ 3069 | comment on function public.mi_institucion() is
+ 3070 |   'La institución de quien consulta, o nulo. `security definer` porque las '
+ 3071 |   'políticas de otras tablas la llaman y no pueden depender de lo que esa '
+ 3072 |   'persona alcance a leer de su propio perfil.';
+ 3073 | 
+ 3074 | revoke execute on function public.mi_institucion() from public;
+ 3075 | grant  execute on function public.mi_institucion() to authenticated;
+ 3076 | 
+ 3077 | -- Nosotros, no ellos.
+ 3078 | --
+ 3079 | -- Podría haber sido un cuarto rol —'operador'— y sería peor: el rol decide
+ 3080 | -- qué aplicación abre la persona, y quien opera StudIA también puede ser
+ 3081 | -- alumno o profesor en alguna parte. Un rol que hay que dejar de ser para
+ 3082 | -- poder estudiar es un rol mal puesto. Va como columna aparte.
+ 3083 | create or replace function public.es_operador()
+ 3084 | returns boolean
+ 3085 | language sql
+ 3086 | stable
+ 3087 | security definer
+ 3088 | set search_path = public
+ 3089 | as $$
+ 3090 |   select coalesce((select operador from public.perfiles where id = auth.uid()), false);
+ 3091 | $$;
+ 3092 | 
+ 3093 | comment on function public.es_operador() is
+ 3094 |   'Personal de StudIA. No es un rol: es una marca aparte, porque quien opera '
+ 3095 |   'el servicio también puede estar estudiando en alguna institución.';
+ 3096 | 
+ 3097 | revoke execute on function public.es_operador() from public;
+ 3098 | grant  execute on function public.es_operador() to authenticated;
+ 3099 | 
+ 3100 | -- ¿Este ramo es de mi institución? Lo usan las políticas de las tablas que
+ 3101 | -- cuelgan de una asignatura y no llevan la columna encima.
+ 3102 | create or replace function public.es_de_mi_institucion(p_asignatura uuid)
+ 3103 | returns boolean
+ 3104 | language sql
+ 3105 | stable
+ 3106 | security definer
+ 3107 | set search_path = public
+ 3108 | as $$
+ 3109 |   select exists (
+ 3110 |     select 1 from public.asignaturas a
+ 3111 |      where a.id = p_asignatura
+ 3112 |        and a.institucion_id is not null
+ 3113 |        and a.institucion_id = public.mi_institucion()
+ 3114 |   );
+ 3115 | $$;
+ 3116 | 
+ 3117 | revoke execute on function public.es_de_mi_institucion(uuid) from public;
+ 3118 | grant  execute on function public.es_de_mi_institucion(uuid) to authenticated;
+ 3119 | 
+ 3120 | -- ¿Queda cupo? `p_excluir` es la persona a la que se le está por dar: si ya
+ 3121 | -- lo tiene, no debe contarse dos veces y quedarse sin el suyo propio.
+ 3122 | create or replace function public.cupo_disponible(p_institucion uuid, p_excluir uuid default null)
+ 3123 | returns boolean
+ 3124 | language sql
+ 3125 | stable
+ 3126 | security definer
+ 3127 | set search_path = public
+ 3128 | as $$
+ 3129 |   select exists (
+ 3130 |     select 1 from public.instituciones i
+ 3131 |      where i.id = p_institucion
+ 3132 |        and (i.vence_en is null or i.vence_en > now())
+ 3133 |        and (
+ 3134 |          select count(*) from public.perfiles p
+ 3135 |           where p.institucion_id = i.id
+ 3136 |             and p.plan = 'institucion'
+ 3137 |             and (p_excluir is null or p.id <> p_excluir)
+ 3138 |        ) < i.cupos
+ 3139 |   );
+ 3140 | $$;
+ 3141 | 
+ 3142 | comment on function public.cupo_disponible(uuid, uuid) is
+ 3143 |   'Si el contrato todavía alcanza para una persona más. Un contrato vencido '
+ 3144 |   'no entrega cupos nuevos, y no le quita el suyo a quien ya lo tenía.';
+ 3145 | 
+ 3146 | revoke execute on function public.cupo_disponible(uuid, uuid) from public;
+ 3147 | 
+ 3148 | -- ── Que el cliente no se mude de institución solo ────────────────────────
+ 3149 | --
+ 3150 | -- El disparador ya cuidaba el rol y el plan. Ahora hay dos columnas más que
+ 3151 | -- valen exactamente lo mismo: pertenecer a una institución es tener el plan
+ 3152 | -- pagado, y ser operador es ver el servicio entero.
+ 3153 | create or replace function public.rol_no_se_cambia_solo()
+ 3154 | returns trigger
+ 3155 | language plpgsql
+ 3156 | as $$
+ 3157 | begin
+ 3158 |   if current_user = 'authenticated' then
+ 3159 |     if new.rol is distinct from old.rol then
+ 3160 |       raise exception 'El rol no se cambia desde el cliente.';
+ 3161 |     end if;
+ 3162 |     if new.plan is distinct from old.plan then
+ 3163 |       raise exception 'El plan no se cambia desde el cliente.';
+ 3164 |     end if;
+ 3165 |     if new.institucion_id is distinct from old.institucion_id then
+ 3166 |       raise exception 'La institución no se cambia desde el cliente.';
+ 3167 |     end if;
+ 3168 |     if new.operador is distinct from old.operador then
+ 3169 |       raise exception 'Eso no se cambia desde el cliente.';
+ 3170 |     end if;
+ 3171 |   end if;
+ 3172 |   return new;
+ 3173 | end;
+ 3174 | $$;
+ 3175 | 
+ 3176 | comment on function public.rol_no_se_cambia_solo() is
+ 3177 |   'Impide que el cliente se cambie el rol, el plan, la institución o la '
+ 3178 |   'marca de operador. El nombre se queda por el disparador ya montado.';
+ 3179 | 
+ 3180 | -- ── Las políticas del colegio, ahora con borde ───────────────────────────
+ 3181 | --
+ 3182 | -- Las ocho de siempre. Cambia una sola cosa en cada una: además de ser
+ 3183 | -- administración, la fila tiene que ser de su institución. Se sueltan y se
+ 3184 | -- vuelven a crear porque `create policy` no tiene un «or replace».
+ 3185 | 
+ 3186 | drop policy "administración ve todas las asignaturas" on public.asignaturas;
+ 3187 | drop policy "administración crea asignaturas"         on public.asignaturas;
+ 3188 | 
+ 3189 | create policy "administración ve las asignaturas de su institución" on public.asignaturas
+ 3190 |   for select to authenticated
+ 3191 |   using (public.es_administrador() and institucion_id = public.mi_institucion());
+ 3192 | 
+ 3193 | create policy "administración crea asignaturas de su institución" on public.asignaturas
+ 3194 |   for all to authenticated
+ 3195 |   using      (public.es_administrador() and institucion_id = public.mi_institucion())
+ 3196 |   with check (public.es_administrador() and institucion_id = public.mi_institucion());
+ 3197 | 
+ 3198 | drop policy "administración ve todo el horario" on public.bloques_horario;
+ 3199 | drop policy "administración arma el horario"    on public.bloques_horario;
+ 3200 | 
+ 3201 | create policy "administración ve el horario de su institución" on public.bloques_horario
+ 3202 |   for select to authenticated
+ 3203 |   using (public.es_administrador() and public.es_de_mi_institucion(asignatura_id));
+ 3204 | 
+ 3205 | create policy "administración arma el horario de su institución" on public.bloques_horario
+ 3206 |   for all to authenticated
+ 3207 |   using      (public.es_administrador() and public.es_de_mi_institucion(asignatura_id))
+ 3208 |   with check (public.es_administrador() and public.es_de_mi_institucion(asignatura_id));
+ 3209 | 
+ 3210 | drop policy "administración ve los dictados"     on public.dictados;
+ 3211 | drop policy "administración asigna los dictados" on public.dictados;
+ 3212 | 
+ 3213 | create policy "administración ve los dictados de su institución" on public.dictados
+ 3214 |   for select to authenticated
+ 3215 |   using (public.es_administrador() and public.es_de_mi_institucion(asignatura_id));
+ 3216 | 
+ 3217 | create policy "administración asigna los dictados de su institución" on public.dictados
+ 3218 |   for all to authenticated
+ 3219 |   using      (public.es_administrador() and public.es_de_mi_institucion(asignatura_id))
+ 3220 |   with check (public.es_administrador() and public.es_de_mi_institucion(asignatura_id));
+ 3221 | 
+ 3222 | drop policy "administración ve las inscripciones" on public.inscripciones;
+ 3223 | drop policy "administración inscribe"             on public.inscripciones;
+ 3224 | 
+ 3225 | create policy "administración ve las inscripciones de su institución" on public.inscripciones
+ 3226 |   for select to authenticated
+ 3227 |   using (public.es_administrador() and public.es_de_mi_institucion(asignatura_id));
+ 3228 | 
+ 3229 | create policy "administración inscribe en su institución" on public.inscripciones
+ 3230 |   for all to authenticated
+ 3231 |   using      (public.es_administrador() and public.es_de_mi_institucion(asignatura_id))
+ 3232 |   with check (public.es_administrador() and public.es_de_mi_institucion(asignatura_id));
+ 3233 | 
+ 3234 | -- La nómina.
+ 3235 | drop policy "la administración ve la nómina" on public.matriculas;
+ 3236 | create policy "la administración ve la nómina de su institución" on public.matriculas
+ 3237 |   for select to authenticated
+ 3238 |   using (public.es_administrador() and institucion_id = public.mi_institucion());
+ 3239 | 
+ 3240 | -- La institución misma. Cualquiera ve la suya —la aplicación muestra su
+ 3241 | -- nombre— y nadie ve otra.
+ 3242 | alter table public.instituciones enable row level security;
+ 3243 | 
+ 3244 | create policy "veo mi institución" on public.instituciones
+ 3245 |   for select to authenticated
+ 3246 |   using (id = public.mi_institucion());
+ 3247 | 
+ 3248 | grant select on public.instituciones to authenticated;
+ 3249 | 
+ 3250 | -- ── Lo que es de StudIA y no de una institución ──────────────────────────
+ 3251 | --
+ 3252 | -- Las caídas y los reportes de contenido son del servicio entero. Estaban
+ 3253 | -- abiertos a `es_administrador()`, es decir: la secretaría de una universidad
+ 3254 | -- habría leído los mensajes de error y los reportes de IA de todas las demás.
+ 3255 | -- Y ninguna de las dos cosas le sirve para nada: no puede arreglar la
+ 3256 | -- aplicación ni ajustar el modelo.
+ 3257 | 
+ 3258 | drop policy "la administración ve las caídas" on public.errores;
+ 3259 | create policy "la operación ve las caídas" on public.errores
+ 3260 |   for select to authenticated using (public.es_operador());
+ 3261 | 
+ 3262 | drop policy "la administración lee los reportes"      on public.reportes;
+ 3263 | drop policy "la administración los marca revisados"   on public.reportes;
+ 3264 | 
+ 3265 | create policy "la operación lee los reportes" on public.reportes
+ 3266 |   for select to authenticated using (public.es_operador());
+ 3267 | 
+ 3268 | create policy "la operación los marca revisados" on public.reportes
+ 3269 |   for update to authenticated
+ 3270 |   using (public.es_operador()) with check (public.es_operador());
+ 3271 | 
+ 3272 | create or replace function public.limpiar_errores_viejos()
+ 3273 | returns integer
+ 3274 | language plpgsql
+ 3275 | security definer
+ 3276 | set search_path = public
+ 3277 | as $$
+ 3278 | declare
+ 3279 |   borradas integer;
+ 3280 | begin
+ 3281 |   if not public.es_operador() then
+ 3282 |     raise exception 'Limpiar el registro de caídas es de la operación de StudIA.';
+ 3283 |   end if;
+ 3284 | 
+ 3285 |   delete from public.errores where creado_en < now() - interval '30 days';
+ 3286 |   get diagnostics borradas = row_count;
+ 3287 |   return borradas;
+ 3288 | end;
+ 3289 | $$;
+ 3290 | 
+ 3291 | comment on function public.limpiar_errores_viejos() is
+ 3292 |   'Borra las caídas de más de 30 días. Solo la operación de StudIA. La tarea '
+ 3293 |   'programada corre como superusuario y no pasa por esa comprobación.';
+ 3294 | 
+ 3295 | -- ── Las funciones con guardia ────────────────────────────────────────────
+ 3296 | --
+ 3297 | -- Todas comprobaban `es_administrador()` y nada más. Cada una gana la misma
+ 3298 | -- segunda condición, y ninguna la puede saltar: son `security definer`, así
+ 3299 | -- que acá adentro no queda ninguna política que las frene.
+ 3300 | 
+ 3301 | create or replace function public.registros()
+ 3302 | returns table (
+ 3303 |   id        uuid,
+ 3304 |   nombre    text,
+ 3305 |   correo    text,
+ 3306 |   rol       text,
+ 3307 |   plan      text,
+ 3308 |   creado_en timestamptz
+ 3309 | )
+ 3310 | language sql
+ 3311 | stable
+ 3312 | security definer
+ 3313 | set search_path = public
+ 3314 | as $$
+ 3315 |   select p.id, p.nombre, p.correo, p.rol, p.plan, p.creado_en
+ 3316 |     from public.perfiles p
+ 3317 |    where public.es_administrador()
+ 3318 |      -- Las dos comparaciones importan. Sin la segunda, la secretaría de una
+ 3319 |      -- universidad leería el correo de todo el servicio. Sin `is not null`,
+ 3320 |      -- un administrador suelto —sin institución— se llevaría a todas las
+ 3321 |      -- personas que tampoco tienen una, que son las cuentas personales.
+ 3322 |      and p.institucion_id is not null
+ 3323 |      and p.institucion_id = public.mi_institucion()
+ 3324 |    order by p.creado_en desc;
+ 3325 | $$;
+ 3326 | 
+ 3327 | comment on function public.registros() is
+ 3328 |   'La gente de mi institución, con su correo. Solo para su administración. '
+ 3329 |   'Para cualquier otra persona devuelve vacío.';
+ 3330 | 
+ 3331 | create or replace function public.cambiar_rol(p_persona uuid, p_rol text)
+ 3332 | returns void
+ 3333 | language plpgsql
+ 3334 | security definer
+ 3335 | set search_path = public
+ 3336 | as $$
+ 3337 | declare
+ 3338 |   v_suya uuid;
+ 3339 | begin
+ 3340 |   if not public.es_administrador() then
+ 3341 |     raise exception 'Solo la administración cambia roles.';
+ 3342 |   end if;
+ 3343 | 
+ 3344 |   if p_rol not in ('estudiante', 'profesor', 'administrador') then
+ 3345 |     raise exception 'Rol desconocido: %', p_rol;
+ 3346 |   end if;
+ 3347 | 
+ 3348 |   -- Nadie se cambia el rol a sí mismo, ni para subir ni para bajar. Subir
+ 3349 |   -- solo sería ascenderse; bajar dejaría al colegio sin quien administre si
+ 3350 |   -- fuera la última persona. Que lo haga otra de administración.
+ 3351 |   if p_persona = auth.uid() then
+ 3352 |     raise exception 'No puedes cambiar tu propio rol. Pídeselo a otra persona de administración.';
+ 3353 |   end if;
+ 3354 | 
+ 3355 |   select institucion_id into v_suya from public.perfiles where id = p_persona;
+ 3356 |   if not found then
+ 3357 |     raise exception 'Esa persona ya no está registrada.';
+ 3358 |   end if;
+ 3359 |   -- Sin esto, ser administrador de una institución alcanzaba para ascender a
+ 3360 |   -- cualquiera del servicio, incluida gente de otra universidad.
+ 3361 |   if v_suya is null or v_suya is distinct from public.mi_institucion() then
+ 3362 |     raise exception 'Esa persona no es de tu institución.';
+ 3363 |   end if;
+ 3364 | 
+ 3365 |   update public.perfiles set rol = p_rol where id = p_persona;
+ 3366 | end;
+ 3367 | $$;
+ 3368 | 
+ 3369 | comment on function public.cambiar_rol(uuid, text) is
+ 3370 |   'Cambia el rol de otra persona de la misma institución. Nunca el propio: '
+ 3371 |   'ascenderse a uno mismo sería la única manera de saltarse todo lo demás.';
+ 3372 | 
+ 3373 | -- El plan ya no se elige de una lista de tres: se da o se quita el cupo que
+ 3374 | -- la institución contrató. El plan Personal viene de Google Play y esta
+ 3375 | -- función no lo toca ni para ponerlo ni para sacarlo.
+ 3376 | create or replace function public.cambiar_plan(p_persona uuid, p_plan text)
+ 3377 | returns void
+ 3378 | language plpgsql
+ 3379 | security definer
+ 3380 | set search_path = public
+ 3381 | as $$
+ 3382 | declare
+ 3383 |   v_suya  uuid;
+ 3384 |   v_antes text;
+ 3385 | begin
+ 3386 |   if not public.es_administrador() then
+ 3387 |     raise exception 'Solo la administración cambia el plan.';
+ 3388 |   end if;
+ 3389 |   if p_plan not in ('gratis', 'institucion') then
+ 3390 |     raise exception 'Desde acá solo se da o se quita el cupo de la institución. El plan Personal lo pone Google Play.';
+ 3391 |   end if;
+ 3392 | 
+ 3393 |   select institucion_id, plan into v_suya, v_antes
+ 3394 |     from public.perfiles where id = p_persona;
+ 3395 |   if not found then
+ 3396 |     raise exception 'Esa persona ya no está registrada.';
+ 3397 |   end if;
+ 3398 |   if v_suya is null or v_suya is distinct from public.mi_institucion() then
+ 3399 |     raise exception 'Esa persona no es de tu institución.';
+ 3400 |   end if;
+ 3401 |   if v_antes = 'personal' then
+ 3402 |     raise exception 'Esa persona paga su plan por Google Play. Quitárselo desde acá no le devuelve el dinero.';
+ 3403 |   end if;
+ 3404 |   if p_plan = 'institucion' and not public.cupo_disponible(v_suya, p_persona) then
+ 3405 |     raise exception 'No quedan cupos en el contrato. Quítale el cupo a alguien que ya no esté, o amplía el contrato.';
+ 3406 |   end if;
+ 3407 | 
+ 3408 |   update public.perfiles set plan = p_plan where id = p_persona;
+ 3409 | end;
+ 3410 | $$;
+ 3411 | 
+ 3412 | comment on function public.cambiar_plan(uuid, text) is
+ 3413 |   'Da o quita el cupo de la institución a una persona de ella. No entrega '
+ 3414 |   'más cupos de los contratados, y no toca el plan Personal de Google Play.';
+ 3415 | 
+ 3416 | create or replace function public.dictados_del_colegio()
+ 3417 | returns table (persona uuid, quien text, codigo text, papel text)
+ 3418 | language sql
+ 3419 | stable
+ 3420 | security definer
+ 3421 | set search_path = public
+ 3422 | as $$
+ 3423 |   select d.docente_id, p.nombre, a.codigo, d.papel
+ 3424 |     from public.dictados d
+ 3425 |     join public.perfiles p   on p.id = d.docente_id
+ 3426 |     join public.asignaturas a on a.id = d.asignatura_id
+ 3427 |    where public.es_administrador()
+ 3428 |      and a.institucion_id is not null
+ 3429 |      and a.institucion_id = public.mi_institucion()
+ 3430 |    order by a.codigo, d.papel;
+ 3431 | $$;
+ 3432 | 
+ 3433 | comment on function public.dictados_del_colegio() is
+ 3434 |   'Quién dicta cada ramo de mi institución, con el nombre. Solo para su '
+ 3435 |   'administración: la comprobación va adentro.';
+ 3436 | 
+ 3437 | create or replace function public.alumnos_de(p_asignatura uuid)
+ 3438 | returns table (id uuid, nombre text)
+ 3439 | language sql
+ 3440 | stable
+ 3441 | security definer
+ 3442 | set search_path = public
+ 3443 | as $$
+ 3444 |   select p.id, p.nombre
+ 3445 |     from public.inscripciones i
+ 3446 |     join public.perfiles p on p.id = i.estudiante_id
+ 3447 |    where i.asignatura_id = p_asignatura
+ 3448 |      and (public.dicta(p_asignatura)
+ 3449 |           or (public.es_administrador() and public.es_de_mi_institucion(p_asignatura)))
+ 3450 |    order by p.nombre;
+ 3451 | $$;
+ 3452 | 
+ 3453 | comment on function public.alumnos_de(uuid) is
+ 3454 |   'La lista del curso. La ve quien lo dicta, y la administración de la '
+ 3455 |   'institución dueña del ramo.';
+ 3456 | 
+ 3457 | -- ── Cargar el catálogo, dentro de la institución ─────────────────────────
+ 3458 | 
+ 3459 | create or replace function public.cargar_catalogo(
+ 3460 |   p_asignaturas jsonb,
+ 3461 |   p_horario     jsonb
+ 3462 | ) returns jsonb
+ 3463 | language plpgsql
+ 3464 | security invoker
+ 3465 | set search_path = public
+ 3466 | as $$
+ 3467 | declare
+ 3468 |   v_inst    uuid;
+ 3469 |   v_codigos text[];
+ 3470 |   v_ramos   int;
+ 3471 |   v_bloques int;
+ 3472 | begin
+ 3473 |   if jsonb_typeof(p_asignaturas) <> 'array' or jsonb_typeof(p_horario) <> 'array' then
+ 3474 |     raise exception 'Las dos planillas tienen que venir como listas.';
+ 3475 |   end if;
+ 3476 | 
+ 3477 |   -- Un ramo del colegio es de una institución, siempre. Sin esto la carga
+ 3478 |   -- moriría más adelante contra el `check`, con un mensaje del motor que no
+ 3479 |   -- le dice nada a quien está pegando su planilla.
+ 3480 |   v_inst := public.mi_institucion();
+ 3481 |   if v_inst is null then
+ 3482 |     raise exception 'Tu cuenta no pertenece a ninguna institución, así que no hay dónde cargar estos ramos.';
+ 3483 |   end if;
+ 3484 | 
+ 3485 |   -- Los ramos que toca esta carga. Lo que no esté acá no se mira siquiera:
+ 3486 |   -- una planilla parcial no puede borrar el resto del semestre.
+ 3487 |   select array_agg(upper(x->>'codigo')) into v_codigos
+ 3488 |     from jsonb_array_elements(p_asignaturas) x;
+ 3489 | 
+ 3490 |   if v_codigos is null then
+ 3491 |     return jsonb_build_object('ramos', 0, 'bloques', 0);
+ 3492 |   end if;
+ 3493 | 
+ 3494 |   insert into public.asignaturas
+ 3495 |     (institucion_id, codigo, nombre, profesor, ayudante, color, creditos,
+ 3496 |      descripcion, requisitos, bibliografia, intro_tutor)
+ 3497 |   select
+ 3498 |     v_inst,
+ 3499 |     upper(x->>'codigo'), x->>'nombre', x->>'profesor', nullif(x->>'ayudante', ''),
+ 3500 |     x->>'color', (x->>'creditos')::smallint,
+ 3501 |     nullif(x->>'descripcion', ''), nullif(x->>'requisitos', ''),
+ 3502 |     coalesce(
+ 3503 |       (select array_agg(b) from jsonb_array_elements_text(x->'bibliografia') b),
+ 3504 |       '{}'::text[]),
+ 3505 |     x->>'intro_tutor'
+ 3506 |   from jsonb_array_elements(p_asignaturas) x
+ 3507 |   -- Repetir la condición del índice parcial es lo que deja inferirlo. Ahora
+ 3508 |   -- lleva la institución adelante: el mismo código en otra universidad es
+ 3509 |   -- otro ramo y no debe pisarse.
+ 3510 |   on conflict (institucion_id, codigo) where creador_id is null do update set
+ 3511 |     nombre = excluded.nombre, profesor = excluded.profesor,
+ 3512 |     ayudante = excluded.ayudante, color = excluded.color,
+ 3513 |     creditos = excluded.creditos, descripcion = excluded.descripcion,
+ 3514 |     requisitos = excluded.requisitos, bibliografia = excluded.bibliografia,
+ 3515 |     intro_tutor = excluded.intro_tutor;
+ 3516 | 
+ 3517 |   get diagnostics v_ramos = row_count;
+ 3518 | 
+ 3519 |   -- El horario se rehace entero para esos ramos: un bloque que se sacó de la
+ 3520 |   -- planilla tiene que desaparecer, y no hay nada del alumno colgando de él.
+ 3521 |   delete from public.bloques_horario
+ 3522 |    where asignatura_id in (
+ 3523 |      select id from public.asignaturas
+ 3524 |       where codigo = any(v_codigos) and creador_id is null
+ 3525 |         and institucion_id = v_inst);
+ 3526 | 
+ 3527 |   insert into public.bloques_horario (asignatura_id, dia, hora_inicio, hora_fin, sala, tipo)
+ 3528 |   select a.id, (x->>'dia')::smallint, (x->>'hora_inicio')::time,
+ 3529 |          (x->>'hora_fin')::time, x->>'sala', x->>'tipo'
+ 3530 |     from jsonb_array_elements(p_horario) x
+ 3531 |     join public.asignaturas a
+ 3532 |       on a.codigo = upper(x->>'codigo') and a.creador_id is null
+ 3533 |      and a.institucion_id = v_inst;
+ 3534 | 
+ 3535 |   get diagnostics v_bloques = row_count;
+ 3536 | 
+ 3537 |   -- Si un bloque quedó sin ramo, la planilla nombraba un código que no existe
+ 3538 |   -- y el horario habría quedado incompleto en silencio.
+ 3539 |   if v_bloques <> jsonb_array_length(p_horario) then
+ 3540 |     raise exception 'El horario nombra ramos que no están en la planilla de asignaturas.';
+ 3541 |   end if;
+ 3542 | 
+ 3543 |   return jsonb_build_object('ramos', v_ramos, 'bloques', v_bloques);
+ 3544 | end;
+ 3545 | $$;
+ 3546 | 
+ 3547 | comment on function public.cargar_catalogo(jsonb, jsonb) is
+ 3548 |   'Carga ramos y horario de la institución de quien llama, en una '
+ 3549 |   'transacción. Idempotente: reimportar actualiza y no duplica.';
+ 3550 | 
+ 3551 | -- ── La nómina, dentro de la institución ──────────────────────────────────
+ 3552 | 
+ 3553 | create or replace function public.aplicar_matriculas(p_persona uuid)
+ 3554 | returns int
+ 3555 | language plpgsql
+ 3556 | security definer
+ 3557 | set search_path = public
+ 3558 | as $$
+ 3559 | declare
+ 3560 |   v_correo text;
+ 3561 |   v_actual text;
+ 3562 |   v_plan   text;
+ 3563 |   v_suya   uuid;
+ 3564 |   v_inst   uuid;
+ 3565 |   v_rol    text;
+ 3566 |   v_cabe   boolean;
+ 3567 |   v_hechas int := 0;
+ 3568 | begin
+ 3569 |   select correo, rol, plan, institucion_id
+ 3570 |     into v_correo, v_actual, v_plan, v_suya
+ 3571 |     from public.perfiles where id = p_persona;
+ 3572 |   if v_correo is null then return 0; end if;
+ 3573 | 
+ 3574 |   -- De qué institución es esta persona.
+ 3575 |   --
+ 3576 |   -- Si ya pertenece a una, solo se le aplica lo de ESA. La nómina de otra no
+ 3577 |   -- se lleva a alguien que ya está en un contrato: sin esta regla, la
+ 3578 |   -- secretaría de la universidad B podría escribir el correo de un alumno de
+ 3579 |   -- la A en su planilla y quedárselo, con sus ramos y todo.
+ 3580 |   if v_suya is not null then
+ 3581 |     v_inst := v_suya;
+ 3582 |   else
+ 3583 |     -- Si no, la primera que lo pidió.
+ 3584 |     select institucion_id into v_inst
+ 3585 |       from public.matriculas
+ 3586 |      where correo = v_correo and aplicada_en is null
+ 3587 |      order by creada_en
+ 3588 |      limit 1;
+ 3589 |   end if;
+ 3590 |   if v_inst is null then return 0; end if;
+ 3591 | 
+ 3592 |   -- El rol más alto que le asigna la nómina de esa institución. Una persona
+ 3593 |   -- puede aparecer muchas veces —una por ramo— y todas dicen lo mismo, pero
+ 3594 |   -- si no, el que manda es el que más puede.
+ 3595 |   select rol into v_rol
+ 3596 |     from public.matriculas
+ 3597 |    where correo = v_correo and institucion_id = v_inst
+ 3598 |    order by case rol when 'administrador' then 3 when 'profesor' then 2 else 1 end desc
+ 3599 |    limit 1;
+ 3600 | 
+ 3601 |   if v_rol is null then return 0; end if;
+ 3602 | 
+ 3603 |   v_cabe := public.cupo_disponible(v_inst, p_persona);
+ 3604 | 
+ 3605 |   update public.perfiles
+ 3606 |      set -- Quien ya es administración no se baja de rol por una planilla: un
+ 3607 |          -- archivo mal armado dejaría a la institución sin nadie que pueda
+ 3608 |          -- arreglarlo.
+ 3609 |          rol = case when v_actual = 'administrador' then v_actual else v_rol end,
+ 3610 |          institucion_id = v_inst,
+ 3611 |          -- El plan sale del contrato, y solo si queda cupo. Sin cupo la
+ 3612 |          -- persona entra igual, con sus ramos, en el plan gratis: media
+ 3613 |          -- matrícula es mejor que un error que nadie ve. Quien ya paga por
+ 3614 |          -- Google Play se queda con lo suyo y no gasta un cupo.
+ 3615 |          plan = case
+ 3616 |                   when v_plan = 'personal' then v_plan
+ 3617 |                   when v_cabe              then 'institucion'
+ 3618 |                   else v_plan
+ 3619 |                 end
+ 3620 |    where id = p_persona;
+ 3621 | 
+ 3622 |   -- Los ramos en que queda inscrita.
+ 3623 |   insert into public.inscripciones (estudiante_id, asignatura_id)
+ 3624 |   select p_persona, a.id
+ 3625 |     from public.matriculas m
+ 3626 |     join public.asignaturas a
+ 3627 |       on a.codigo = upper(m.codigo) and a.creador_id is null
+ 3628 |      and a.institucion_id = v_inst
+ 3629 |    where m.correo = v_correo and m.institucion_id = v_inst
+ 3630 |      and m.rol = 'estudiante' and m.codigo is not null
+ 3631 |   on conflict do nothing;
+ 3632 | 
+ 3633 |   get diagnostics v_hechas = row_count;
+ 3634 | 
+ 3635 |   -- Y los que dicta.
+ 3636 |   insert into public.dictados (docente_id, asignatura_id, papel)
+ 3637 |   select p_persona, a.id, coalesce(m.papel, 'profesor')
+ 3638 |     from public.matriculas m
+ 3639 |     join public.asignaturas a
+ 3640 |       on a.codigo = upper(m.codigo) and a.creador_id is null
+ 3641 |      and a.institucion_id = v_inst
+ 3642 |    where m.correo = v_correo and m.institucion_id = v_inst
+ 3643 |      and m.rol = 'profesor' and m.codigo is not null
+ 3644 |   on conflict do nothing;
+ 3645 | 
+ 3646 |   update public.matriculas
+ 3647 |      set aplicada_en = now()
+ 3648 |    where correo = v_correo and institucion_id = v_inst and aplicada_en is null;
+ 3649 | 
+ 3650 |   return v_hechas;
+ 3651 | end;
+ 3652 | $$;
+ 3653 | 
+ 3654 | comment on function public.aplicar_matriculas(uuid) is
+ 3655 |   'Arma la cuenta de una persona con lo que su institución dejó cargado a su '
+ 3656 |   'correo: su rol, su cupo y sus ramos. Idempotente. Quien ya pertenece a una '
+ 3657 |   'institución no es reclamable por la nómina de otra.';
+ 3658 | 
+ 3659 | create or replace function public.cargar_matriculas(p_filas jsonb)
+ 3660 | returns jsonb
+ 3661 | language plpgsql
+ 3662 | security definer
+ 3663 | set search_path = public
+ 3664 | as $$
+ 3665 | declare
+ 3666 |   v_inst      uuid;
+ 3667 |   v_puestas   int;
+ 3668 |   v_aplicadas int := 0;
+ 3669 |   v_persona   uuid;
+ 3670 | begin
+ 3671 |   if not public.es_administrador() then
+ 3672 |     raise exception 'Solo la administración carga la nómina.';
+ 3673 |   end if;
+ 3674 |   if jsonb_typeof(p_filas) <> 'array' then
+ 3675 |     raise exception 'La nómina tiene que venir como lista.';
+ 3676 |   end if;
+ 3677 | 
+ 3678 |   v_inst := public.mi_institucion();
+ 3679 |   if v_inst is null then
+ 3680 |     raise exception 'Tu cuenta no pertenece a ninguna institución, así que no hay nómina que cargar.';
+ 3681 |   end if;
+ 3682 | 
+ 3683 |   -- La institución la pone el servidor, no la planilla: si viniera en el
+ 3684 |   -- archivo, cargar una nómina sería poder escribir en la de al lado.
+ 3685 |   insert into public.matriculas (institucion_id, correo, rol, codigo, papel)
+ 3686 |   select v_inst, lower(trim(x->>'correo')), x->>'rol',
+ 3687 |          nullif(upper(trim(x->>'codigo')), ''), nullif(x->>'papel', '')
+ 3688 |     from jsonb_array_elements(p_filas) x
+ 3689 |   on conflict (institucion_id, correo, codigo, papel) do update
+ 3690 |      set rol = excluded.rol, aplicada_en = null;
+ 3691 | 
+ 3692 |   get diagnostics v_puestas = row_count;
+ 3693 | 
+ 3694 |   -- A quien ya tenía cuenta se le aplica ahora: si un alumno se registró la
+ 3695 |   -- semana pasada, no tiene por qué esperar a nada.
+ 3696 |   for v_persona in
+ 3697 |     select p.id from public.perfiles p
+ 3698 |      where p.correo in (
+ 3699 |        select correo from public.matriculas
+ 3700 |         where institucion_id = v_inst and aplicada_en is null
+ 3701 |      )
+ 3702 |   loop
+ 3703 |     perform public.aplicar_matriculas(v_persona);
+ 3704 |     v_aplicadas := v_aplicadas + 1;
+ 3705 |   end loop;
+ 3706 | 
+ 3707 |   return jsonb_build_object(
+ 3708 |     'filas', v_puestas,
+ 3709 |     'aplicadas', v_aplicadas,
+ 3710 |     'esperando', (select count(*) from public.matriculas
+ 3711 |                    where institucion_id = v_inst and aplicada_en is null)
+ 3712 |   );
+ 3713 | end;
+ 3714 | $$;
+ 3715 | 
+ 3716 | comment on function public.cargar_matriculas(jsonb) is
+ 3717 |   'Deja cargada la nómina de MI institución. Lo que corresponde a alguien ya '
+ 3718 |   'registrado se aplica en el momento; el resto espera a que se registre.';
+ 3719 | 
+ 3720 | -- ── Lo que el panel necesita saber del contrato ──────────────────────────
+ 3721 | 
+ 3722 | create or replace function public.mi_institucion_detalle()
+ 3723 | returns table (
+ 3724 |   id        uuid,
+ 3725 |   nombre    text,
+ 3726 |   cupos     integer,
+ 3727 |   ocupados  bigint,
+ 3728 |   esperando bigint,
+ 3729 |   vence_en  timestamptz
+ 3730 | )
+ 3731 | language sql
+ 3732 | stable
+ 3733 | security definer
+ 3734 | set search_path = public
+ 3735 | as $$
+ 3736 |   select i.id, i.nombre, i.cupos,
+ 3737 |          (select count(*) from public.perfiles p
+ 3738 |            where p.institucion_id = i.id and p.plan = 'institucion'),
+ 3739 |          (select count(*) from public.matriculas m
+ 3740 |            where m.institucion_id = i.id and m.aplicada_en is null),
+ 3741 |          i.vence_en
+ 3742 |     from public.instituciones i
+ 3743 |    where i.id = public.mi_institucion()
+ 3744 |      and public.es_administrador();
+ 3745 | $$;
+ 3746 | 
+ 3747 | comment on function public.mi_institucion_detalle() is
+ 3748 |   'El contrato en una fila: cuántos cupos hay, cuántos se ocuparon y cuánta '
+ 3749 |   'gente de la nómina todavía no se registra.';
+ 3750 | 
+ 3751 | revoke execute on function public.mi_institucion_detalle() from public;
+ 3752 | grant  execute on function public.mi_institucion_detalle() to authenticated;
+ 3753 | 
+ 3754 | -- ── Abrir una institución ────────────────────────────────────────────────
+ 3755 | --
+ 3756 | -- Esto no es de la secretaría de nadie: es la venta. Lo hacemos nosotros, y
+ 3757 | -- por ahora desde el editor SQL de Supabase, que es donde no hay sesión y
+ 3758 | -- `auth.uid()` viene nulo. De ahí la guardia de dos partes: con sesión hay
+ 3759 | -- que ser operador; sin sesión, quien está escribiendo tiene la clave de
+ 3760 | -- servicio y ya podía hacer cualquier cosa.
+ 3761 | --
+ 3762 | --   select public.crear_institucion('Universidad de Chile', 4000,
+ 3763 | --                                   'secretaria.academica@uchile.cl');
+ 3764 | --
+ 3765 | -- Deja la institución creada y a esa persona esperando como administradora:
+ 3766 | -- el día que se registre con ese correo, entra con el panel armado.
+ 3767 | 
+ 3768 | create or replace function public.crear_institucion(
+ 3769 |   p_nombre text,
+ 3770 |   p_cupos  integer,
+ 3771 |   p_admin  text default null,
+ 3772 |   p_vence  timestamptz default null
+ 3773 | ) returns uuid
+ 3774 | language plpgsql
+ 3775 | security definer
+ 3776 | set search_path = public
+ 3777 | as $$
+ 3778 | declare
+ 3779 |   v_id uuid;
+ 3780 | begin
+ 3781 |   if auth.uid() is not null and not public.es_operador() then
+ 3782 |     raise exception 'Abrir una institución es de la operación de StudIA.';
+ 3783 |   end if;
+ 3784 |   if coalesce(trim(p_nombre), '') = '' then
+ 3785 |     raise exception 'La institución necesita un nombre.';
+ 3786 |   end if;
+ 3787 |   if p_cupos is null or p_cupos < 0 then
+ 3788 |     raise exception 'Los cupos contratados no pueden ser negativos.';
+ 3789 |   end if;
+ 3790 | 
+ 3791 |   insert into public.instituciones (nombre, cupos, vence_en)
+ 3792 |   values (trim(p_nombre), p_cupos, p_vence)
+ 3793 |   returning id into v_id;
+ 3794 | 
+ 3795 |   if p_admin is not null then
+ 3796 |     insert into public.matriculas (institucion_id, correo, rol)
+ 3797 |     values (v_id, lower(trim(p_admin)), 'administrador');
+ 3798 | 
+ 3799 |     -- Y si esa persona ya tenía cuenta, no espera a nada.
+ 3800 |     perform public.aplicar_matriculas(p.id)
+ 3801 |        from public.perfiles p where p.correo = lower(trim(p_admin));
+ 3802 |   end if;
+ 3803 | 
+ 3804 |   return v_id;
+ 3805 | end;
+ 3806 | $$;
+ 3807 | 
+ 3808 | comment on function public.crear_institucion(text, integer, text, timestamptz) is
+ 3809 |   'Abre una institución y deja a su primera administradora esperando en la '
+ 3810 |   'nómina. Solo la operación de StudIA, o quien tenga la clave de servicio.';
+ 3811 | 
+ 3812 | revoke execute on function public.crear_institucion(text, integer, text, timestamptz) from public;
+ 3813 | 
+ 3814 | -- Marcarse como operador. Mismo criterio: desde el editor SQL, la primera vez.
+ 3815 | --
+ 3816 | --   select public.hacer_operador('tomas@studia.cl', true);
+ 3817 | create or replace function public.hacer_operador(p_correo text, p_es boolean default true)
+ 3818 | returns void
+ 3819 | language plpgsql
+ 3820 | security definer
+ 3821 | set search_path = public
+ 3822 | as $$
+ 3823 | begin
+ 3824 |   if auth.uid() is not null and not public.es_operador() then
+ 3825 |     raise exception 'Solo la operación de StudIA marca operadores.';
+ 3826 |   end if;
+ 3827 | 
+ 3828 |   update public.perfiles set operador = p_es where correo = lower(trim(p_correo));
+ 3829 |   if not found then
+ 3830 |     raise exception 'Nadie está registrado con ese correo todavía.';
+ 3831 |   end if;
+ 3832 | end;
+ 3833 | $$;
+ 3834 | 
+ 3835 | comment on function public.hacer_operador(text, boolean) is
+ 3836 |   'Marca —o desmarca— a alguien como personal de StudIA. La primera vez se '
+ 3837 |   'corre desde el editor SQL, que es donde no hay sesión.';
+ 3838 | 
+ 3839 | revoke execute on function public.hacer_operador(text, boolean) from public;
+ 3840 | 
+ 3841 | 
+ 3842 | -- ───────────────────────────────────────────────────────────────────
+ 3843 | -- Quedan anotadas como aplicadas
+ 3844 | -- ───────────────────────────────────────────────────────────────────
+ 3845 | 
+ 3846 | create schema if not exists supabase_migrations;
+ 3847 | 
+ 3848 | create table if not exists supabase_migrations.schema_migrations (
+ 3849 |   version text primary key,
+ 3850 |   statements text[],
+ 3851 |   name text
+ 3852 | );
+ 3853 | 
+ 3854 | insert into supabase_migrations.schema_migrations (version, name) values
+ 3855 |   ('20260825000100', 'esquema'),
+ 3856 |   ('20260825000200', 'rls'),
+ 3857 |   ('20260825000300', 'companeros'),
+ 3858 |   ('20260825000400', 'apuntes'),
+ 3859 |   ('20260825000500', 'apuntes_tablero'),
+ 3860 |   ('20260826000100', 'lectura'),
+ 3861 |   ('20260826000200', 'docentes'),
+ 3862 |   ('20260826000300', 'administracion'),
+ 3863 |   ('20260827000100', 'lista_del_curso'),
+ 3864 |   ('20260827000200', 'uso_asistente'),
+ 3865 |   ('20260827000300', 'espacio_propio'),
+ 3866 |   ('20260827000400', 'codigo_por_dueno'),
+ 3867 |   ('20260829000100', 'cargar_catalogo'),
+ 3868 |   ('20260829000200', 'registros'),
+ 3869 |   ('20260830000100', 'sesiones_estudio'),
+ 3870 |   ('20260830000200', 'quices'),
+ 3871 |   ('20260830000300', 'fichas'),
+ 3872 |   ('20260830000400', 'apuntes_a_mano'),
+ 3873 |   ('20260830000500', 'modo_escucha'),
+ 3874 |   ('20260831000100', 'planificacion'),
+ 3875 |   ('20260901000100', 'borrar_cuenta'),
+ 3876 |   ('20260901000200', 'almacenamiento'),
+ 3877 |   ('20260901000300', 'entregas_con_archivo'),
+ 3878 |   ('20260901000400', 'errores'),
+ 3879 |   ('20260901000500', 'avisos'),
+ 3880 |   ('20260901000600', 'planes'),
+ 3881 |   ('20260901000700', 'permisos_afinados'),
+ 3882 |   ('20260901000800', 'leer_dictados'),
+ 3883 |   ('20260901000900', 'perfil_solo_el_nombre'),
+ 3884 |   ('20260902000100', 'reportes'),
+ 3885 |   ('20260902000200', 'quien_dicta'),
+ 3886 |   ('20260902000300', 'plan_en_el_registro'),
+ 3887 |   ('20260903000100', 'matriculas'),
+ 3888 |   ('20260904000100', 'instituciones')
+ 3889 | on conflict (version) do nothing;
+ 3890 | 
