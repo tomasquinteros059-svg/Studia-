@@ -55,7 +55,7 @@ if (!CHROMIUM) {
   process.exit(0);
 }
 
-// ── Un servidor de una línea: la exportación sale con base /Sitio.ste ─────
+// ── Un servidor de una línea: la exportación sale con base /studia ────────
 
 const TIPOS = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
@@ -79,7 +79,7 @@ mkdirSync(SALIDA, { recursive: true });
 const nav = await puppeteer.launch({ executablePath: CHROMIUM, args: ["--no-sandbox", "--disable-gpu"] });
 const pag = await nav.newPage();
 await pag.setViewport({ width: 360, height: 640, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
-await pag.goto("http://localhost:8123/Sitio.ste/", { waitUntil: "networkidle0", timeout: 60000 });
+await pag.goto("http://localhost:8123/studia/", { waitUntil: "networkidle0", timeout: 60000 });
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 await esperar(2500);

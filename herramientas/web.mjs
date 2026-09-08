@@ -6,7 +6,8 @@
 //
 // Tres cosas que no son obvias y que si faltan dejan la página en blanco:
 //
-// - Pages sirve el sitio en /Sitio.ste/ y no en la raíz, así que la
+// - Pages sirve el sitio en /studia/ —el nombre del repositorio— y no en la
+//   raíz, así que la
 //   exportación tiene que salir con esa base. Va y vuelve en app.json en vez
 //   de quedar escrita: es una particularidad de dónde se publica, no de la
 //   aplicación, y el APK no tiene por qué arrastrarla.
@@ -30,7 +31,7 @@ const docs = join(raiz, "docs");
 import { COMO_BORRAR, DESDE, DOCUMENTOS, TITULAR } from "../app/src/dominio/legales.ts";
 import { paginaLegal } from "./paginas-legales.mjs";
 
-const BASE = "/Sitio.ste";
+const BASE = "/studia";
 
 const original = readFileSync(config, "utf8");
 try {

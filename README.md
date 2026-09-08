@@ -23,12 +23,14 @@ por diseño, **nunca resuelve el ejercicio**.
 | [`PROPIEDAD.md`](PROPIEDAD.md) | Qué protege qué, y los trámites que faltan |
 | [`legal/`](legal) | Términos de uso y política de privacidad (se generan) |
 
-## La otra aplicación de este repositorio
+## La otra aplicación que salió de acá
 
-En la rama [`acta`](../../tree/acta) vive **Acta**, una aplicación de reuniones
-profesionales. No es una versión de StudIA ni un experimento paralelo: es lo
-que este mismo proyecto fue durante un tiempo, antes de volver a ser StudIA.
-Cuando volvió, Acta quedó viva solo en el historial, y esa rama la rescata.
+En el repositorio [`acta`](https://github.com/tomasquinteros059-svg/acta) vive
+**Acta**, una aplicación de reuniones profesionales. No es una versión de
+StudIA ni un experimento paralelo: es lo que este mismo proyecto fue durante un
+tiempo, antes de volver a ser StudIA. Cuando volvió, Acta quedó viva solo en el
+historial, y de ahí se rescató a un repositorio propio que se trajo ese
+historial entero.
 
 Las dos comparten historia hasta `7b2f048` y de ahí en adelante son
 independientes: dos productos, dos identificadores de paquete

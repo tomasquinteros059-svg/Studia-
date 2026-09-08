@@ -22,8 +22,8 @@ Expo y te devuelve un enlace de descarga.
 
 ```bash
 # 1 · Clonar y entrar
-git clone https://github.com/tomasquinteros059-svg/Sitio.ste
-cd Sitio.ste/app
+git clone https://github.com/tomasquinteros059-svg/studia
+cd studia/app
 npm install
 
 # 2 · Entrar a Expo
@@ -88,8 +88,8 @@ sudo apt-get install -y nodejs git
 node -v                      # tiene que decir v22.x o más
 
 # 2 · El proyecto
-git clone https://github.com/tomasquinteros059-svg/Sitio.ste
-cd Sitio.ste/app
+git clone https://github.com/tomasquinteros059-svg/studia
+cd studia/app
 npm install                  # tarda unos minutos la primera vez
 
 # 3 · El servidor
@@ -119,7 +119,7 @@ Ese imprime una dirección que funciona desde cualquier parte.
 Es la vía más rápida, y sirve para el teléfono y la tablet **al mismo tiempo**.
 
 ```bash
-cd Sitio.ste/app
+cd studia/app
 npm install
 npx expo start
 ```

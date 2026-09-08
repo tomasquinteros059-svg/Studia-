@@ -5,7 +5,7 @@ import { PRIVACIDAD, TERMINOS } from "../app/src/dominio/legales.ts";
 import { paginaLegal } from "./paginas-legales.mjs";
 
 test("la página trae el documento entero", () => {
-  const html: string = paginaLegal(PRIVACIDAD, "/Sitio.ste");
+  const html: string = paginaLegal(PRIVACIDAD, "/studia");
   for (const s of PRIVACIDAD.secciones) assert.ok(html.includes(s.titulo), s.titulo);
   assert.match(html, /<html lang="es">/);
   assert.match(html, /Política de privacidad/);
@@ -33,8 +33,8 @@ test("lo que en HTML significa otra cosa se escapa", () => {
 });
 
 test("el pie reclama la propiedad y enlaza los dos documentos", () => {
-  const html: string = paginaLegal(TERMINOS, "/Sitio.ste");
+  const html: string = paginaLegal(TERMINOS, "/studia");
   assert.match(html, /Todos los derechos reservados/);
-  assert.match(html, /href="\/Sitio\.ste\/privacidad\.html"/);
+  assert.match(html, /href="\/studia\/privacidad\.html"/);
   assert.match(html, /noai/);
 });
