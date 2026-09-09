@@ -46,13 +46,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # `enablement: true` enciende Páginas si estaba apagado, que es el caso
-      # la primera vez. Sin esto habría que ir a Settings → Pages a mano, y la
-      # gracia de este archivo es que no haga falta.
-      - name: Encender Páginas si hace falta
+      # Sin `enablement: true`, y no por gusto: se probó y falla con «Resource
+      # not accessible by integration». Crear el sitio de Páginas pide permiso
+      # de administración del repositorio, y el token de Actions no lo tiene ni
+      # se lo puede conceder el bloque `permissions` de arriba. Encenderlo es
+      # cosa de una persona, una sola vez.
+      - name: Preparar la publicación
+        id: preparar
+        continue-on-error: true
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
+
+      # Si Páginas está apagado, el paso de arriba falla y los de abajo se
+      # caerían con un error del API que no le dice nada a nadie. Mejor decir
+      # qué hay que tocar, que son tres toques y se hacen desde el teléfono.
+      - name: Si Páginas está apagado, decirlo
+        if: steps.preparar.outcome == 'failure'
+        run: |
+          {
+            echo "## Falta encender Páginas, una sola vez"
+            echo
+            echo "En este repositorio: **Settings → Pages → Build and deployment**,"
+            echo "y en **Source** elegir **GitHub Actions**. Se guarda solo."
+            echo
+            echo "Después, **Actions → Publicar el demo → Run workflow**, y el"
+            echo "demo queda en:"
+            echo
+            echo '**https://tomasquinteros059-svg.github.io/Studia-/**'
+            echo
+            echo "Encenderlo pide permiso de administración del repositorio, y el"
+            echo "token de Actions no lo tiene: por eso no se puede automatizar."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Páginas está apagado. Settings → Pages → Source: GitHub Actions."
+          exit 1
 
       - name: Empaquetar la carpeta del demo
         uses: actions/upload-pages-artifact@v3
