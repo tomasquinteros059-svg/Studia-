@@ -1,0 +1,75 @@
+# Publica el demo de StudIA en una dirección que abra cualquiera.
+#
+#   https://tomasquinteros059-svg.github.io/Studia-/
+#
+# Para qué: enseñarle StudIA a alguien que no va a instalar nada. Se manda el
+# enlace y se abre en el teléfono de quien sea, sin cuenta y sin descargar.
+#
+# Lo que se publica es SOLO la carpeta `demo/`: la aplicación ya compilada, en
+# un archivo. El resto del repositorio no se sirve.
+#
+# Va con `noindex` y con robots.txt: se llega por enlace, no por buscador. La
+# aplicación todavía no está publicada, y una página encontrada suelta —sin
+# nadie que la explique— se lee como un producto que ya existe.
+
+name: Publicar el demo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    # Solo cuando cambia el demo. Sin esto, cada cambio del código fuente
+    # dispararía una publicación que no publica nada distinto.
+    paths: ["demo/**", ".github/workflows/pages.yml"]
+
+# Lo que necesita `deploy-pages` para dejar el sitio arriba.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Una publicación a la vez. Dos corriendo juntas dejan arriba la que termina
+# última, que no siempre es la más nueva.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    environment:
+      name: github-pages
+      url: ${{ steps.publicado.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # `enablement: true` enciende Páginas si estaba apagado, que es el caso
+      # la primera vez. Sin esto habría que ir a Settings → Pages a mano, y la
+      # gracia de este archivo es que no haga falta.
+      - name: Encender Páginas si hace falta
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Empaquetar la carpeta del demo
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo
+
+      - name: Dejarlo arriba
+        id: publicado
+        uses: actions/deploy-pages@v4
+
+      - name: Decir dónde quedó
+        run: |
+          {
+            echo "## El demo está publicado"
+            echo
+            echo "**${{ steps.publicado.outputs.page_url }}**"
+            echo
+            echo "Se abre en cualquier navegador, sin cuenta y sin instalar nada."
+            echo "Lleva \`noindex\`: funciona por enlace, no aparece en buscadores."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,11 @@
+# El demo de StudIA se abre por enlace, no por búsqueda.
+#
+# Es para enseñárselo a alguien en una reunión, no para que aparezca en Google:
+# la aplicación todavía no está publicada y una página encontrada suelta, sin
+# nadie que la explique, se lee como un producto que ya existe.
+#
+# Cada página lleva además `<meta name="robots" content="noindex">`, que es lo
+# que de verdad manda: robots.txt pide que no se entre, y el meta pide que no
+# se liste. Las dos cosas hacen falta.
+User-agent: *
+Disallow: /
